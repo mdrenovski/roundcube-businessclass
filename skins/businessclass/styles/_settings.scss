@@ -157,7 +157,7 @@
   // 3px bar. brand-fg-strong because brand on a tint fails 4.5:1 (§9).
   tr.selected {
     background: var(--bc-brand-tint-selected);
-    color: var(--bc-brand-fg-strong);
+    color: var(--bc-fg-on-tint);
     font-weight: var(--bc-weight-semibold);
 
     &::before { @include bc-brand-bar(var(--bc-s-8)); }
@@ -193,7 +193,7 @@
     justify-self: end;
     width: var(--bc-s-16);
     height: var(--bc-s-16);
-    accent-color: var(--bc-brand-primary);
+    accent-color: var(--bc-brand-fg);
     cursor: pointer;
 
     &:disabled { cursor: default; }
@@ -205,7 +205,7 @@
 
 // Drag feedback while a folder is being reparented (rcmail.subscription_list).
 .bc-foldertree li.droptarget > a {
-  outline: 2px dashed var(--bc-brand-primary);
+  outline: 2px dashed var(--bc-brand-fg);
   outline-offset: -2px;
 }
 
@@ -253,8 +253,8 @@
 }
 
 // Drop indicator while a filter is dragged to a new position in the script.
-.bc-filterlist tr.filtermoveup td { box-shadow: 0 -2px 0 0 var(--bc-brand-primary) inset; }
-.bc-filterlist tr.filtermovedown td { box-shadow: 0 2px 0 0 var(--bc-brand-primary) inset; }
+.bc-filterlist tr.filtermoveup td { box-shadow: 0 -2px 0 0 var(--bc-brand-fg) inset; }
+.bc-filterlist tr.filtermovedown td { box-shadow: 0 2px 0 0 var(--bc-brand-fg) inset; }
 
 // -- Detail pane --------------------------------------------------------------
 .bc-settings__detail { background: var(--bc-bg-1); }
@@ -381,7 +381,7 @@
 
     &:focus {
       border-bottom-width: 2px;
-      border-bottom-color: var(--bc-brand-primary);
+      border-bottom-color: var(--bc-brand-fg);
       outline: none;
     }
 
@@ -412,7 +412,7 @@
   input[type="radio"] {
     width: var(--bc-s-16);
     height: var(--bc-s-16);
-    accent-color: var(--bc-brand-primary);
+    accent-color: var(--bc-brand-fg);
   }
 
   input[type="checkbox"] + label,

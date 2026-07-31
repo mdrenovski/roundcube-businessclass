@@ -1,8 +1,8 @@
 <roundcube:object name="doctype" value="html5" />
 <roundcube:if condition="!env:framed || env:extwin" />
-<html lang="<roundcube:var name='env:bc_lang' />" data-bc-theme="<roundcube:var name='env:bc_theme' />" data-bc-density="<roundcube:var name='env:bc_density' />" style="--bc-brand-primary: <roundcube:var name='env:bc_accent' />">
+<html lang="<roundcube:var name='env:bc_lang' />" data-bc-theme="<roundcube:var name='env:bc_theme' />" data-bc-density="<roundcube:var name='env:bc_density' />" data-bc-sheet="<roundcube:var name='env:bc_sheet' />" style="--bc-accent: <roundcube:var name='env:bc_accent' />; --bc-accent-fill: <roundcube:var name='env:bc_accent_fill' />; --bc-on-accent: <roundcube:var name='env:bc_on_accent' />; --bc-accent-text: <roundcube:var name='env:bc_accent_text' />; --bc-accent-text-dark: <roundcube:var name='env:bc_accent_text_dark' />">
 <roundcube:else />
-<html lang="<roundcube:var name='env:bc_lang' />" class="iframe" data-bc-theme="<roundcube:var name='env:bc_theme' />" style="--bc-brand-primary: <roundcube:var name='env:bc_accent' />">
+<html lang="<roundcube:var name='env:bc_lang' />" class="iframe" data-bc-theme="<roundcube:var name='env:bc_theme' />" data-bc-sheet="<roundcube:var name='env:bc_sheet' />" style="--bc-accent: <roundcube:var name='env:bc_accent' />; --bc-accent-fill: <roundcube:var name='env:bc_accent_fill' />; --bc-on-accent: <roundcube:var name='env:bc_on_accent' />; --bc-accent-text: <roundcube:var name='env:bc_accent_text' />; --bc-accent-text-dark: <roundcube:var name='env:bc_accent_text_dark' />">
 <roundcube:endif />
 <head>
 	<roundcube:object name="meta" />

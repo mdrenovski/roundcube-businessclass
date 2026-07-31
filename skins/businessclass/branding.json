@@ -5,7 +5,9 @@
 		"header": "images/logo-default.svg",
 		"symbol": null,
 		"rail": null,
+		"rail_dark": null,
 		"login": "images/logo-default.svg",
+		"login_dark": null,
 		"favicon": null,
 		"print": null
 	},

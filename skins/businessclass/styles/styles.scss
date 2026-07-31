@@ -37,5 +37,9 @@
 // the file is gone. Nothing replaced it; each screen is now styled by the
 // partial that owns it.
 
+@use "contrast";      // §9  high contrast + forced-colors (§12 step 12).
+                      //     After every component, because that is what it
+                      //     overrides; before _responsive.scss, because a
+                      //     breakpoint still outranks a contrast mode.
 @use "responsive";    // §6  — LAST screen import
 @use "print";         // media-scoped

@@ -91,9 +91,9 @@ Log out and back in, then hard-refresh (`Ctrl`/`Cmd` + `Shift` + `R`).
 
 ## What is finished, and what is not
 
-Eleven of the fourteen build steps are done, bar the calendar. **Every screen in
-the skin is now designed** — nothing is scaffolding any more. What is left is the
-dark and high-contrast themes, mobile, the accessibility audit, and the calendar.
+Twelve of the fourteen build steps are done, bar the calendar. **Every screen in
+the skin is now designed** — nothing is scaffolding any more. What is left is
+mobile, the accessibility audit, and the calendar.
 
 | Area | State |
 | --- | --- |
@@ -111,7 +111,7 @@ dark and high-contrast themes, mobile, the accessibility audit, and the calendar
 | Bounce, generic plugin dialogs | Designed |
 | Plugin screens — PGP keys, folder sharing, password, help | Designed |
 | Calendar | Not built — see below |
-| Dark / high-contrast themes | Step 12 |
+| Dark, high-contrast and forced-colors themes | Designed |
 | Mobile and responsive | Step 13 |
 
 So: judge everything except the calendar.
@@ -197,7 +197,9 @@ would not follow — a cosmetic gain for a functional break.
     "header": "images/logo.svg",
     "symbol": null,
     "rail": null,
+    "rail_dark": null,
     "login": "images/logo.svg",
+    "login_dark": null,
     "favicon": null,
     "print": null
   },
@@ -206,14 +208,16 @@ would not follow — a cosmetic gain for a functional break.
 }
 ```
 
-### The five logo slots
+### The logo slots
 
 | Slot | Where | Replaces the product name? |
 | --- | --- | --- |
 | `header` | app header, on the accent band | **yes** — a full lockup with the name drawn in |
 | `symbol` | app header, on the accent band | no — a mark, with the name beside it as live text |
 | `rail` | foot of the app rail, below logout, rotated 90° | n/a |
+| `rail_dark` | the same, in the dark and high-contrast themes | n/a |
 | `login` | login card | n/a |
+| `login_dark` | the same, in dark | n/a |
 | `print` | letterhead on both print views | n/a |
 | `favicon` | browser tab | n/a |
 
@@ -223,6 +227,18 @@ separate entries rather than one plus a flag. Set both and `symbol` wins. Set
 neither and the name stands alone as text.
 
 The `rail` logo is rotated in CSS, so supply the ordinary horizontal lockup.
+
+**Supply `rail_dark` and `login_dark` if your logo is drawn in dark ink.** A logo
+is chosen against the surface it was designed for, and in the dark theme the rail
+is near-black and the login card is `#292929`. The JetHost lockup, which is navy,
+measures 1.50:1 and 1.13:1 against them — not faint, gone. Give the reversed
+version of your artwork here and the skin swaps to it whenever the theme resolves
+dark, including when the user's theme is "System" and their OS flips overnight.
+
+Both are optional. Leave them null and the light asset is used in every theme,
+which is exactly the behaviour of an install that has never heard of them. The
+skin will not invert your logo for you: `filter: invert()` on a two-colour lockup
+produces a colour nobody chose, and your brand is not ours to recolour.
 
 Set `brand_url` and it becomes a link to that address, opened in a new tab with
 `rel="noopener noreferrer"` and announced as "*vendor* website". Leave it null and
@@ -268,6 +284,22 @@ the "Forgot password?" link, because Roundcube has no reset flow of its own.
 The accent is validated server-side against `/^#[0-9a-f]{6}$/i` before it is
 echoed into the page. Logo paths are skin-relative; anything containing `..`,
 a colon or a leading slash is rejected.
+
+**Pick any accent you like — the skin will not let it become unreadable.** From
+your one hex it derives, server-side, the colour text must be on the accent band,
+a readable version of the accent for links and indicators on the light surface,
+and another for the dark one. A pale brand keeps its hue and is darkened until
+links reach 4.5:1 rather than shipping at 1.37:1; a mid grey, where neither black
+nor white would reach AA on it, is nudged off the middle so its buttons stay
+legible. Your hex is used exactly as given wherever it already works, which is
+almost always.
+
+Two places deliberately do **not** take your accent. The header band in dark is a
+neutral surface with your accent as a 2px rule beneath it — a band painted with
+an arbitrary hex has no text colour guaranteed to be readable on it, and this is
+what Fluent 2 and Outlook do. And the high-contrast theme ignores the accent
+entirely: it exists for people who need contrast, and an arbitrary brand colour
+is the one thing that cannot promise it.
 
 **The two JetHost presets are filled in** from the October 2025 brandbook and the
 RGB logo kit: symbol, rail, login, print and favicon assets derived by
@@ -412,6 +444,7 @@ else on screen is core's or a plugin's and is already translated by them.
 | --- | --- |
 | `businessclass_theme` | `light`, `dark`, `system`, `hc` |
 | `businessclass_density` | `comfortable`, `compact` |
+| `businessclass_sheet` | `theme`, `light` — the surface a message body is drawn on |
 | `businessclass_focused` | on / off |
 | `businessclass_folders_w` | 200–360 px, clamped server-side |
 | `businessclass_list_w` | 320–520 px, clamped server-side |
@@ -424,10 +457,37 @@ server-side. The reading-pane position also stays where Roundcube puts it,
 under **Mailbox view -> Layout**; both controls write the same setting and
 always agree on load.
 
+`businessclass_sheet` has no control in Settings: it is the sun/moon button in
+the reading pane, and it appears only in the dark and high-contrast themes,
+where there is something to choose. See "Reading mail in dark mode" below.
+
 These were called `fluent2_*` before the skin was named. An install that ran the
 earlier build keeps those rows in the database, unread; theme, density and pane
 widths fall back to their defaults once and are saved under the new names as
 soon as they are changed.
+
+### Reading mail in dark mode
+
+In the dark theme a message body is drawn on the dark surface, like the rest of
+the app. That is what Outlook does, and it is right for plain text and for the
+ordinary mail people send each other.
+
+It is **not** right for every message, and the reason is worth knowing. Outlook
+can darken safely because it rewrites the sender's CSS on the server, inverting
+their colours before the mail is ever painted. This skin cannot: a message body
+is untrusted and stays inside Roundcube's own sanitiser, so all a skin can set is
+the surface behind it. Mail that names a text colour but no background — common
+in newsletters and templated corporate mail — therefore arrives dark on dark.
+
+The sun button beside the flag in the reading pane puts that message on paper.
+The choice sticks for the messages after it, and the moon button puts it back.
+The button is hidden in the light theme, where the two are the same paper, and in
+the operating system's own high-contrast mode, where the OS has already taken the
+decision away.
+
+**Composing is always on white**, in every theme. What you type is what the
+recipient reads, and they will almost certainly read it on white; a dark editor
+invites setting a light text colour that makes the delivered mail unreadable.
 
 ---
 
@@ -441,7 +501,11 @@ npm run sprite       # regenerate the Fluent icon subset
 npm run lint         # both linters
 npm run lint:tokens  # fails if a hex colour appears outside _tokens.scss
 npm run lint:labels  # fails on an unregistered or untranslated label
+npm run verify       # the gate: build, both linters, every validator
+npm run verify:theme # contrast in all three themes, across five accents
 ```
+
+`npm run verify` is what has to pass before anything is called finished.
 
 `lint:labels` exists because a broken label is invisible in testing: Roundcube
 renders a missing one as its own key, which reads like content rather than like a
@@ -449,6 +513,16 @@ bug. It rejects `<roundcube:add_label name="a,b,c" />` (Roundcube registers that
 as one label of that literal name and nothing splits the comma — write one tag
 per label), a key `ui.js` looks up that no template registers, and any string in
 `en_US.inc` that a translation is missing.
+
+`verify:theme` is worth knowing about if you touch colour. It reads the compiled
+`styles.css`, resolves `var()` and `color-mix()` in Node, and checks WCAG ratios
+for around sixty token pairs in light, dark and high contrast — against **five
+different admin accents**, not just the shipped one. That last part is the point:
+the bugs it was written to catch were all invisible with `#0F6CBD` and severe
+with something else, including a 1.82:1 header band on a navy accent. 604 checks,
+about a second, no browser required.
+
+It also writes `.verify-out/t-theme-<theme>-<accent>.html` for looking at.
 
 Sass is the only build dependency. Icons come from
 [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons)

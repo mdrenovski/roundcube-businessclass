@@ -6,7 +6,9 @@
 		"header": null,
 		"symbol": "images/symbol-jethost.svg",
 		"rail": "images/logo-jethost-rail.svg",
+		"rail_dark": "images/logo-jethost-rail-dark.svg",
 		"login": "images/logo-jethost-login.svg",
+		"login_dark": "images/logo-jethost-login-dark.svg",
 		"favicon": "images/favicon-jethost.svg",
 		"print": "images/logo-jethost-print.svg"
 	},

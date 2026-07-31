@@ -176,7 +176,7 @@ body.task-login {
     @include bc-body1;
 
     &:focus {
-      border-color: var(--bc-brand-primary);
+      border-color: var(--bc-brand-fg);
       border-bottom-width: 2px;
       outline: none;
     }

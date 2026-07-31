@@ -1,0 +1,190 @@
+// =============================================================================
+// skins/businessclass/styles/_contrast.scss
+// High contrast and forced-colors — BUILD.md §9, §12 step 12.
+//
+// Loaded LAST among the screen styles (before _responsive.scss and _print.scss)
+// because everything here overrides a component, and the cascade decides. Its
+// two blocks answer two different questions:
+//
+//   html[data-bc-theme="hc"]        the user asked THIS APP for high contrast.
+//                                   The token values do most of it; what is left
+//                                   are the places where a *structure* assumed a
+//                                   tint was a wash rather than a solid fill.
+//
+//   @media (forced-colors: active)  the OPERATING SYSTEM has taken over colour.
+//                                   Nothing in _tokens.scss applies: the browser
+//                                   replaces every background, border and text
+//                                   colour after the cascade has run, with the
+//                                   user's own palette. The only things left to
+//                                   say are structural — and they must be said
+//                                   in system colours, which are the one kind of
+//                                   colour forced-colors honours.
+//
+// The two are deliberately NOT merged. A user can run the hc pref on a normal
+// display, and a user can run a Windows contrast theme with the skin set to
+// light. Both have to work, and they need different things.
+// =============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// -- The high-contrast preference ---------------------------------------------
+html[data-bc-theme="hc"] {
+  // In light and dark a "tint" is a 10-18% wash and the row's own spans keep
+  // their metadata greys on top of it, which is the design. Here the tint is a
+  // solid yellow and those greys are white, so every one of them has to come
+  // with the row — a selected message would otherwise be white text on yellow at
+  // 1.07:1, on the row a keyboard user is standing on.
+  //
+  // The descendant selector is blunt on purpose: it is the *fill* that changed
+  // meaning, so everything drawn on it changes with it, including whatever a
+  // plugin renders into a row this skin has never seen.
+  .bc-messagelist tr.message.selected,
+  .bc-messagelist tr.message.selected *,
+  .bc-contactlist tr.selected,
+  .bc-contactlist tr.selected * {
+    color: var(--bc-fg-on-tint);
+  }
+
+  // Icons follow currentColor (_reset.scss), so they come along with the rule
+  // above — except where a component pinned an icon colour of its own.
+  .bc-messagelist tr.message.selected .bc-icon,
+  .bc-contactlist tr.selected .bc-icon {
+    color: var(--bc-fg-on-tint);
+  }
+
+  // Every entry in the avatar palette is black-on-white here, so the disc has no
+  // edge and the initials float in the row. Worse for the account circle in the
+  // header, which carries no initials until a photo or a name resolves — with
+  // nothing drawn and nothing to draw it on, the control simply was not there.
+  .bc-avatar {
+    border: 1px solid var(--bc-stroke-1);
+  }
+
+  // Elevation is the other thing that stops working. Every shadow token is
+  // `none` here, so a popover, dialog or toast has nothing separating it from
+  // whatever is behind it — both are pure black. A border is what a shadow was
+  // standing in for.
+  .bc-popover,
+  .bc-toast,
+  .bc-dialog,
+  .ui-dialog,
+  .popupmenu,
+  .bc-quickactions {
+    border: 1px solid var(--bc-stroke-1);
+  }
+}
+
+// -- The OS forced-colors mode ------------------------------------------------
+// What the browser does here, and why almost nothing above is relevant:
+// background-color, color, border-color, box-shadow and fill are all replaced
+// with values from the user's system palette. Custom properties still resolve —
+// they just stop reaching the screen. So this block does not try to set colours
+// at all, except in system keywords, which are the escape hatch.
+@media (forced-colors: active) {
+  // The token values are still applied so that anything the browser does NOT
+  // force — a gradient stop, an SVG paint on a decorative element — lands
+  // somewhere sane rather than on the light theme's neutrals.
+  :root { @include bc-hc; }
+
+  // Surfaces. Every fill is Canvas now, so a popover, a dialog, the header band
+  // and the panes are all the same colour as each other and as the page. These
+  // borders are the entire visual structure of the app in this mode.
+  .bc-header,
+  .bc-rail,
+  .bc-folders,
+  .bc-messagelist,
+  .bc-reading,
+  .bc-popover,
+  .bc-toast,
+  .bc-dialog,
+  .ui-dialog,
+  .popupmenu,
+  .bc-quickactions,
+  .bc-login__card,
+  .bc-surface,
+  .bc-card {
+    border: 1px solid CanvasText;
+  }
+
+  // Controls have to look like controls. ButtonText is the system colour for a
+  // button's own text and border, and it is distinct from CanvasText in most
+  // contrast themes — which is what keeps a button from reading as a paragraph.
+  .bc-btn,
+  button,
+  input,
+  select,
+  textarea {
+    border: 1px solid ButtonText;
+  }
+
+  // Selection. Highlight/HighlightText are the user's own selection pair, and
+  // using them is how a selected row reads as selected rather than as a row with
+  // a fill the OS has just flattened away. forced-color-adjust: none on the pair
+  // together is what keeps the browser from re-forcing them apart.
+  .bc-messagelist tr.message.selected,
+  .bc-contactlist tr.selected,
+  .bc-folderlist .selected > a,
+  .bc-rail__btn[aria-current="page"] {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+
+    .bc-icon,
+    * { color: HighlightText; }
+  }
+
+  // The signals that were carrying meaning in colour alone. Each of these is a
+  // fill, so each was flattened to Canvas and vanished; CanvasText is the only
+  // colour available that is guaranteed to be visible on it.
+  //
+  // The unread bar, the selected-task indicator and the drag indicator all come
+  // from bc-brand-bar, which draws a ::before.
+  .bc-messagelist tr.message.unread::before,
+  .bc-folderlist .selected > a::before,
+  .bc-rail__btn[aria-current="page"]::before {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+
+  // A category dot is an 8px fill and its ring is a box-shadow — both gone.
+  // Redrawn as a real border, which forced-colors does honour.
+  .bc-dot {
+    forced-color-adjust: none;
+    background: CanvasText;
+    border: 1px solid CanvasText;
+  }
+
+  // An avatar is initials on a coloured disc. The disc is Canvas now, so without
+  // a border it is initials floating in the row.
+  .bc-avatar {
+    border: 1px solid CanvasText;
+  }
+
+  // The focus ring. bc-focus-ring draws outline + an inner box-shadow; the
+  // shadow is dropped in this mode, and the outline has to be a system colour or
+  // it is forced to the same CanvasText as everything else around it.
+  :focus-visible {
+    forced-color-adjust: none;
+    outline: var(--bc-focus-ring-w) solid Highlight;
+    outline-offset: var(--bc-s-2);
+    box-shadow: none;
+  }
+
+  // Links, so they are still distinguishable from body text.
+  a { color: LinkText; }
+
+  // Disabled controls. GrayText is the one system colour that survives on a
+  // disabled element, and opacity — which is what the skin uses elsewhere — is
+  // not a colour and so is not forced, leaving disabled and enabled identical.
+  [disabled],
+  [aria-disabled="true"],
+  .disabled {
+    color: GrayText;
+  }
+
+  // The message body is the sender's, and forced-colors already rewrites it.
+  // The sheet toggle has nothing to offer here, so the control is hidden rather
+  // than left as a button that visibly does nothing.
+  .bc-sheet-toggle { display: none; }
+}

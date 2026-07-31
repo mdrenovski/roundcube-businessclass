@@ -1,8 +1,8 @@
 {
   "name": "jethost-roundcube-businessclass",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "BusinessClass \u2014 a Fluent 2 skin for Roundcube 1.6.x",
+  "description": "BusinessClass — a Fluent 2 skin for Roundcube 1.6.x",
   "license": "GPL-3.0",
   "type": "commonjs",
   "scripts": {
@@ -19,8 +19,9 @@
     "verify:branding": "php tools/verify/brandingcheck.php .",
     "verify:idphoto": "php tools/verify/idphotocheck.php .",
     "verify:print": "node tools/verify/printcheck.mjs . .verify-out",
+    "verify:theme": "node tools/verify/themecheck.mjs . .verify-out",
     "verify:plugins": "node tools/verify/plugincheck.mjs . .verify-out",
-    "verify": "npm run build && npm run lint && npm run verify:templates && npm run verify:refs && npm run verify:prefs && npm run verify:branding && npm run verify:idphoto && npm run verify:print && npm run verify:plugins && node --check skins/businessclass/ui.js && php -l plugins/businessclass_prefs/businessclass_prefs.php"
+    "verify": "npm run build && npm run lint && npm run verify:templates && npm run verify:refs && npm run verify:prefs && npm run verify:branding && npm run verify:idphoto && npm run verify:theme && npm run verify:print && npm run verify:plugins && node --check skins/businessclass/ui.js && php -l plugins/businessclass_prefs/businessclass_prefs.php"
   },
   "devDependencies": {
     "sass": "^1.102.0"

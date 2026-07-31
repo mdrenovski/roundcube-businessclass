@@ -163,3 +163,9 @@ $labels['bc_photoconfirmremove'] = 'Remove the photo from this identity?';
 // localization. Roundcube has no "no key selected" of either kind.
 $labels['bc_nokeyselected'] = 'No key selected';
 $labels['bc_pickkey'] = 'Choose a key to see its details.';
+
+// The message-body sheet toggle in the reading pane (§12 step 12, D-68). Two
+// keys because the button names the ACTION it will perform, not the state it is
+// in — a toggle titled with its current state is the classic ambiguity.
+$labels['bc_sheetlight'] = 'Show this message on a light background';
+$labels['bc_sheetdark'] = 'Show this message on the dark background';

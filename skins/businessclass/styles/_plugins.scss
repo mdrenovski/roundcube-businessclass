@@ -102,7 +102,7 @@
   input[type="radio"] {
     width: var(--bc-s-16);
     height: var(--bc-s-16);
-    accent-color: var(--bc-brand-primary);
+    accent-color: var(--bc-brand-fg);
   }
 }
 
@@ -121,7 +121,7 @@
   border: 1px solid var(--bc-brand-stroke);
   border-radius: var(--bc-radius-m);
   background: var(--bc-brand-tint-selected);
-  color: var(--bc-brand-fg-strong);
+  color: var(--bc-fg-on-tint);
   @include bc-body1;
 }
 
@@ -254,7 +254,7 @@ table.records-table {
 
     &:focus {
       border-bottom-width: 2px;
-      border-bottom-color: var(--bc-brand-primary);
+      border-bottom-color: var(--bc-brand-fg);
       outline: none;
     }
   }
@@ -414,7 +414,7 @@ table.records-table {
 
     tbody tr.selected {
       background: var(--bc-brand-tint-selected);
-      color: var(--bc-brand-fg-strong);
+      color: var(--bc-fg-on-tint);
       font-weight: var(--bc-weight-semibold);
     }
   }
@@ -458,7 +458,7 @@ table.records-table {
     input[type="checkbox"] {
       width: var(--bc-s-16);
       height: var(--bc-s-16);
-      accent-color: var(--bc-brand-primary);
+      accent-color: var(--bc-brand-fg);
     }
 
     label {
@@ -532,7 +532,7 @@ table.records-table {
 
       &:focus {
         border-bottom-width: 2px;
-        border-bottom-color: var(--bc-brand-primary);
+        border-bottom-color: var(--bc-brand-fg);
         outline: none;
       }
     }
@@ -557,7 +557,7 @@ table.records-table {
     input[type="checkbox"] {
       width: var(--bc-s-16);
       height: var(--bc-s-16);
-      accent-color: var(--bc-brand-primary);
+      accent-color: var(--bc-brand-fg);
     }
 
     label {
@@ -590,7 +590,7 @@ table.records-table {
 
     &:focus {
       border-bottom-width: 2px;
-      border-bottom-color: var(--bc-brand-primary);
+      border-bottom-color: var(--bc-brand-fg);
       outline: none;
     }
   }

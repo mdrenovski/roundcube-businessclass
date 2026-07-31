@@ -30,7 +30,7 @@
   padding: var(--bc-s-2) var(--bc-s-4) var(--bc-s-2) var(--bc-s-8);
   border-radius: var(--bc-radius-m);
   background: var(--bc-brand-tint-selected);
-  color: var(--bc-brand-fg-strong);
+  color: var(--bc-fg-on-tint);
   @include bc-badge;
   white-space: nowrap;
 }
@@ -158,7 +158,7 @@ body.bc-refine-open .bc-shell { padding-right: 260px; }
   padding: 0 var(--bc-s-4);
   border-radius: var(--bc-radius-s);
   background: var(--bc-brand-tint-selected);
-  color: var(--bc-brand-fg-strong);
+  color: var(--bc-fg-on-tint);
   @include bc-badge;
   white-space: nowrap;
   text-overflow: ellipsis;

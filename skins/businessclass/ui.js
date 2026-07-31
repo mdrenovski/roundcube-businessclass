@@ -222,7 +222,153 @@
     if (['light', 'dark', 'system', 'hc'].indexOf(theme) < 0) theme = 'system';
     document.documentElement.setAttribute('data-bc-theme', theme);
     savePref('businessclass_theme', theme);
+    applyBrandArt();
+    syncSheetToggle();
   };
+
+  /**
+   * Is the app currently painting on a dark surface?
+   *
+   * The pref alone does not answer this: "system" is a media query, which is why
+   * nothing server-side can decide it and why anything that depends on the
+   * answer has to be done here. 'hc' counts as dark — its surfaces are black.
+   */
+  function isDark() {
+    var theme = document.documentElement.getAttribute('data-bc-theme');
+
+    if (theme === 'dark' || theme === 'hc') return true;
+    if (theme && theme !== 'system') return false;
+
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Brand artwork that has to change with the surface (§12 step 12, D-67)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Swap a logo for its reversed twin on dark surfaces.
+   *
+   * A logo drawn in dark ink is chosen against a light background — D-59 picked
+   * the positive JetHost lockup precisely because the rail is a light neutral.
+   * The same artwork measures 1.50:1 on the dark rail and 1.13:1 on the dark
+   * login card. It is not faint there, it is absent.
+   *
+   * Opt-in and non-destructive: an <img> takes part only by carrying a non-empty
+   * data-bc-src-dark, which is set from branding.json's logo.rail_dark /
+   * logo.login_dark. Every install that has not configured one keeps exactly the
+   * behaviour it has today, and the original src is stashed on first run so the
+   * swap is reversible however many times the theme changes in a session.
+   *
+   * Deliberately NOT a CSS filter. invert() on a two-colour lockup produces a
+   * colour nobody chose, and a brand is not ours to recolour.
+   */
+  function applyBrandArt() {
+    var nodes = document.querySelectorAll('img[data-bc-src-dark]');
+    var dark = isDark();
+
+    for (var i = 0; i < nodes.length; i++) {
+      var img = nodes[i];
+      var alt = img.getAttribute('data-bc-src-dark');
+
+      if (!alt) continue;                       // no reversed asset configured
+      if (!img.hasAttribute('data-bc-src-light')) {
+        img.setAttribute('data-bc-src-light', img.getAttribute('src') || '');
+      }
+
+      var want = dark ? alt : img.getAttribute('data-bc-src-light');
+      if (want && img.getAttribute('src') !== want) img.setAttribute('src', want);
+    }
+  }
+
+  function initBrandArt() {
+    applyBrandArt();
+
+    // "system" follows the OS, which can change under a session that is left
+    // open overnight — the tokens follow it by media query, and the artwork has
+    // to follow it too or the two disagree.
+    if (window.matchMedia) {
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      var onChange = function () { applyBrandArt(); syncSheetToggle(); };
+
+      if (mq.addEventListener) mq.addEventListener('change', onChange);
+      else if (mq.addListener) mq.addListener(onChange);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // The message-body sheet (§3.6, §12 step 12, D-68)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * A sender's HTML follows the theme by default, and this flips it to paper.
+   *
+   * Outlook darkens the message body too, and can do it safely because it
+   * rewrites the sender's CSS server-side before painting. Nothing here can: the
+   * body is untrusted and stays inside Roundcube's sanitiser (§3.6), so all a
+   * skin can set is the surface behind it. Mail that names a text colour but no
+   * background — most newsletters — therefore arrives dark on dark, and this is
+   * the one click that fixes it.
+   *
+   * The state is a preference rather than per-message, because someone whose
+   * mail needs paper needs it for the next message too.
+   */
+  businessclass.setSheet = function (sheet, persist) {
+    if (sheet !== 'light') sheet = 'theme';
+    document.documentElement.setAttribute('data-bc-sheet', sheet);
+
+    // The message opens in an iframe; the pref lives on the account, so the
+    // parent's own <html> is updated too or the next message reverts on load.
+    try {
+      if (window.parent && window.parent !== window && window.parent.document) {
+        window.parent.document.documentElement.setAttribute('data-bc-sheet', sheet);
+      }
+    } catch (e) {
+      // A cross-origin parent cannot happen in Roundcube, but a thrown
+      // SecurityError here would take the whole toggle down with it.
+    }
+
+    if (persist) savePref('businessclass_sheet', sheet);
+    syncSheetToggle();
+  };
+
+  /**
+   * Show the toggle only where it can do something, and name the action it will
+   * perform rather than the state it is in.
+   *
+   * Hidden in light: the sheet and the theme surface are the same paper there,
+   * so the button would be a control with no effect. forced-colors hides it too,
+   * from _contrast.scss — that decision belongs to the OS, not to this button.
+   */
+  function syncSheetToggle() {
+    var button = document.getElementById('bc-sheet');
+    if (!button) return;
+
+    var dark = isDark();
+    var onPaper = document.documentElement.getAttribute('data-bc-sheet') === 'light';
+    var use = button.querySelector('use');
+    var voice = button.querySelector('.voice');
+    var text = label(onPaper ? 'bc_sheetdark' : 'bc_sheetlight');
+
+    button.hidden = !dark;
+    button.setAttribute('aria-pressed', onPaper ? 'true' : 'false');
+    button.title = text;
+    if (voice) voice.textContent = text;
+    if (use) use.setAttribute('href', '#ic_fluent_weather_' + (onPaper ? 'moon' : 'sunny') + '_20_regular');
+  }
+
+  function initSheet() {
+    var button = document.getElementById('bc-sheet');
+    if (!button) return;
+
+    button.addEventListener('click', function () {
+      var onPaper = document.documentElement.getAttribute('data-bc-sheet') === 'light';
+      businessclass.setSheet(onPaper ? 'theme' : 'light', true);
+      businessclass.announce(label(onPaper ? 'bc_sheetlight' : 'bc_sheetdark'));
+    });
+
+    syncSheetToggle();
+  }
 
   // ---------------------------------------------------------------------------
   // Density (§7.2)
@@ -3821,6 +3967,11 @@
     decorateIconButtons(document);
     decorateDeclaredAvatars(document);
 
+    // Before anything paints a logo: on a dark surface the light artwork has to
+    // be swapped out, and the login screen carries one too — so this runs above
+    // initLogin() and not with the reading-pane block further down.
+    initBrandArt();
+
     // Sign-in is its own page with none of the shell on it; nothing below
     // applies there, and nothing here applies anywhere else.
     initLogin();
@@ -3841,6 +3992,7 @@
     initOverflow('bc-ribbon', '.bc-ribbon__more');
     decorateSender();
     initFlag();
+    initSheet();
     decorateAttachments();
 
     // Compose (§4.1), search (§4.3) and Settings (§4.4) — each no-ops where its
@@ -3962,9 +4114,16 @@
       if (props && props.item && props.item.length) decorateAttachmentRow(props.item[0]);
     });
   } else if (document.readyState === 'loading') {
-    // Login and other pages that do not boot rcube_webmail.
-    document.addEventListener('DOMContentLoaded', function () { decorateIconButtons(document); });
+    // Login and other pages that do not boot rcube_webmail. init() is never
+    // called here, so anything these pages need has to be named explicitly —
+    // and an error page carries the login logo, which on a dark surface is the
+    // reversed one (D-67).
+    document.addEventListener('DOMContentLoaded', function () {
+      decorateIconButtons(document);
+      initBrandArt();
+    });
   } else {
     decorateIconButtons(document);
+    initBrandArt();
   }
 })(window, document);

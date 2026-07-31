@@ -26,9 +26,13 @@ Roundcube Fluent 2 Theme Design.zip
 # it. See the trademark note in README.md.
 jethost-branding/
 
-# Local screenshots used while debugging against the live install
+# Local screenshots used while debugging against the live install, and against
+# GitHub itself. One pattern per prefix rather than a bare *.png: the skin ships
+# no PNGs today, but a README screenshot is a likely addition and a blanket rule
+# would silently refuse to commit it.
 debug-*.png
 rc-debug-*.png
+gh-debug-*.png
 
 # Editor and agent configuration — local to whoever is working, not the project
 .claude/

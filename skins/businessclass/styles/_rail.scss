@@ -125,7 +125,7 @@
   // (48 - 36) / 2 = 6px outside the button box.
   &.selected {
     background: var(--bc-brand-tint-selected);
-    color: var(--bc-brand-fg-strong);
+    color: var(--bc-fg-on-tint);
 
     &::before {
       @include bc-brand-bar(var(--bc-s-8), calc(var(--bc-s-8) * -0.75));

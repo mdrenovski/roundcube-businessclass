@@ -13,7 +13,11 @@
 
 		<div class="bc-login__brand">
 			<roundcube:if condition="env:bc_logo_login" />
-			<img class="bc-login__logo" src="/<roundcube:var name='env:bc_logo_login' />" alt="<roundcube:var name='env:bc_product_name' />">
+			<!-- data-bc-src-dark: the reversed lockup, used when the theme resolves
+			     dark. The login card is a dark surface there, against which a
+			     dark-ink logo measures 1.13:1. Empty unless branding.json sets
+			     logo.login_dark, and ui.js then leaves this one alone (D-67). -->
+			<img class="bc-login__logo" src="/<roundcube:var name='env:bc_logo_login' />" data-bc-src-dark="<roundcube:var name='env:bc_logo_login_dark' />" alt="<roundcube:var name='env:bc_product_name' />">
 			<roundcube:else />
 			<span class="bc-login__product"><roundcube:var name="env:bc_product_name" /></span>
 			<roundcube:endif />

@@ -621,6 +621,8 @@ the tab falls back to a generic icon. Cosmetic, and the alternative — a raster
 file — cannot follow the browser's colour scheme.
 
 ### D-58 · Navy exposes a dark-theme bug in the header (deferred to step 12)
+**CLOSED by D-66**, which found the high-contrast half of the same bug and
+removed the cause: the accent is no longer the token the themes must override.
 **FOUND.** `header.html:3` writes `--bc-brand-primary` as an *inline style* on
 `<html>`, which outranks the `bc-dark` mixin's `--bc-brand-primary: #479EF5`. So
 in dark mode the header band stays the admin's accent — but `bc-dark` also sets
@@ -772,9 +774,11 @@ all three now share one — so every assertion would have passed for every profi
 It keys on `logo.symbol` instead, which only the JetHost presets carry. The suite
 caught this itself on the first run after the change.
 
-**Still open for step 12:** D-58's dark-mode contrast. `--bc-on-brand` flips to
-black there while the band keeps the accent, which is 3.60:1 on `#0F6CBD` — worse
-than it looks, and the white symbol would flip with it.
+~~**Still open for step 12:** D-58's dark-mode contrast.~~ Closed by D-66 and
+D-67: the dark band is a neutral, so `--bc-on-brand` no longer has to work on the
+accent at all. The symbol stays white and reads on all three bands. The one case
+left is a *pale* accent in light, where the band goes pale and the white symbol
+with it — recorded as a known limit under D-67.
 
 ### D-64 · The rail logo links to the vendor's site when `brand_url` is set
 **Client-directed, reversing half of D-59.** `branding.json` gains `brand_url`;
@@ -842,3 +846,194 @@ machine with their inputs. Everything they generate is committed, `npm run verif
 passes on a bare clone, and nothing in the build, test or rebrand path needs
 either input. `ms-handoff/BUILD.md` is published with a preamble noting the skin's
 rename from `fluent2` and that the design file it points at is not in the repo.
+
+---
+
+## Step 12 — dark, high contrast, forced-colors
+
+### D-66 · The accent stops being the token the themes have to override
+**Closes D-58, and it was worse than D-58 recorded.** `header.html` wrote the
+admin's accent as `--bc-brand-primary`, an *inline style on `<html>`*. An inline
+style outranks every stylesheet rule, so `--bc-brand-primary` was the one token
+in the skin that no theme could restate. Measured on the real stylesheet, with
+the band's own text colour:
+
+| Theme | Accent | Band vs. its text |
+| --- | --- | --- |
+| Light | `#0F6CBD` | 5.38:1 |
+| Light | navy `#253082` | 11.51:1 |
+| Dark | `#0F6CBD` | **3.90:1** |
+| Dark | navy | **1.82:1** |
+| High contrast | `#0F6CBD` | **3.90:1** |
+| High contrast | navy | **1.82:1** |
+
+D-58 recorded the dark half. The high-contrast half is the one that mattered
+most: `bc-hc` sets `--bc-brand-primary: #1AEBFF` and it never applied, so the one
+theme that exists for people who need contrast kept the admin's band and put
+black on it. The mode was not merely imperfect, it was the worst of the three.
+
+**The fix is one level of indirection.** The inline properties are now raw input
+that nothing paints with directly:
+
+```
+--bc-accent            the brand hex, untouched
+--bc-accent-fill       nudged only if neither black nor white reaches AA on it
+--bc-on-accent         black or white, whichever reads on that fill
+--bc-accent-text       the accent made readable as text on #FFFFFF
+--bc-accent-text-dark  ... and on #292929
+```
+
+`:root` derives `--bc-brand-*` from those, and a theme can now restate any of it.
+All four derivations are computed **server-side** in `businessclass_prefs`,
+because every one is a contrast measurement and CSS cannot measure. Rejected:
+`color-contrast()` (not shipped in any browser this must run in) and a fixed
+per-theme `--bc-on-brand` (which is exactly the bug).
+
+Two brand tokens now, and the split is load-bearing:
+
+- `--bc-brand-primary` — a **fill** that `--bc-on-brand` text sits on: the header
+  band in light, the primary button, a checked checkbox.
+- `--bc-brand-fg` — anything that must be **seen** rather than sat on: links, the
+  unread bar, tab underlines, `accent-color`, drop outlines.
+
+A pale accent is a perfectly good fill with black on it and an unreadable link.
+33 declarations moved from the first to the second.
+
+### D-67 · The dark header is a neutral, and the brand moves to a 2px rule
+**Client-directed, offered against two alternatives.** In dark the band is
+`--bc-bg-2` with normal white text, and the accent becomes a 2px rule under it —
+what Fluent 2 and Outlook both do.
+
+The argument that decided it is not taste. A band painted with an *arbitrary*
+admin hex has **no** text colour guaranteed to reach 4.5:1 on it: a
+mid-luminance accent like `#767676` is 4.54:1 against white and 4.62:1 against
+black, and anything nearer the middle fails both. Keeping the coloured band in
+dark would have meant either rejecting accents or shipping a band that is
+sometimes unreadable. The neutral band is readable for every accent that exists,
+and the brand still shows — in the rule, and in every accented control below it.
+
+Also decided here, and cheaper: a **dark-ink logo disappears in dark.** Measured,
+`logo-jethost-rail.svg` is 1.50:1 on the dark rail and `logo-jethost-login.svg`
+is 1.13:1 on the dark login card. Not faint — absent. `branding.json` gains
+optional `logo.rail_dark` and `logo.login_dark`; absent, the light asset is used
+unchanged, so no existing install changes behaviour. `ui.js` does the swap
+because "system" is a media query and the server cannot know how it resolved.
+Rejected: a CSS `filter: invert()`, which produces a colour nobody chose, and a
+light plate behind the logo, which is a bright patch in a dark rail.
+
+The JetHost reversed pair is derived from the kit's own "on BLACK" lockup by
+`npm run brand:assets` — the brandbook's reversed artwork, not a recolour.
+
+**Known limit, not fixed:** the header *symbol* slot is a single asset and is
+white, chosen for the accent band. An admin who sets a *pale* accent gets a black
+`--bc-on-accent` and a white symbol on a pale band. The remedy is to supply a
+dark symbol; no code can pick one. Not worth a `symbol_dark` slot until an
+install actually hits it.
+
+### D-68 · A message body follows the theme, with a one-click sheet
+**Client-directed, and against my recommendation — recorded because the
+trade-off is real and someone will ask.** In dark, a sender's HTML sits on the
+dark surface by default, with a sun/moon toggle in the reading pane that flips
+that message — and every message after it — to paper. Persisted as
+`businessclass_sheet`.
+
+The client asked which way the popular clients go. The honest answer is that they
+are split, and Outlook — the client this skin is modelled on — darkens:
+
+| Client | HTML body in dark |
+| --- | --- |
+| Outlook (web / new) | **Darkened**, with a per-message toggle back to light |
+| Gmail (web) | Chrome darkens; bodies stay effectively light |
+| Apple Mail | Plain text follows; HTML with its own background is left alone |
+| Thunderbird | Bodies light; dark-message mode is opt-in |
+
+So the toggle is Outlook's design and was adopted. **The default direction is the
+part worth understanding.** Outlook can darken safely because it runs a
+colour-inversion engine over the sender's CSS server-side before painting.
+Nothing here can: the body is untrusted and stays inside Roundcube's sanitiser
+(§3.6), so all a skin can set is the surface behind it. Mail that names a text
+colour but no background — common in newsletters — therefore opens dark on dark.
+I recommended defaulting to paper for that reason; the client chose Outlook
+parity, which is a defensible reading of "make it feel like Outlook", and the
+toggle makes it one click to recover. This paragraph is the record of what that
+default costs.
+
+The tokens are `--bc-sheet-bg` / `--bc-sheet-fg` / `--bc-sheet-stroke`, and
+`html[data-bc-sheet="light"]` is the only thing that changes them. Print
+overrides them to paper regardless of how the reader had it set.
+
+### D-69 · The compose editor never goes dark
+The editing surface is white in every theme; only the chrome around it follows.
+
+Composing is WYSIWYG: what the sender types is what the recipient reads, and the
+recipient will almost certainly read it on white. A dark editor invites a sender
+to set a light text colour to suit what they see, which produces mail that is
+unreadable for everyone who receives it — the skin would be helping a user damage
+their own outbound mail.
+
+It holds structurally rather than by convention: `embed.css` styles that surface,
+every theme block in `_tokens.scss` is keyed on an attribute of `<html>`, and
+`rcmail_html_page::write()` emits a bare `<html>`. Nothing can match.
+`themecheck.mjs` asserts it, so a theme block written against a bare `:root`
+fails the build rather than quietly darkening every compose window.
+
+### D-70 · Text on a tint is its own token
+`--bc-fg-on-tint`. §9 already treated this as a distinct case ("never use brand
+for body text on tinted rows; use fg-strong there") but it had no token, so a
+theme could restate the tint and not the text on it.
+
+High contrast is where that bit: it paints the selected row `#FFFF00` and left
+the text at `--bc-fg-1`, which is white there — **1.07:1, on the row a keyboard
+user is standing on.** In light and dark the token resolves to
+`--bc-brand-fg-strong` and nothing changes; in high contrast it is black.
+
+`_contrast.scss` carries the structural half: in that theme a tint is a *solid
+fill* rather than a 10–18% wash, so every span inside a selected row has to come
+with it, including spans a plugin renders that this skin has never seen.
+
+### D-71 · forced-colors gets a real pass; the old block asserted nothing
+What was there was `* { forced-color-adjust: auto }` — which is the default, so
+it did nothing at all — plus borders on three classes. Replaced with
+`_contrast.scss`, loaded after every component so it can override them.
+
+What the mode actually does: the browser replaces every background, border and
+text colour *after* the cascade, from the user's palette. So none of the token
+work above reaches the screen, and the only colours that mean anything are the
+system keywords. The new block draws surface borders in `CanvasText`, control
+borders in `ButtonText`, selection in `Highlight`/`HighlightText`, links in
+`LinkText`, disabled state in `GrayText`, and redraws the four signals that were
+pure fills and therefore vanished — the unread bar, the selected-task indicator,
+the category dot and the avatar disc.
+
+`color-scheme` is also declared for the first time (`light` / `dark` /
+`light dark` / `dark`). Without it the browser paints its own scrollbars,
+`<select>` drop-downs and date pickers light-on-white inside a dark app, and no
+stylesheet can reach any of them.
+
+### D-72 · The contrast gate is arithmetic, not a browser
+`tools/verify/themecheck.mjs`, in `npm run verify`. It reads the compiled
+`styles.css`, resolves `var()` and `color-mix()` itself, and computes WCAG ratios
+for 60-odd token pairs across three themes and **five accents** — 604 checks,
+about a second, no Chrome.
+
+Sweeping accents is the point. Every bug above was invisible with the shipping
+`#0F6CBD` and severe with something else: the header at 1.82:1 on navy, a 1.37:1
+link on a pale accent, a 3.95:1 primary button on a mid grey. A gate that only
+checked the shipped accent would have passed all of them.
+
+It also asserts the things arithmetic cannot reach: that the high-contrast theme
+never reads `--bc-accent`, that `color-scheme` is declared in all four places,
+that the forced-colors block uses real system colours and contains no
+`forced-color-adjust: auto`, that `embed.css` cannot darken, and that the PHP
+luminance pivot still matches the one this file assumes — the two sit on opposite
+sides of a contract and would otherwise drift silently.
+
+Two assertions were wrong when first written and were corrected rather than
+worked around: `--bc-stroke-1` is the *decorative* stroke (a secondary button's
+outline, identified by its label) and is Fluent's own `#D1D1D1`, so 3:1 does not
+apply to it — `--bc-stroke-accessible` is the token that carries that
+requirement, and it is what every input is actually bordered with. And a category
+*dot* is not required to clear 3:1 on its own, because the chip beside it is
+always labelled; the dot now carries a 1px ring in its own `-fg` step instead, so
+the hue survives and the shape is visible. Amber was 2.16:1 on white and every
+dot was under 3:1 on the dark surface, the worst at 1.56:1.

@@ -59,6 +59,24 @@
 					<span class="voice"><roundcube:label name="flag" /></span>
 					<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_flag_20_regular" /></svg>
 				</button>
+				<!-- The message-body sheet (§12 step 12, D-68).
+
+				     A sender's HTML follows the dark theme by default, which is
+				     what Outlook does. Outlook can afford it because it inverts
+				     the sender's CSS server-side before painting; nothing here
+				     can, because the body is untrusted and stays inside
+				     Roundcube's sanitiser (§3.6). So mail that names a text
+				     colour and no background comes out dark on dark, and this is
+				     the one click that fixes it.
+
+				     Hidden in light, where there is nothing to choose, and in
+				     forced-colors, where the OS has already taken the decision
+				     away. ui.js does the first; _contrast.scss does the second. -->
+				<button type="button" id="bc-sheet" class="bc-iconbtn bc-iconbtn--sm bc-sheet-toggle" hidden
+					aria-pressed="false" title="<roundcube:label name='bc_sheetlight' />">
+					<span class="voice"><roundcube:label name="bc_sheetlight" /></span>
+					<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_weather_sunny_20_regular" /></svg>
+				</button>
 				<!-- Pin is a $Pinned IMAP keyword (§7.5) and arrives with step 6. -->
 			</div>
 		</div>
@@ -105,5 +123,7 @@
 <roundcube:add_label name="unflagged" />
 <roundcube:add_label name="markflagged" />
 <roundcube:add_label name="markunflagged" />
+<roundcube:add_label name="bc_sheetlight" />
+<roundcube:add_label name="bc_sheetdark" />
 
 <roundcube:include file="/templates/includes/footer.html" />

@@ -392,11 +392,29 @@
 }
 
 // -- Body ---------------------------------------------------------------------
+// The sheet: the surface a SENDER's content is painted on, which is a separate
+// decision from the surface the app is painted on (§12 step 12, D-68).
+//
+// In light the two are the same paper and nothing here is visible. In dark they
+// are the same by default — Outlook's behaviour, and what was chosen — until the
+// reading pane's toggle sets data-bc-sheet="light" on <html>, at which point
+// these two tokens become paper and this block is the only thing that changes.
+//
+// The padding and the rule only appear when the sheet differs from the pane
+// behind it: a white block floating on a dark reading pane needs an edge, and in
+// light there is nothing to put an edge around.
 .bc-message__body {
   margin-top: var(--bc-s-20);
   max-width: var(--bc-read-measure);
   font: var(--bc-weight-regular) var(--bc-size-body2) / var(--bc-lh-body2) var(--bc-font-body);
-  color: var(--bc-fg-1);
+  background: var(--bc-sheet-bg);
+  color: var(--bc-sheet-fg);
+}
+
+html[data-bc-sheet="light"] .bc-message__body {
+  padding: var(--bc-s-16);
+  border: 1px solid var(--bc-sheet-stroke);
+  border-radius: var(--bc-radius-l);
 }
 
 // A plain-text part keeps its own wrapping.

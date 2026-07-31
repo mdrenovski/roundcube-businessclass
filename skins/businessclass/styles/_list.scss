@@ -147,7 +147,7 @@
 // Active tab: brand text plus a 2px inset underline. aria-selected carries the
 // state, so the underline is confirmation rather than the only signal (§9).
 .bc-tabs__tab[aria-selected="true"] {
-  box-shadow: inset 0 -2px 0 var(--bc-brand-primary);
+  box-shadow: inset 0 -2px 0 var(--bc-brand-fg);
   color: var(--bc-brand-fg-strong);
   font-weight: var(--bc-weight-semibold);
 }
@@ -436,7 +436,7 @@
 // A collapsed root holding unread children, which core marks .unroot.
 .bc-messagelist tr.message.unroot .bc-threadcount {
   background: var(--bc-brand-tint-strong);
-  color: var(--bc-brand-fg-strong);
+  color: var(--bc-fg-on-tint);
 }
 
 // -- Categories (§8) ----------------------------------------------------------

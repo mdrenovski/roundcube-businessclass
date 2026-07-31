@@ -1,7 +1,14 @@
 // =============================================================================
 // skins/businessclass/styles/_header.scss
-// App header — 48px, --bc-brand-primary background (BUILD.md §3.2).
+// App header — 48px (BUILD.md §3.2).
 // Tokens only — no literal colors, sizes, radii or shadows.
+//
+// The band is painted from --bc-header-bg / --bc-header-fg / --bc-header-rule
+// rather than from the brand tokens directly, because it is the one surface the
+// themes do not agree about. Light paints it with the accent; dark makes it a
+// neutral and moves the brand into the 2px rule beneath; high contrast makes it
+// black. Reaching for --bc-brand-primary here would hard-code the light answer.
+// See _tokens.scss and docs/DECISIONS.md D-66.
 // =============================================================================
 
 @use "tokens" as *;
@@ -14,8 +21,11 @@
   gap: var(--bc-s-16);
   height: var(--bc-header-h);
   padding: 0 var(--bc-s-12);
-  background: var(--bc-brand-primary);
-  color: var(--bc-on-brand);
+  background: var(--bc-header-bg);
+  color: var(--bc-header-fg);
+  // An inset shadow, not a border: the header is 48px by redline and a border
+  // would make it 50 and push every pane down by two.
+  box-shadow: inset 0 calc(-1 * var(--bc-s-2)) 0 var(--bc-header-rule);
 }
 
 .bc-header__lead {
@@ -31,9 +41,10 @@
   gap: var(--bc-s-4);
 }
 
-// All header icons are --bc-on-brand at 20px (§3.2). The hover fill is the
-// on-brand colour at 12%, so it stays correct when the accent changes and when
-// --bc-on-brand flips to black in dark mode.
+// All header icons are --bc-header-fg at 20px (§3.2). The hover fill is that
+// same colour at 12%, so it follows the band without a second token: white at
+// 12% over the accent in light, white at 12% over the neutral in dark, and black
+// at 12% wherever a pale accent makes the text black.
 .bc-header__btn {
   display: grid;
   place-items: center;
@@ -41,18 +52,18 @@
   width: var(--bc-rail-btn);
   height: var(--bc-rail-btn);
   border-radius: var(--bc-radius-m);
-  color: var(--bc-on-brand);
+  color: var(--bc-header-fg);
   text-decoration: none;
   cursor: pointer;
   transition: background-color var(--bc-dur-fast) var(--bc-ease-decel);
 
   &:hover {
-    background: color-mix(in srgb, var(--bc-on-brand) 12%, transparent);
+    background: color-mix(in srgb, var(--bc-header-fg) 12%, transparent);
     text-decoration: none;
   }
 
   &:active {
-    background: color-mix(in srgb, var(--bc-on-brand) 20%, transparent);
+    background: color-mix(in srgb, var(--bc-header-fg) 20%, transparent);
   }
 }
 
@@ -63,7 +74,7 @@
   gap: var(--bc-s-8);
   min-width: 0;
   padding-left: var(--bc-s-4);
-  color: var(--bc-on-brand);
+  color: var(--bc-header-fg);
   text-decoration: none;
 
   &:hover { text-decoration: none; }
@@ -96,7 +107,7 @@
 .bc-header__product {
   @include bc-body1-strong;
   @include bc-truncate;
-  color: var(--bc-on-brand);
+  color: var(--bc-header-fg);
 }
 
 // -- Search (§3.2, §4.3) ------------------------------------------------------
@@ -136,7 +147,7 @@
 
   &:focus-within {
     @include bc-focus-ring;
-    border-color: var(--bc-brand-primary);
+    border-color: var(--bc-brand-fg);
   }
 }
 
@@ -180,7 +191,7 @@
   &[aria-expanded="true"] {
     background: var(--bc-brand-tint-selected);
     border-color: var(--bc-brand-stroke);
-    color: var(--bc-brand-fg-strong);
+    color: var(--bc-fg-on-tint);
   }
 }
 

@@ -1,7 +1,8 @@
 # Status — what is built and what is left
 
-Last updated: **2026-07-30** — step 11 built: the remaining plugin screens, and
-`_scaffold.scss` deleted. The calendar half of step 11 stays deferred.
+Last updated: **2026-07-31** — step 12 built: dark, high contrast and
+forced-colors, plus the contrast gate that holds them. The calendar half of step
+11 stays deferred.
 
 ## The 14 steps (`ms-handoff/BUILD.md` §12)
 
@@ -18,8 +19,8 @@ Last updated: **2026-07-30** — step 11 built: the remaining plugin screens, an
 | 9 | Settings, folder manager, identities, managesieve | **Done** |
 | 10 | Contacts | **Done** |
 | 11 | Calendar and remaining plugins | **Done except the calendar** |
-| 12 | Dark + high contrast + forced-colors | **Next** |
-| 13 | Responsive/mobile incl. swipe + FAB + bottom tabs | Not started |
+| 12 | Dark + high contrast + forced-colors | **Done** |
+| 13 | Responsive/mobile incl. swipe + FAB + bottom tabs | **Next** |
 | 14 | Accessibility audit (§9), then icon subset finalisation | Not started |
 
 Plus two unnumbered additions made at the user's request after step 10, both signed
@@ -57,6 +58,51 @@ template name and CSS hook in that step. **Ask before starting it.**
 
 Still stubs: `_calendar.scss` (the deferred step 11 half) and `_responsive.scss`
 (step 13).
+
+---
+
+## Step 12 — what was built
+
+The three themes existed before this step; what they did not do was *hold*. The
+accent was written as `--bc-brand-primary` in an inline style on `<html>`, which
+outranks every stylesheet, so it was the one token no theme could restate.
+Measured on the real stylesheet:
+
+| Theme | Accent | Header band vs. its text |
+| --- | --- | --- |
+| Dark | `#0F6CBD` | 3.90:1 |
+| Dark | navy `#253082` | 1.82:1 |
+| High contrast | either | 3.90:1 / 1.82:1 |
+
+D-58 had recorded the dark half. The high-contrast half was new and worse: the
+theme that exists for people who need contrast never got its black band at all.
+
+| | |
+| --- | --- |
+| **The accent** | Now five inline properties — the raw hex plus four derivations computed server-side, because each is a contrast measurement and CSS cannot measure. Themes derive from those and can override any of it (D-66). |
+| **`--bc-brand-primary` vs `--bc-brand-fg`** | Fills that carry on-brand text, versus anything that must be *seen*. 33 declarations moved. A pale accent is a fine fill and an unreadable link. |
+| **Dark** | The header band is a neutral with the brand as a 2px rule under it, which is what Fluent 2 and Outlook do and the only shape readable for *every* accent. The brand ramp is derived from the admin's accent instead of Microsoft's hard-coded `#479EF5`. Avatars inverted; tints re-derived. |
+| **High contrast** | Now actually applies. Black band, white rule, cyan accent, and `--bc-fg-on-tint` so the yellow selected row stops being white-on-yellow at 1.07:1 (D-70). |
+| **forced-colors** | Rewritten in `_contrast.scss`. The old block's one rule was `* { forced-color-adjust: auto }`, which is the default and did nothing (D-71). |
+| **`color-scheme`** | Declared for the first time. Without it the browser paints scrollbars, `<select>` drop-downs and date pickers light-on-white inside a dark app, and no stylesheet can reach them. |
+| **Logos in dark** | `logo.rail_dark` / `logo.login_dark` in `branding.json`, optional and falling back to the light asset. The JetHost lockups measured 1.50:1 and 1.13:1 on their dark surfaces — gone, not faint (D-67). |
+| **The message body** | Follows the theme by default with a sun/moon toggle to paper, persisted. Outlook's design; the record of what its default costs us is D-68. |
+| **The compose editor** | Stays white in every theme, structurally rather than by convention (D-69). |
+
+### The gate
+
+`npm run verify:theme` — `tools/verify/themecheck.mjs`, now part of
+`npm run verify`. It resolves the token graph in Node and computes WCAG ratios
+for 60-odd pairs across three themes and **five accents**: 604 checks in about a
+second, no browser.
+
+Sweeping accents is the whole point — every bug in this step was invisible with
+the shipped `#0F6CBD`. It also asserts what arithmetic cannot: that high contrast
+never reads the accent, that `color-scheme` is declared, that the forced-colors
+block uses real system colours, that `embed.css` cannot darken, and that the PHP
+luminance pivot still matches the one the tool assumes (D-72).
+
+Fixtures for the eye are written to `.verify-out/t-theme-<theme>-<accent>.html`.
 
 ## What exists, by area
 

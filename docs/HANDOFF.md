@@ -49,7 +49,8 @@ These come from the user directly and have held for the whole project.
    `plugins/businessclass_*`. Never edit `program/` or a plugin's own source —
    override its templates and CSS from the skin instead (`BUILD.md` §1.1).
 4. **No literal colours outside `_tokens.scss`.** Enforced by
-   `npm run lint:tokens` (`BUILD.md` §1.7, §13).
+   `npm run lint:tokens` (`BUILD.md` §1.7, §13) — including inside comments,
+   which is how it should be read: a hex in a comment goes stale silently.
 5. **Ask before adding any dependency** beyond Sass and the Fluent icon SVGs
    (`BUILD.md` §14).
 6. **No Microsoft product logos or illustrations, and no icon webfont**
@@ -63,6 +64,7 @@ These come from the user directly and have held for the whole project.
 | Invariant | Where |
 | --- | --- |
 | The admin accent hex is validated `/^#[0-9a-f]{6}$/i` server-side before it is echoed | `businessclass_prefs::sanitize_accent` |
+| The accent is **raw input**: `--bc-accent` is never painted with directly, so a theme can always restate it. High contrast in particular must never read it | `_tokens.scss`, asserted by `verify:theme` |
 | Asset paths from `branding.json` reject `..`, any `:`, and a leading `/` | `businessclass_prefs::sanitize_asset` |
 | HTML message bodies stay inside Roundcube's sanitiser; only minimal typographic CSS is injected | `BUILD.md` §3.6, `styles/embed.scss` |
 | Search tokens are IMAP-quoted and CR/LF-stripped client-side before entering `_filter`, which goes raw into IMAP SEARCH | `ui.js` `imapQuote` |
@@ -93,7 +95,10 @@ skins/businessclass/
   branding.json                  + branding.jethost.json, branding.jethost-bg.json
   watermark.html                 blankpage_url target — every detail pane 404s without it
   ui.js                          ~3750 lines, one IIFE, module comments keyed to BUILD.md §
-  styles/                        22 .scss + the committed styles.css and embed.css
+  styles/                        23 .scss + the committed styles.css and embed.css
+                                 _contrast.scss is high contrast + forced-colors,
+                                 loaded after every component because that is what
+                                 it overrides
   templates/                     25 templates + 8 includes
   templates/includes/sprite.html generated; inlined into every page
   plugins/<id>/templates/        template overrides: managesieve, acl, enigma, help
@@ -120,7 +125,8 @@ npm run watch
 npm run sprite         # regenerate the icon subset (96 symbols currently)
 npm run brand:assets   # re-derive the JetHost logos + favicon from jethost-branding/
 npm run verify:branding # profile selection + the path guard on the profile name
-npm run verify         # build + both linters + all four validators + syntax checks
+npm run verify:theme   # contrast in every theme, swept across five accents
+npm run verify         # build + both linters + all five validators + syntax checks
 ```
 
 `npm run verify` is the gate. It runs:
@@ -133,6 +139,7 @@ npm run verify         # build + both linters + all four validators + syntax che
 | `verify:refs` | every icon, label, object and include a template names actually exists |
 | `verify:prefs` | the Appearance block renders, saves, sanitises and honours `dont_override` |
 | `verify:idphoto` | the photo well's three states, decided by core's *own* `parse_conditions`; and that the photo follows an identity's address without ever being lost, duplicated or overwritten |
+| `verify:theme` | every token pair meets §9 in light, dark and high contrast, for five different admin accents; plus the structural claims arithmetic cannot make — see below |
 | `verify:print` | `styles.css` really has a `@media print` block and an `@page`, and builds the print fixtures below |
 | `verify:plugins` | `_scaffold.scss` is gone and nothing reaches for its classes, and builds the ten plugin-screen fixtures below |
 | `node --check`, `php -l` | syntax |
@@ -140,6 +147,14 @@ npm run verify         # build + both linters + all four validators + syntax che
 `verify:idphoto` is worth reading if you touch anything in this area: it stubs
 address books that record every write, so its assertions are about what was written
 rather than about what the code looks like.
+
+`verify:theme` is the other one worth reading. It does not use a browser: it
+resolves the token graph out of the compiled `styles.css` — following `var()` and
+computing `color-mix()` itself — and does WCAG arithmetic on it. That is what
+makes it cheap enough to sweep **five accents**, which is the point. Every bug
+step 12 fixed was invisible with the shipped `#0F6CBD` and severe with a navy or
+a pale one: a 1.82:1 header band, a 1.37:1 link, a 3.95:1 primary button. A gate
+that only checked the shipped accent would have passed all three.
 
 ---
 
@@ -246,7 +261,7 @@ reports: empty `<h1>`/`<h2>`, duplicate `id`, "stray end tag `</form>`",
 
 ## Outstanding, not blocked on anything
 
-- Steps 12–14 (see [STATUS.md](STATUS.md)).
+- Steps 13–14 (see [STATUS.md](STATUS.md)).
 - **The calendar** — the deferred half of step 11. Which plugin has never been
   settled, and it decides every template name and CSS hook in that work.
   Ask before starting it.
