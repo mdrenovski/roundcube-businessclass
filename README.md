@@ -22,8 +22,10 @@ in 1.5 and earlier.
 
 ### 2. Upload three folders
 
-Over FTP, into your Roundcube directory (`public_html/rcube` in the JetHost test
-account):
+Over FTP, into your Roundcube directory. The paths below assume
+`public_html/rcube`, which is where the skin was developed and tested against a
+Roundcube installed by hand on a typical cPanel host — adjust them if yours
+lives elsewhere:
 
 | Upload this                      | To here                                        |
 | -------------------------------- | ---------------------------------------------- |

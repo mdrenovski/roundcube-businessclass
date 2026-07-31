@@ -25,8 +25,8 @@ four are for whoever *builds* it.
 
 ## The project in one paragraph
 
-Metodi (JetHost) wants several custom Roundcube skins to install across their
-hosting fleet for their clients to use. **BusinessClass is the first of them** — a
+Metodi (JetHost) wants a custom Roundcube skin to install across their
+hosting fleet for their clients to use. **That skin is BusinessClass** — a
 standalone Roundcube 1.6.x skin in the Microsoft Fluent 2 design language, built
 from `ms-handoff/BUILD.md` plus the design HTML, rebrandable per install through
 one JSON file, and free to redistribute. It ships on JetHost's own servers, so
