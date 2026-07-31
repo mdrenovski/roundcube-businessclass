@@ -1,0 +1,41 @@
+// =============================================================================
+// skins/businessclass/styles/styles.scss
+// Compile manifest for the Roundcube "businessclass" skin.
+//
+//   npm run build     -> styles.css   (committed; hosts have no build step)
+//   npm run watch     -> rebuild on save
+//
+// Import order IS the cascade order. Follows BUILD.md §2; _responsive.scss must
+// stay last among the screen styles so its breakpoints win (_print.scss after it
+// is media-scoped and cannot conflict).
+// =============================================================================
+
+@use "tokens";        // :root custom properties, themes, shared mixins  (PROVIDED)
+@use "reset";         // standalone baseline — nothing inherited from Elastic
+@use "mixins";        // no CSS output; layout helpers for the partials below
+
+@use "controls";      // §2  buttons, fields, chips, popovers, toasts, dialogs
+@use "shell";         // §3.1 app shell grid + pane splitters
+@use "header";        // §3.2
+@use "rail";          // §3.3
+@use "folders";       // §3.4
+@use "list";          // §3.5
+@use "reading";       // §3.6
+@use "compose";       // §4.1
+@use "login";         // §4.2
+@use "settings";      // §4.4
+@use "addressbook";   // §4.5
+@use "calendar";      // §4.6
+@use "search";        // §4.3
+@use "plugins";       // §2  bounce, dialogs, zipdownload, archive, markasjunk,
+                      //     notifier, password, acl, enigma, help (§12 step 11)
+
+// _scaffold.scss lived here until step 11. It existed because a missing template
+// is fatal (parse() raises a 404 and exits) and "extends": null leaves no parent
+// skin to borrow one from, so every screen had to render before its design was
+// built. Step 11 designed the last two — bounce and the generic dialog host — so
+// the file is gone. Nothing replaced it; each screen is now styled by the
+// partial that owns it.
+
+@use "responsive";    // §6  — LAST screen import
+@use "print";         // media-scoped

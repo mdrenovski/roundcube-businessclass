@@ -1,0 +1,23 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Generic dialog host (BUILD.md §12 step 11).
+
+     Any code that calls $rcmail->output->send('dialog') lands here, having
+     registered a 'dialogcontent' handler for the body. It is always loaded into
+     an <iframe> inside a jQuery UI dialog, so env:framed is true and
+     header.html renders no app chrome.
+
+     env:dialog_class is the one hook the caller has for influencing the
+     presentation, and it is the reason this template exists rather than just
+     being a <div>: core's raw-header viewer sets it to "text-nowrap"
+     (mail/headers.php:70), which _plugins.scss turns into the monospace,
+     horizontally-scrolling treatment raw headers need. Anything else a plugin
+     sets is passed straight through and simply has no rule of its own.
+
+     No dialog title, buttons or close control here — those belong to the
+     jQuery UI dialog wrapping this frame (_controls.scss). -->
+<div class="bc-dialogpage <roundcube:var name='env:dialog_class' />">
+	<roundcube:object name="dialogcontent" />
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

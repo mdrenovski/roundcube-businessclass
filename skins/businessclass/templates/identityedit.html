@@ -1,0 +1,76 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- One identity (§4.4). The signature editor here is TinyMCE in its cut-down
+     'identity' mode, which businessclass_prefs deliberately leaves alone — the
+     emoji plugin belongs on the compose editor, not on a signature. -->
+<div class="bc-formpage">
+	<div class="bc-formpage__head">
+		<h1 class="bc-formpage__title"><roundcube:object name="steptitle" /></h1>
+	</div>
+
+	<div class="bc-formpage__body bc-scroll">
+		<!-- Photo (§7.10). Deliberately outside the identity form: Roundcube's
+		     identities table has no photo column, so this writes to the photo of
+		     the contact whose address matches the identity, through the plugin's
+		     own action. Keeping it out of the form means core's save is untouched
+		     and there is no multipart enctype on a form that does not expect one.
+
+		     env:bc_idphoto is the address the identity is saved with, and
+		     businessclass_prefs sets it only when there is one — so an install
+		     without the plugin that would serve the upload does not render this at
+		     all. An identity being added has no address yet for a picture to hang
+		     on, and gets the explanation instead. -->
+		<roundcube:if condition="env:bc_idphoto &amp;&amp; !env:readonly" />
+		<fieldset class="bc-idphoto">
+			<legend><roundcube:label name="bc_photo" /></legend>
+
+			<div class="bc-idphoto__row">
+				<span id="bc-idphoto" class="bc-avatar bc-avatar--xl bc-idphoto__well" aria-hidden="true"></span>
+
+				<div class="bc-idphoto__actions">
+					<!-- A real file input, with a label styled as the button: the input is
+					     what opens the picker from the keyboard and what a screen reader
+					     announces as a file field. .bc-idphoto__file is visually hidden
+					     rather than display:none so it keeps both. The input comes first
+					     because the focus ring is drawn on the next sibling. -->
+					<input type="file" id="bc-idphoto-file" class="bc-idphoto__file" accept="image/*">
+					<label class="bc-btn bc-btn--secondary bc-idphoto__pick" for="bc-idphoto-file">
+						<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_arrow_upload_20_regular" /></svg>
+						<span class="bc-btn__label"><roundcube:label name="bc_photoupload" /></span>
+					</label>
+
+					<button type="button" id="bc-idphoto-remove" class="bc-btn bc-btn--secondary" hidden>
+						<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_delete_20_regular" /></svg>
+						<span class="bc-btn__label"><roundcube:label name="bc_photoremove" /></span>
+					</button>
+
+					<p class="bc-idphoto__hint"><roundcube:label name="bc_photohint" /></p>
+				</div>
+			</div>
+		</fieldset>
+		<roundcube:elseif condition="env:bc_idphoto_new" />
+		<fieldset class="bc-idphoto">
+			<legend><roundcube:label name="bc_photo" /></legend>
+			<p class="bc-idphoto__hint"><roundcube:label name="bc_photoaftersave" /></p>
+		</fieldset>
+		<roundcube:endif />
+
+		<roundcube:object name="identityform" size="40" textareacols="40" textarearows="6" />
+	</div>
+
+	<!-- A read-only identity (identities_level 3+, or one supplied by a plugin)
+	     has nothing to save, so neither button is rendered. -->
+	<roundcube:if condition="!env:readonly" />
+	<div class="bc-formpage__foot">
+		<roundcube:button command="save" type="input" class="bc-btn bc-btn--primary" label="save" />
+		<button type="button" id="bc-form-cancel" class="bc-btn bc-btn--secondary"><roundcube:label name="cancel" /></button>
+	</div>
+	<roundcube:endif />
+</div>
+
+<roundcube:add_label name="bc_changesdiscarded" />
+<roundcube:add_label name="bc_photouploading" />
+<roundcube:add_label name="bc_photoinvalid" />
+<roundcube:add_label name="bc_photoconfirmremove" />
+
+<roundcube:include file="/templates/includes/footer.html" />

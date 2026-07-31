@@ -1,0 +1,19 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Error page (BUILD.md §12 step 8).
+
+     Reached for a bad request, a missing template, an expired session or a
+     storage failure. Both objects are core's: pagetitle carries the title and
+     message the explanation. Deliberately quiet — an error is not the moment
+     for illustration — and it always offers the one action that gets the user
+     out of it. -->
+<main id="layout-content" class="bc-errorpage">
+	<div class="bc-empty bc-empty--page">
+		<svg class="bc-empty__icon" aria-hidden="true"><use href="#ic_fluent_warning_20_regular" /></svg>
+		<h1 class="bc-empty__title"><roundcube:object name="pagetitle" /></h1>
+		<roundcube:object name="message" id="message" class="bc-empty__text" />
+		<a class="bc-btn bc-btn--primary" href="<roundcube:var name='env:comm_path' />"><roundcube:label name="back" /></a>
+	</div>
+</main>
+
+<roundcube:include file="/templates/includes/footer.html" />

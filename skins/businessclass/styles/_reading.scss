@@ -1,0 +1,478 @@
+// =============================================================================
+// skins/businessclass/styles/_reading.scss
+// Reading pane, ribbon toolbar, message document (BUILD.md §3.6).
+//
+// Two documents share this file. In the three-column layout the ribbon is in
+// the shell and the message itself is inside #messagecontframe, which loads
+// message.html as its own page — so styles.css is linked in both, and the
+// selectors below have to work in either context.
+//
+// The message body is NOT in an iframe: Roundcube sanitises an HTML mail with
+// rcube_washtml and drops it inline into div.message-htmlpart (show.php:745).
+// That is why .bc-message__body resets inherited typography rather than relying
+// on isolation, and why nothing in the skin styles bare elements globally.
+//
+// Tokens only — no literal colors, sizes, radii or shadows.
+// =============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+.bc-reading {
+  @include bc-pane;
+  background: var(--bc-bg-1);
+}
+
+.bc-reading__frame {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+}
+
+// -- Ribbon (§3.6) ------------------------------------------------------------
+.bc-ribbon {
+  gap: var(--bc-s-4);
+  padding: 0 var(--bc-s-12);
+}
+
+.bc-toolbar__divider {
+  flex: none;
+  width: 1px;
+  height: var(--bc-s-20);
+  margin: 0 var(--bc-s-4);
+  background: var(--bc-stroke-2);
+}
+
+// The divider is decoration, not an action, so it is dropped rather than moved
+// into the menu once the bar starts overflowing (§5).
+.bc-ribbon.is-overflowing .bc-toolbar__divider { display: none; }
+
+// message.html renders its own ribbon only when the message has its own window.
+.bc-message__ribbon {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bc-bg-1);
+}
+
+// -- Popover (§5, §7.7) -------------------------------------------------------
+.bc-popover__anchor {
+  position: relative;
+  display: inline-flex;
+
+  &[hidden] { display: none; }
+}
+
+.bc-popover {
+  position: absolute;
+  top: calc(100% + var(--bc-s-4));
+  right: 0;
+  z-index: 30;
+  min-width: 180px;
+  max-height: 60vh;
+  padding: var(--bc-s-4);
+  overflow-y: auto;
+  @include bc-surface(var(--bc-radius-l), var(--bc-shadow-8));
+
+  &[hidden] { display: none; }
+}
+
+// Items are the real command elements, moved in from the toolbar and moved back
+// out on resize — so they are <a> and <button> both, and are matched by role.
+// The overridden properties are the toolbar's own: an item arriving here may
+// have been a primary brand button or a 32px icon square, and in the menu every
+// row has to read the same.
+.bc-popover [role="menuitem"],
+.bc-popover [role="menuitemradio"] {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--bc-s-8);
+  width: 100%;
+  height: auto;
+  padding: var(--bc-s-4) var(--bc-s-8);
+  border: 0;
+  border-radius: var(--bc-radius-m);
+  background: transparent;
+  box-shadow: none;
+  @include bc-caption2;
+  font-weight: var(--bc-weight-regular);
+  color: var(--bc-fg-1);
+  text-align: start;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover { background: var(--bc-bg-3); }
+  &:focus-visible { @include bc-focus-ring; }
+
+  &[aria-disabled="true"] {
+    color: var(--bc-fg-disabled);
+    pointer-events: none;
+  }
+
+  // In the popover the label is the item; the toolbar's visually-hidden span
+  // has to come back into view.
+  .voice,
+  .inner {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+}
+
+// A chosen radio item is marked with a tick, not colour alone (§9). The glyph
+// is reserved on every row so the labels do not shift as the choice moves.
+.bc-popover [role="menuitemradio"]::before {
+  content: "";
+  flex: none;
+  width: var(--bc-s-16);
+  text-align: center;
+  color: var(--bc-brand-fg-strong);
+}
+
+.bc-popover [role="menuitemradio"][aria-checked="true"] {
+  font-weight: var(--bc-weight-semibold);
+
+  &::before { content: "\2713"; }
+}
+
+.bc-popover [role="separator"] {
+  height: 1px;
+  margin: var(--bc-s-4) 0;
+  background: var(--bc-stroke-2);
+}
+
+// A destructive item sits last, behind a divider (§5).
+.bc-popover [role="menuitem"].bc-iconbtn--danger {
+  margin-top: var(--bc-s-4);
+  border-top: 1px solid var(--bc-stroke-2);
+  padding-top: var(--bc-s-8);
+  border-radius: 0 0 var(--bc-radius-m) var(--bc-radius-m);
+  color: var(--bc-danger);
+}
+
+// -- Message document ---------------------------------------------------------
+.bc-message {
+  padding: var(--bc-read-pad);
+}
+
+.bc-message__subject {
+  margin: 0;
+  @include bc-subtitle1;
+  color: var(--bc-fg-1);
+  text-wrap: pretty;
+}
+
+.bc-message__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bc-s-8);
+
+  &:not(:empty) { margin-top: var(--bc-s-8); }
+}
+
+// -- Sender block -------------------------------------------------------------
+.bc-message__sender {
+  display: grid;
+  grid-template-columns: var(--bc-s-40) minmax(0, 1fr) auto;
+  gap: var(--bc-s-12);
+  align-items: center;
+  margin-top: var(--bc-s-16);
+}
+
+// ui.js wraps the core <img> in an .bc-avatar so a sender with no address-book
+// picture still gets initials; the transparent GIF core returns shows them
+// through.
+.bc-message__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.bc-message__who { min-width: 0; }
+
+.bc-message__from {
+  @include bc-body1-strong;
+  color: var(--bc-fg-1);
+
+  // address_string() wraps the address itself in a titled span; the display
+  // name stays bold and the address beside it does not.
+  .rcmContactAddress {
+    font-weight: var(--bc-weight-regular);
+    color: var(--bc-fg-3);
+    text-decoration: none;
+  }
+}
+
+.bc-message__to {
+  @include bc-caption2;
+  @include bc-truncate;
+  color: var(--bc-fg-3);
+
+  a { color: inherit; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+}
+
+.bc-message__label { margin-inline-end: var(--bc-s-4); }
+
+// Core's own "…and N more" disclosure (address_string), which is the design's
+// "· 3 more".
+.bc-message__to .morelink {
+  color: var(--bc-brand-fg);
+  white-space: nowrap;
+}
+
+.bc-message__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--bc-s-2);
+}
+
+.bc-message__date {
+  @include bc-caption2;
+  color: var(--bc-fg-3);
+  white-space: nowrap;
+}
+
+.bc-message__marks { display: flex; gap: var(--bc-s-4); }
+
+.bc-iconbtn--sm {
+  width: var(--bc-s-24);
+  height: var(--bc-s-24);
+
+  .bc-icon {
+    width: var(--bc-s-16);
+    height: var(--bc-s-16);
+  }
+}
+
+// Flagged is the filled glyph in the danger colour, and aria-pressed carries
+// the state for anyone not seeing it (§9).
+#bc-flag[aria-pressed="true"] { color: var(--bc-danger); }
+
+// -- Remaining headers --------------------------------------------------------
+.bc-message__details {
+  margin-top: var(--bc-s-8);
+  @include bc-caption2;
+
+  > summary {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--bc-s-2) 0;
+    color: var(--bc-brand-fg);
+    cursor: pointer;
+
+    &:focus-visible { @include bc-focus-ring; }
+  }
+}
+
+// messageHeaders renders a two-column table of th-like cells (show.php:551).
+.bc-message__headers {
+  margin-top: var(--bc-s-8);
+  border-collapse: collapse;
+
+  td {
+    padding: var(--bc-s-2) var(--bc-s-8) var(--bc-s-2) 0;
+    vertical-align: top;
+    text-align: start;
+  }
+
+  .header-title {
+    width: 90px;
+    color: var(--bc-fg-3);
+  }
+
+  a { color: var(--bc-fg-1); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+}
+
+// -- Attachments (§3.6) -------------------------------------------------------
+// message_attachments() emits the <ul> whether or not there is anything in it,
+// so the empty case is hidden on the list itself rather than with :has() on the
+// section — :empty is exact here and needs no modern-selector fallback.
+.bc-attachments:empty { display: none; }
+
+.bc-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bc-s-4);
+  margin: var(--bc-s-16) 0 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    display: grid;
+    grid-template-columns: var(--bc-s-20) minmax(0, 1fr) auto;
+    gap: var(--bc-s-12);
+    align-items: center;
+    padding: var(--bc-s-8) var(--bc-s-12);
+    border: 1px solid var(--bc-stroke-2);
+    border-radius: var(--bc-radius-l);
+    background: var(--bc-bg-2);
+  }
+
+  // Core builds the row as a.filename > span.attachment-name + span.attachment-size.
+  .filename {
+    display: contents;
+    color: var(--bc-fg-1);
+    text-decoration: none;
+  }
+
+  .attachment-name {
+    grid-column: 2;
+    @include bc-caption2;
+    @include bc-truncate;
+    font-weight: var(--bc-weight-semibold);
+  }
+
+  .attachment-size {
+    grid-column: 2;
+    grid-row: 2;
+    @include bc-caption1;
+    color: var(--bc-fg-3);
+  }
+}
+
+// The file-type glyph ui.js prepends, keyed off the class core derives from the
+// MIME type (rcube_utils::file2class).
+.bc-attachments .bc-icon {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  color: var(--bc-fg-2);
+}
+
+// "Download all (zip)" — the zipdownload plugin's own link, when present.
+.bc-message__attachments .zipdownload,
+.bc-attachments .download {
+  @include bc-caption1;
+  color: var(--bc-brand-fg);
+  text-decoration: none;
+
+  &:hover { color: var(--bc-brand-fg-strong); text-decoration: underline; }
+}
+
+// -- Notices: draft, remote content, suspicious sender ------------------------
+.bc-message__notices:not(:empty) { margin-top: var(--bc-s-16); }
+
+#message-objects .notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bc-s-8);
+  padding: var(--bc-s-8) var(--bc-s-12);
+  border: 1px solid var(--bc-warning);
+  border-radius: var(--bc-radius-l);
+  background: var(--bc-warning-tint);
+  @include bc-caption2;
+  color: var(--bc-warning-fg);
+
+  + .notice { margin-top: var(--bc-s-8); }
+
+  a {
+    color: var(--bc-warning-fg);
+    font-weight: var(--bc-weight-semibold);
+    text-decoration: underline;
+  }
+}
+
+// The suspicious-address warning is a fraud signal, not a privacy default.
+#suspicious-content-message.notice {
+  border-color: var(--bc-danger-stroke);
+  background: var(--bc-danger-tint);
+  color: var(--bc-danger-fg);
+
+  a { color: var(--bc-danger-fg); }
+}
+
+// -- Body ---------------------------------------------------------------------
+.bc-message__body {
+  margin-top: var(--bc-s-20);
+  max-width: var(--bc-read-measure);
+  font: var(--bc-weight-regular) var(--bc-size-body2) / var(--bc-lh-body2) var(--bc-font-body);
+  color: var(--bc-fg-1);
+}
+
+// A plain-text part keeps its own wrapping.
+.bc-message__body .message-part div,
+.bc-message__body .message-part pre {
+  margin: 0;
+  font: inherit;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+// Sender HTML is untrusted. It is sanitised by rcube_washtml before it gets
+// here, but it still lands in this document, so the only styling applied to it
+// is typographic — and anything it brings of its own is left alone.
+.bc-message__body .message-htmlpart {
+  a { color: var(--bc-brand-fg); }
+
+  img { max-width: 100%; height: auto; }
+
+  blockquote {
+    margin: var(--bc-s-8) 0;
+    padding-left: var(--bc-s-12);
+    border-left: 2px solid var(--bc-stroke-1);
+    color: var(--bc-fg-2);
+  }
+}
+
+// Headers of an attached message/rfc822 part.
+.bc-message__partheaders {
+  margin-bottom: var(--bc-s-8);
+  @include bc-caption1;
+  color: var(--bc-fg-3);
+}
+
+// -- Footer actions (§3.6) ----------------------------------------------------
+.bc-message__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bc-s-8);
+  margin-top: var(--bc-s-24);
+  padding-top: var(--bc-s-16);
+  border-top: 1px solid var(--bc-stroke-2);
+}
+
+// -- Nothing selected (§12 step 8, §4.4) --------------------------------------
+// ui.js marks the pane, because show_contentframe() only hides the iframe with
+// an inline style and leaves nothing for CSS to match on.
+.bc-reading__empty { display: none; }
+
+.bc-reading.is-empty {
+  // Collapsed rather than display:none. show_contentframe(false) does not
+  // always hide the frame — when the frame is showing a real page it only
+  // points it back at blankpage (app.js:2603) — and where it does hide it, it
+  // does so with an inline style that would beat a display rule here. Zeroing
+  // the flex track is not something core ever writes inline, so this holds
+  // either way, and the empty block gets the whole pane instead of half of it.
+  .bc-reading__frame {
+    flex: 0 0 0;
+    height: 0;
+    visibility: hidden;
+  }
+
+  .bc-reading__empty {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+// -- Attachment / part viewer -------------------------------------------------
+// messagepart.html: a toolbar over an iframe showing one part of a message on
+// its own. Held the layout together from _scaffold.scss until that file was
+// deleted at step 11; the screen itself was built at step 4 and this is its
+// permanent home.
+.bc-partview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}

@@ -1,0 +1,32 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Generate a key pair. Unlike import and keyserver search, this one is loaded
+     into the keys screen's content frame rather than a dialog
+     (enigma_key_create → enigma_loadframe, enigma.js:147), so it carries its own
+     submit row.
+
+     keyform is a two-column table: the identities as a ul.proplist of
+     checkboxes, a key-type select, and password + confirm. Both password fields
+     are emitted as type="text" with an oninput that switches them to
+     type="password" once they have a value (enigma_ui.php:764) — a deliberate
+     trick to stop password managers filling them, and the reason
+     _plugins.scss cannot select these two on [type="password"].
+
+     The warning above the form is enigma's keystoragenotice: the private key is
+     stored on the server. It is the most important sentence on the page. -->
+<div class="bc-formpage bc-keycreate">
+	<div class="bc-formpage__head">
+		<h1 class="bc-formpage__title"><roundcube:label name="enigma.createkeys" /></h1>
+	</div>
+
+	<div class="bc-formpage__body bc-scroll">
+		<roundcube:object name="keyform" class="bc-keycreate__form" textarearows="6" />
+	</div>
+
+	<div class="bc-formpage__foot">
+		<roundcube:button command="plugin.enigma-key-save" type="input"
+			class="bc-btn bc-btn--primary" label="save" />
+	</div>
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

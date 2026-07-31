@@ -1,0 +1,124 @@
+<roundcube:object name="doctype" value="html5" />
+<roundcube:if condition="!env:framed || env:extwin" />
+<html lang="<roundcube:var name='env:bc_lang' />" data-bc-theme="<roundcube:var name='env:bc_theme' />" data-bc-density="<roundcube:var name='env:bc_density' />" style="--bc-brand-primary: <roundcube:var name='env:bc_accent' />">
+<roundcube:else />
+<html lang="<roundcube:var name='env:bc_lang' />" class="iframe" data-bc-theme="<roundcube:var name='env:bc_theme' />" style="--bc-brand-primary: <roundcube:var name='env:bc_accent' />">
+<roundcube:endif />
+<head>
+	<roundcube:object name="meta" />
+	<roundcube:object name="links" />
+	<roundcube:if condition="env:bc_favicon" />
+	<link rel="icon" href="/<roundcube:var name='env:bc_favicon' />">
+	<roundcube:endif />
+	<!-- One stylesheet for every screen, print included: _print.scss is compiled
+	     into styles.css behind @media print and a body.action-print hook, so the
+	     print views need no second request. A separate /styles/print.css was
+	     linked here for a while and never existed — every print view fetched a
+	     404 for it. -->
+	<link rel="stylesheet" href="/styles/styles.css">
+	<script>
+	// Resolve "system" before first paint so the correct theme is painted once.
+	// data-bc-theme is already on <html>; this only narrows "system" for the
+	// forced-colors/hc branches that cannot be expressed as a media query alone.
+	try {
+		var el = document.documentElement;
+		if (!el.getAttribute('data-bc-theme')) el.setAttribute('data-bc-theme', 'system');
+	} catch (e) {}
+	</script>
+</head>
+<body class="task-<roundcube:var name='env:task' /> action-<roundcube:var name='env:action' />">
+
+<roundcube:include file="/templates/includes/sprite.html" />
+
+<!-- The app header belongs to the shell, not to a pane. message.html includes
+     this same file for its document scaffolding, and inside the reading-pane
+     iframe there must be no second header, rail or search box — the parent
+     already has them. A message opened in its own window (extwin) is a full
+     page and keeps the chrome.
+
+     Compose in its own window is the exception: it is a window for one message,
+     with its own title bar and close button (§4.1), and an app header above
+     that would offer navigation the window cannot honour.
+
+     A print view is the other exception, and for the same reason: it is not
+     framed, so it used to render the whole header — brand, search box, settings,
+     avatar — straight onto the paper. Excluded here rather than hidden in CSS so
+     the markup, and the logo request behind it, are never made at all. -->
+<roundcube:if condition="!env:framed &amp;&amp; env:task != 'login' &amp;&amp; env:action != 'print' &amp;&amp; !(env:action == 'compose' &amp;&amp; env:extwin)" />
+<header id="bc-header" class="bc-header">
+	<div class="bc-header__lead">
+		<button type="button" id="bc-appmenu" class="bc-header__btn" aria-expanded="false" aria-controls="layout-menu" title="<roundcube:label name='arialabeltasknav' />">
+			<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_grid_20_regular" /></svg>
+			<span class="voice"><roundcube:label name="arialabeltasknav" /></span>
+		</button>
+		<a href="<roundcube:var name='env:comm_path' />" class="bc-header__brand">
+			<!-- Three branches, one slot. `symbol` is a mark, so the product name
+			     stays beside it as live text and the image is decorative — alt=""
+			     and aria-hidden, or a screen reader announces the brand twice.
+			     `header` is a full lockup with the name already drawn into it, so it
+			     replaces the text and carries the name as its alt. Neither set, the
+			     text stands alone. -->
+			<roundcube:if condition="env:bc_logo_symbol" />
+			<img class="bc-header__symbol" src="/<roundcube:var name='env:bc_logo_symbol' />" alt="" aria-hidden="true">
+			<span class="bc-header__product"><roundcube:var name="env:bc_product_name" /></span>
+			<roundcube:elseif condition="env:bc_logo_header" />
+			<img class="bc-header__logo" src="/<roundcube:var name='env:bc_logo_header' />" alt="<roundcube:var name='env:bc_product_name' />">
+			<roundcube:else />
+			<span class="bc-header__product"><roundcube:var name="env:bc_product_name" /></span>
+			<roundcube:endif />
+		</a>
+	</div>
+
+	<div class="bc-header__search">
+		<roundcube:if condition="env:task == 'mail' || env:task == 'addressbook'" />
+		<!-- §4.3. The field is core's searchform object, untouched — it is what
+		     carries _q and what rcmail.search_params() reads. The token list in
+		     front of it is ours: each chip is one extra IMAP criterion that ui.js
+		     merges into _filter, so no new server code is involved. Without JS
+		     the chips never appear and this is an ordinary quick-search box. -->
+		<div class="bc-search" role="search">
+			<div class="bc-search__box">
+				<svg class="bc-icon bc-search__icon" aria-hidden="true"><use href="#ic_fluent_search_20_regular" /></svg>
+				<ul id="bc-search-tokens" class="bc-search__tokens"></ul>
+				<roundcube:object name="searchform" class="bc-search__input" />
+				<button type="button" id="bc-search-clear" class="bc-search__clear" hidden
+					title="<roundcube:label name='resetsearch' />">
+					<span class="voice"><roundcube:label name="resetsearch" /></span>
+					<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_dismiss_20_regular" /></svg>
+				</button>
+			</div>
+
+			<roundcube:if condition="env:task == 'mail'" />
+			<button type="button" id="bc-refine-toggle" class="bc-btn bc-btn--secondary bc-search__filters"
+				aria-expanded="false" aria-controls="bc-refine">
+				<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_filter_20_regular" /></svg>
+				<span class="bc-btn__label"><roundcube:label name="bc_filters" /></span>
+			</button>
+			<roundcube:endif />
+		</div>
+		<roundcube:endif />
+	</div>
+
+	<div class="bc-header__trail">
+		<!-- No 'help' command or label exists in core (the help plugin supplies
+		     both), so this is driven by branding.json's support_url and is simply
+		     absent when the admin has not set one. -->
+		<roundcube:if condition="env:bc_support_url" />
+		<a class="bc-header__btn" href="<roundcube:var name='env:bc_support_url' />" target="_blank" rel="noopener noreferrer" title="<roundcube:label name='bc_support' />">
+			<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_question_circle_20_regular" /></svg>
+			<span class="voice"><roundcube:label name="bc_support" /></span>
+		</a>
+		<roundcube:endif />
+		<roundcube:button command="settings" type="link" class="bc-header__btn" label="settings" title="settings"
+			content="&lt;svg class=&quot;bc-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;use href=&quot;#ic_fluent_settings_20_regular&quot; /&gt;&lt;/svg&gt;" />
+		<!-- data-bc-avatar is what the initials and the palette entry come from and
+		     is always present; data-bc-photo is the address a real picture is
+		     looked up by, which businessclass_prefs publishes. Two attributes
+		     rather than one so the circle still carries initials with the plugin
+		     absent, and because the login name is not always an address. -->
+		<span class="bc-avatar bc-avatar--sm bc-header__avatar" data-bc-avatar="<roundcube:object name='username' />"
+			data-bc-photo="<roundcube:var name='env:bc_account_email' />" aria-hidden="true"></span>
+		<span class="voice"><roundcube:object name="username" /></span>
+	</div>
+</header>
+<roundcube:endif />

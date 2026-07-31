@@ -1,0 +1,77 @@
+// =============================================================================
+// skins/businessclass/styles/_mixins.scss
+// Layout helpers built on top of the token mixins (BUILD.md §2).
+// Emits no CSS of its own — mixins only.
+// =============================================================================
+
+@use "tokens" as *;
+
+/// A pane that scrolls its own content inside a grid/flex parent.
+/// min-height/min-width:0 is what stops grid children from refusing to shrink.
+@mixin bc-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+/// Square icon button (rail, toolbars, header).
+@mixin bc-icon-btn($size: 32px) {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: $size;
+  height: $size;
+  border-radius: var(--bc-radius-m);
+  color: var(--bc-fg-2);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color var(--bc-dur-fast) var(--bc-ease-decel);
+
+  &:hover { background: var(--bc-bg-3); }
+  &:active { background: var(--bc-bg-4); }
+}
+
+/// The 3px brand indicator used for unread rows, selected folders and the
+/// selected rail task (§3.3–§3.5). $inset is the vertical inset from the edges.
+@mixin bc-brand-bar($inset: 0, $left: 0) {
+  content: "";
+  position: absolute;
+  left: $left;
+  top: $inset;
+  bottom: $inset;
+  width: var(--bc-unread-bar-w);
+  border-radius: var(--bc-radius-s);
+  background: var(--bc-brand-primary);
+}
+
+/// Elevated floating surface: popovers, hover quick actions, toasts.
+@mixin bc-surface($radius: var(--bc-radius-l), $shadow: var(--bc-shadow-8)) {
+  border: 1px solid var(--bc-stroke-1);
+  border-radius: $radius;
+  background: var(--bc-bg-1);
+  box-shadow: $shadow;
+}
+
+/// Two type steps the design uses but the ramp panel does not name: the message
+/// row snippet (13/18) and the thread-count / category badges (11/16), both
+/// specified in BUILD.md §3.5 and drawn that way in the mockup. The design's
+/// typeRamp table stops at Caption 1 (12/16), so they live here rather than in
+/// the provided _tokens.scss, which is copied in verbatim. These two rules are
+/// the only literal font sizes in the skin.
+@mixin bc-caption2 { font: var(--bc-weight-regular) 13px/18px var(--bc-font-body); }
+@mixin bc-badge    { font: var(--bc-weight-semibold) 11px/16px var(--bc-font-body); }
+
+/// Below this width the shell drops to a single pane (§6).
+@mixin bc-narrow {
+  @media (max-width: 767px) { @content; }
+}
+
+/// Folder pane collapses into the rail; list + reading pane remain (§6).
+@mixin bc-medium {
+  @media (min-width: 768px) and (max-width: 1199px) { @content; }
+}
+
+@mixin bc-wide {
+  @media (min-width: 1200px) { @content; }
+}

@@ -1,0 +1,29 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Host page for plugin settings screens that are a single form rather than a
+     list plus a detail pane — password is the one in core (§4.4).
+
+     Two panes, not three: there is nothing to list. The plugin owns everything
+     inside plugin.body, including its own submit button, so _settings.scss
+     styles the primitives it emits (fieldset / legend / table.propform /
+     p.formbuttons) rather than imposing a layout on it (§1.1). -->
+<div id="layout" class="bc-shell bc-shell--settings-plain">
+	<roundcube:include file="/templates/includes/menu.html" />
+	<roundcube:include file="/templates/includes/settings-menu.html" />
+
+	<main id="layout-content" class="bc-reading bc-settings__detail">
+		<div class="bc-formpage">
+			<div class="bc-formpage__head">
+				<h1 class="bc-formpage__title"><roundcube:object name="pagetitle" /></h1>
+			</div>
+
+			<div class="bc-formpage__body bc-scroll">
+				<roundcube:object name="plugin.body" />
+			</div>
+
+			<roundcube:object name="plugin.footer" />
+		</div>
+	</main>
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

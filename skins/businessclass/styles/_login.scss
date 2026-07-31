@@ -1,0 +1,307 @@
+// =============================================================================
+// skins/businessclass/styles/_login.scss
+// Sign-in — BUILD.md §4.2.
+//
+// The form is rcmail_output_html::login_form(): a <table> of td.title (the
+// label) and td.input (the field), then <p class="formbuttons"> with the submit
+// button. It is styled where it stands, so the server selector, OAuth button
+// and any loginform_content plugin all keep working (§1.3).
+//
+// Tokens only — no literal colors, sizes, radii or shadows.
+// =============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// The app shell's [header, 1fr] grid does not apply here — there is no header —
+// and a short viewport must be able to scroll to reach the button.
+body.task-login {
+  overflow: auto;
+  background: var(--bc-bg-3);
+}
+
+.bc-login {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: var(--bc-s-24);
+}
+
+// Soft brand-tinted gradient (§4.2). An admin background image, when set, is
+// layered over it by ui.js from branding.json.
+.bc-login::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(160deg, var(--bc-brand-tint-selected) 0%, var(--bc-bg-3) 55%, var(--bc-bg-4) 100%);
+  background-size: cover;
+  background-position: center;
+}
+
+.bc-login__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  max-width: 376px;
+  padding: 36px var(--bc-s-32);
+  border-radius: var(--bc-radius-xl);
+  background: var(--bc-bg-1);
+  box-shadow: var(--bc-shadow-16);
+}
+
+// -- Brand --------------------------------------------------------------------
+.bc-login__brand {
+  display: flex;
+  align-items: center;
+  min-height: var(--bc-s-32);
+}
+
+.bc-login__logo {
+  max-width: 200px;
+  max-height: 36px;
+}
+
+.bc-login__product {
+  @include bc-subtitle1;
+  color: var(--bc-fg-1);
+}
+
+.bc-login__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bc-s-4);
+}
+
+.bc-login__title {
+  margin: 0;
+  @include bc-subtitle1;
+}
+
+.bc-login__subtitle {
+  margin: 0;
+  @include bc-body1;
+  color: var(--bc-fg-3);
+}
+
+// -- Error banner (§4.2) ------------------------------------------------------
+// Core appends one <div class="<type> content"> per notice into this container
+// and gives it role="alert" (app.js:8069). The banner is therefore each notice,
+// not the container — which also keeps the type (error / confirmation /
+// loading) on the element that carries the styling.
+.bc-login__message {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bc-s-8);
+
+  &:empty { display: none; }
+  &:focus-visible { @include bc-focus-ring; }
+
+  > div {
+    display: flex;
+    gap: var(--bc-s-8);
+    padding: var(--bc-s-8) var(--bc-s-12);
+    border: 1px solid var(--bc-stroke-2);
+    border-radius: var(--bc-radius-m);
+    background: var(--bc-bg-3);
+    color: var(--bc-fg-2);
+    @include bc-caption2;
+  }
+
+  // ui.js puts one icon inside each notice, matching its type.
+  .bc-icon { flex: none; }
+
+  > div.error,
+  > div.warning {
+    border-color: var(--bc-danger-stroke);
+    background: var(--bc-danger-tint);
+    color: var(--bc-danger-fg);
+
+    .bc-icon { color: var(--bc-danger); }
+  }
+
+  > div.confirmation {
+    border-color: var(--bc-success-stroke);
+    background: var(--bc-success-tint);
+    color: var(--bc-fg-1);
+
+    .bc-icon { color: var(--bc-success); }
+  }
+}
+
+// -- Fields -------------------------------------------------------------------
+.bc-login__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bc-s-12);
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  // Label above field, as the design draws it — the table is core's, the
+  // stacking is ours.
+  tr,
+  td {
+    display: block;
+    padding: 0;
+  }
+
+  tr + tr { margin-top: var(--bc-s-12); }
+
+  td.title {
+    padding-bottom: var(--bc-s-4);
+
+    label {
+      @include bc-caption2;
+      color: var(--bc-fg-2);
+    }
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  select {
+    width: 100%;
+    height: var(--bc-control-h);
+    padding: 0 var(--bc-s-12);
+    border: 1px solid var(--bc-stroke-accessible);
+    border-radius: var(--bc-radius-m);
+    background: var(--bc-bg-1);
+    color: var(--bc-fg-1);
+    @include bc-body1;
+
+    &:focus {
+      border-color: var(--bc-brand-primary);
+      border-bottom-width: 2px;
+      outline: none;
+    }
+  }
+
+  td.input { position: relative; }
+
+  // Room for the reveal toggle ui.js drops into the password cell; the class is
+  // set by the same code that inserts the button, so the padding is only ever
+  // reserved where a button actually exists.
+  td.input.bc-login__field--reveal input { padding-right: var(--bc-s-32); }
+}
+
+.bc-login__reveal {
+  position: absolute;
+  top: 50%;
+  right: var(--bc-s-4);
+  translate: 0 -50%;
+  display: grid;
+  place-items: center;
+  width: var(--bc-s-24);
+  height: var(--bc-s-24);
+  border-radius: var(--bc-radius-s);
+  color: var(--bc-fg-3);
+  cursor: pointer;
+
+  &:hover { color: var(--bc-fg-1); }
+  &:focus-visible { @include bc-focus-ring; }
+}
+
+// Full-width brand button (§4.2). Core emits it as <p class="formbuttons">.
+// Written out rather than @extend-ed: .bc-btn lives in another module, and Sass
+// cannot extend across @use boundaries.
+.bc-login__form .formbuttons,
+.bc-login__form .oauthlogin {
+  margin: var(--bc-s-4) 0 0;
+}
+
+// Scoped to the wrappers core puts the submit and the OAuth link in, not to
+// every button inside the form. As `.bc-login__form button` this also matched
+// the reveal toggle ui.js drops into the password cell, and beat
+// `.bc-login__reveal` on specificity — so the toggle came out full-width and
+// brand-filled, covering the field it belongs to.
+.bc-login__form .formbuttons button,
+.bc-login__form .formbuttons input[type="submit"],
+.bc-login__form .oauthlogin a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bc-s-8);
+  width: 100%;
+  height: var(--bc-control-h);
+  padding: 0 var(--bc-s-12);
+  border: 1px solid transparent;
+  border-radius: var(--bc-radius-m);
+  background: var(--bc-brand-primary);
+  color: var(--bc-on-brand);
+  font: var(--bc-weight-semibold) var(--bc-size-body1) / var(--bc-lh-body1) var(--bc-font-body);
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: var(--bc-shadow-2);
+
+  &:hover { background: var(--bc-brand-hover); }
+  &:active { background: var(--bc-brand-pressed); }
+  &:focus-visible { @include bc-focus-ring; }
+
+  &:disabled {
+    background: var(--bc-bg-4);
+    color: var(--bc-fg-disabled);
+    box-shadow: none;
+    cursor: default;
+  }
+}
+
+// An OAuth provider button, where one is configured, is the secondary way in.
+.bc-login__form .oauthlogin a {
+  background: var(--bc-bg-1);
+  border-color: var(--bc-stroke-1);
+  color: var(--bc-fg-1);
+  box-shadow: none;
+
+  &:hover { background: var(--bc-bg-3); }
+}
+
+// -- Aside + footer -----------------------------------------------------------
+.bc-login__aside {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bc-s-8);
+  @include bc-caption2;
+}
+
+.bc-login__link {
+  color: var(--bc-brand-fg);
+
+  &:hover { text-decoration: underline; }
+}
+
+.bc-login__lang {
+  min-width: 0;
+
+  &[hidden] { display: none; }
+
+  select {
+    max-width: 160px;
+    height: var(--bc-s-24);
+    padding: 0 var(--bc-s-4);
+    @include bc-caption2;
+  }
+}
+
+.bc-login__footer {
+  padding-top: 14px;
+  border-top: 1px solid var(--bc-stroke-3);
+  @include bc-caption1;
+  color: var(--bc-fg-3);
+  text-align: center;
+
+  &:empty { display: none; }
+}
+
+.bc-login__noscript {
+  position: relative;
+  margin-top: var(--bc-s-16);
+  color: var(--bc-danger-fg);
+  text-align: center;
+}

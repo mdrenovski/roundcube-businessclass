@@ -1,0 +1,21 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- One PGP key, loaded into the keys screen's content frame by
+     enigma_loadframe() (enigma.js:373). Read-only, so no footer.
+
+     tpl_key_data() emits three fieldsets: a two-column table of the basics,
+     then #enigmasubkeytable and #enigmausertable as table.records-table with a
+     real <thead>. Rows for a revoked or expired subkey, and for an invalid user
+     id, carry class="deleted" — _plugins.scss is what makes that legible rather
+     than just grey. -->
+<div class="bc-formpage bc-keyinfo">
+	<div class="bc-formpage__head">
+		<h1 class="bc-formpage__title"><roundcube:object name="keyname" /></h1>
+	</div>
+
+	<div class="bc-formpage__body bc-scroll">
+		<roundcube:object name="keydata" class="bc-keyinfo__data" />
+	</div>
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

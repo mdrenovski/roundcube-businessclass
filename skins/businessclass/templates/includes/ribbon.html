@@ -1,0 +1,65 @@
+<!-- Reading-pane ribbon (BUILD.md §3.6). Included twice, never both at once:
+     by mail.html above the preview iframe, and by message.html when the message
+     has its own window (env:framed is false only there). Living in the parent
+     means it is present, and correctly disabled, before any message is
+     selected — core drives that through set_button(), which sets aria-disabled
+     and tabindex=-1 on every registered command button.
+
+     Buttons carry label + innerclass rather than content=, because for
+     type="link" the renderer uses content INSTEAD of the label
+     (rcmail_output_html.php:1886); the icon is prepended by ui.js from
+     data-bc-icon, and without JS these stay working text buttons (§1.4).
+
+     data-bc-priority is the §5 overflow order: the highest number is moved into
+     the More popover first, and 1–3 are never moved. -->
+<h2 id="aria-label-mailtoolbar" class="voice"><roundcube:label name="arialabeltoolbar" /></h2>
+<div id="bc-ribbon" class="bc-toolbar bc-ribbon" role="toolbar" aria-labelledby="aria-label-mailtoolbar">
+
+	<roundcube:button command="reply" type="link" title="replytomessage" label="reply"
+		class="bc-btn bc-btn--primary bc-ribbon__item" innerclass="bc-btn__label"
+		data-bc-icon="arrow_reply" data-bc-priority="1" />
+
+	<roundcube:button command="reply-all" type="link" title="replytoallmessage" label="replyall"
+		class="bc-btn bc-btn--secondary bc-ribbon__item" innerclass="bc-btn__label"
+		data-bc-icon="arrow_reply_all" data-bc-priority="2" />
+
+	<roundcube:button command="forward" type="link" title="forwardmessage" label="forward"
+		class="bc-btn bc-btn--secondary bc-ribbon__item" innerclass="bc-btn__label"
+		data-bc-icon="arrow_forward" data-bc-priority="3" />
+
+	<div class="bc-toolbar__divider bc-ribbon__item" data-bc-priority="4" role="separator" aria-orientation="vertical"></div>
+
+	<roundcube:button command="delete" type="link" title="deletemessage" label="delete"
+		class="bc-iconbtn bc-iconbtn--danger bc-ribbon__item" innerclass="voice"
+		data-bc-icon="delete" data-bc-priority="5" />
+
+	<!-- Archive, markasjunk and zipdownload all register themselves into the
+	     "toolbar" container, and they are message actions — so this is their
+	     home, and the list toolbar hand-renders its own Archive instead. A
+	     container must not be rendered twice in one document: both copies would
+	     carry the same button ids and core would only ever find the first. -->
+	<roundcube:container name="toolbar" id="bc-ribbon-plugins" />
+
+	<roundcube:button command="print" type="link" title="printmessage" label="print"
+		class="bc-iconbtn bc-ribbon__item" innerclass="voice"
+		data-bc-icon="print" data-bc-priority="8" />
+
+	<!-- Whatever the overflow rule hides is moved in here by ui.js (§5). The
+	     anchor stays hidden until something is actually overflowing. -->
+	<div class="bc-popover__anchor bc-ribbon__more" hidden>
+		<button type="button" id="bc-ribbon-more" class="bc-iconbtn"
+			aria-haspopup="menu" aria-expanded="false" aria-controls="bc-ribbon-menu"
+			title="<roundcube:label name='moreactions' />">
+			<span class="voice"><roundcube:label name="moreactions" /></span>
+			<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_more_horizontal_20_regular" /></svg>
+		</button>
+		<div id="bc-ribbon-menu" class="bc-popover" role="menu" aria-labelledby="bc-ribbon-more" hidden></div>
+	</div>
+
+	<div class="bc-toolbar__spacer"></div>
+
+	<roundcube:if condition="!env:extwin" />
+	<roundcube:button command="extwin" type="link" title="openinextwin" label="openinextwin"
+		class="bc-iconbtn" innerclass="voice" data-bc-icon="open" />
+	<roundcube:endif />
+</div>

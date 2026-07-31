@@ -1,0 +1,29 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- One contact (BUILD.md §4.5), framed inside the detail pane of
+     addressbook.html. The Edit / Compose / Export / Delete toolbar is out in
+     that pane, not here: all four act on the parent's list selection.
+
+     Everything below the head is core's own markup — contactdetails renders
+     fieldset.contactfieldgroup > div.row > label.contactfieldlabel +
+     div.contactfieldcontent, one nested fieldset per field type. §4.5's
+     "90px 1fr definition grid" is that markup re-gridded in _addressbook.scss,
+     not a replacement for it (§1.3).
+
+     No placeholder= on contactphoto on purpose: without one core falls back to
+     a transparent GIF, which lets the initials avatar underneath show through
+     and a real photo cover it. §4.5 asks for the initials to be generated
+     client-side, so there is nothing to fetch when a contact has no picture. -->
+<div class="bc-contact">
+	<div class="bc-contact__head">
+		<roundcube:object name="contactphoto" id="contactpic" class="bc-avatar bc-avatar--xl bc-contact__photo" />
+		<roundcube:object name="contacthead" id="contacthead" class="bc-contact__ident" with-source="true" />
+	</div>
+
+	<div class="bc-contact__details">
+		<roundcube:object name="contactdetails" fieldset-class="bc-contact__section" short-legend-labels="true" />
+		<roundcube:container name="contactdetails" id="contact-details" />
+	</div>
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

@@ -1,0 +1,39 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Identities (BUILD.md §4.4). Same three panes as Preferences; the middle
+     one lists the identities and the detail pane is core's edit form in an
+     iframe. Delete is core's command and stays disabled until a row is
+     selected — set_button() marks that with aria-disabled, which is what the
+     toolbar styling keys off. -->
+<div id="layout" class="bc-shell bc-shell--settings">
+	<roundcube:include file="/templates/includes/menu.html" />
+	<roundcube:include file="/templates/includes/settings-menu.html" />
+
+	<div id="layout-list" class="bc-list">
+		<div class="bc-pane__head">
+			<h1 class="bc-pane__title"><roundcube:label name="identities" /></h1>
+			<roundcube:button command="add" type="link" title="newidentity" label="newidentity"
+				class="bc-iconbtn" innerclass="voice" data-bc-icon="person_add" />
+			<roundcube:button command="delete" type="link" title="delete" label="delete"
+				class="bc-iconbtn bc-iconbtn--danger" innerclass="voice" data-bc-icon="delete" />
+		</div>
+
+		<div class="bc-list__scroll bc-scroll">
+			<roundcube:object name="identitieslist" id="identities-table" class="bc-recordlist" noheader="true" />
+		</div>
+	</div>
+
+	<main id="layout-content" class="bc-reading bc-settings__detail"
+		aria-label="<roundcube:label name='identities' />">
+		<roundcube:object name="contentframe" id="preferences-frame" class="bc-reading__frame"
+			src="env:blankpage" title="arialabelidentityeditfrom" />
+
+		<div class="bc-empty bc-reading__empty">
+			<svg class="bc-empty__icon" aria-hidden="true"><use href="#ic_fluent_contact_card_20_regular" /></svg>
+			<p class="bc-empty__title"><roundcube:label name="bc_noidentityselected" /></p>
+			<p class="bc-empty__text"><roundcube:label name="bc_pickidentity" /></p>
+		</div>
+	</main>
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

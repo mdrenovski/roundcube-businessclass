@@ -1,0 +1,167 @@
+// =============================================================================
+// skins/businessclass/styles/_shell.scss
+// App shell grid (BUILD.md §3.1).
+//
+// §2's file list has no partial for the shell itself, so it lives here rather
+// than being smuggled into a pane's file.
+//
+// §3.1 describes one grid with a header row. It is split in two here — <body>
+// stacks the header and the shell, and #layout owns the [rail, folders, list,
+// 1fr] columns — because §1.2 requires #layout to keep Elastic's meaning, where
+// it contains only #layout-menu / -sidebar / -list / -content.
+// =============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// A column rather than a two-row grid. The task class is on <body> for every
+// document of that task, not just the ones that carry the shell, and a grid
+// hands each child a whole numbered row:
+//
+//  - A framed page (every Settings form, the reading pane, the folder and
+//    identity editors) has the same task class as the page framing it but
+//    renders no header, so its content landed in the header's row and was
+//    clipped to 48px — which is why the Save/Cancel footer had nowhere to sit.
+//  - Anything else that ends up a child of <body> — a plugin's add_header()
+//    content, which the HTML parser moves into the body, or a script that
+//    appends to it — took a row of its own and pushed the shell down one.
+//
+// A flex column has no numbered slots: the header takes its own height, the
+// shell takes what is left, and anything else costs only what it actually
+// occupies.
+body.task-mail,
+body.task-addressbook,
+body.task-settings {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bc-bg-2);
+
+  > #bc-header { flex: none; }
+  > #layout { flex: 1; min-height: 0; }
+}
+
+// Framed documents scroll; the app shell never does (see _reset.scss). Their
+// panes are the parent's, so there is nothing here to scroll a long message or
+// a tall form except the document itself. .bc-formpage and .bc-partview set
+// their own height and keep scrolling inside, so this only ever fires for the
+// message body.
+html.iframe body {
+  overflow: auto;
+}
+
+.bc-shell {
+  display: grid;
+  grid-template-columns:
+    var(--bc-rail-w)
+    var(--bc-folders-w)
+    auto
+    var(--bc-list-w)
+    auto
+    minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+// Reading pane at the bottom (rcmail.env.layout == 'desktop'): the list and the
+// reading pane share the last column and stack (§3.1).
+.bc-shell[data-bc-layout="desktop"] {
+  // Fallback for the case where businessclass_prefs has not published a stored
+  // height; the pane is resizable between 200 and 640 (ui.js LIMITS.listH).
+  --bc-list-h: 280px;
+
+  grid-template-columns:
+    var(--bc-rail-w)
+    var(--bc-folders-w)
+    auto
+    minmax(0, 1fr);
+  grid-template-rows: var(--bc-list-h) auto minmax(0, 1fr);
+
+  #layout-menu,
+  #layout-sidebar { grid-row: 1 / -1; }
+
+  #layout-list { grid-column: 4; grid-row: 1; }
+  #layout-content { grid-column: 4; grid-row: 3; }
+
+  #bc-splitter-list {
+    grid-column: 4;
+    grid-row: 2;
+    width: auto;
+    height: var(--bc-s-4);
+    cursor: row-resize;
+  }
+}
+
+// No reading pane (rcmail.env.layout == 'list'): opening a message is a route
+// change, so the list takes the remaining width (§3.1, direction 1b behaviour).
+.bc-shell[data-bc-layout="list"] {
+  grid-template-columns:
+    var(--bc-rail-w)
+    var(--bc-folders-w)
+    auto
+    minmax(0, 1fr);
+
+  #bc-splitter-list,
+  #layout-content { display: none; }
+}
+
+// Elastic's floating-action-button container. mail.html carries it for the
+// plugins that inject into it (§1.2); its own design belongs to §13's mobile
+// pass. Until then it still has to be taken out of the shell's flow: unstyled,
+// it was a seventh child in a six-column grid, so it wrapped onto a second row
+// and the panes gave up that row's height. Empty, it draws nothing.
+.floating-action-buttons {
+  position: absolute;
+  right: var(--bc-s-16);
+  bottom: var(--bc-s-16);
+  z-index: 5;
+  display: flex;
+  gap: var(--bc-s-8);
+}
+
+// -- Pane splitters (§3.1, §7.1) ----------------------------------------------
+.bc-splitter {
+  width: var(--bc-s-4);
+  margin-inline: calc(var(--bc-s-4) / -2);
+  z-index: 2;
+  cursor: col-resize;
+  background: transparent;
+  transition: background-color var(--bc-dur-fast) var(--bc-ease-decel);
+
+  &:hover,
+  &.is-dragging { background: var(--bc-brand-stroke); }
+
+  &:focus-visible { @include bc-focus-ring; }
+}
+
+// While dragging, stop the panes' text from being selected under the cursor.
+body.bc-resizing,
+body.bc-resizing--v {
+  user-select: none;
+}
+
+body.bc-resizing { cursor: col-resize; }
+body.bc-resizing--v { cursor: row-resize; }
+
+// -- Panes --------------------------------------------------------------------
+#layout-list {
+  @include bc-pane;
+  border-right: 1px solid var(--bc-stroke-2);
+  background: var(--bc-bg-1);
+}
+
+#layout-content {
+  @include bc-pane;
+  background: var(--bc-bg-1);
+}
+
+.bc-list__scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.bc-reading__frame {
+  flex: 1;
+  width: 100%;
+  border: 0;
+}

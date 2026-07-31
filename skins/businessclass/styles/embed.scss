@@ -1,0 +1,90 @@
+// =============================================================================
+// skins/businessclass/styles/embed.scss  ->  embed.css
+//
+// A standalone stylesheet for documents rendered OUTSIDE the app shell, where
+// none of styles.css applies. meta.json points embed_css_location here, which
+// rcmail_html_page::write() (rcmail_html_page.php:40) injects into the frame
+// used to display an HTML *attachment* (program/actions/mail/get.php). Step 7
+// points editor_css_location here too, so TinyMCE inherits the same typography.
+//
+// This is NOT what styles the message body: Roundcube renders an HTML mail
+// inline, sanitised by rcube_washtml, into div.message-htmlpart inside the main
+// document (show.php:745) — that typography lives in _reading.scss.
+//
+// The whole token block is emitted so var() resolves in this separate document,
+// which also brings the dark and high-contrast themes with it. One thing does
+// not carry over: the brand accent is applied as an inline style on <html> by
+// includes/header.html, and this document has no such element — so links here
+// use the default accent rather than the admin's.
+// =============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+html {
+  // 15/24 body copy, per §3.6.
+  font: var(--bc-weight-regular) var(--bc-size-body2) / var(--bc-lh-body2) var(--bc-font-body);
+  color: var(--bc-fg-1);
+  background: var(--bc-bg-1);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: var(--bc-s-16);
+}
+
+a {
+  color: var(--bc-brand-fg);
+
+  &:hover { color: var(--bc-brand-fg-strong); }
+  &:focus-visible { @include bc-focus-ring; }
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+table { border-collapse: collapse; }
+
+pre,
+code {
+  font-family: var(--bc-font-mono);
+  font-size: var(--bc-size-caption1);
+}
+
+pre {
+  padding: var(--bc-s-8) var(--bc-s-12);
+  border-radius: var(--bc-radius-m);
+  background: var(--bc-bg-2);
+  overflow-x: auto;
+}
+
+blockquote {
+  margin: var(--bc-s-8) 0;
+  padding-left: var(--bc-s-12);
+  border-left: 2px solid var(--bc-stroke-1);
+  color: var(--bc-fg-2);
+}
+
+hr {
+  height: 1px;
+  border: 0;
+  background: var(--bc-stroke-2);
+}
+
+// Core's fallback styles for the warning block it injects into attachment
+// frames, restated with tokens (rcmail_html_page.php:46 supplies these only
+// when no embed stylesheet exists).
+.rcmail-inline-message {
+  margin-bottom: var(--bc-s-8);
+  padding: var(--bc-s-8) var(--bc-s-12);
+  border: 1px solid var(--bc-warning);
+  border-radius: var(--bc-radius-m);
+  background: var(--bc-warning-tint);
+  color: var(--bc-warning-fg);
+  font: var(--bc-weight-regular) var(--bc-size-body1) / var(--bc-lh-body1) var(--bc-font-body);
+}
+
+.rcmail-inline-buttons { margin-bottom: 0; }

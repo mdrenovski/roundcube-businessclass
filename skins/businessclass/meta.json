@@ -1,0 +1,16 @@
+{
+	"name": "BusinessClass",
+	"author": "JetHost",
+	"license": "GPL-3.0",
+	"extends": null,
+	"localization": true,
+	"config": {
+		"message_list_layout": "widescreen",
+		"supported_layouts": ["widescreen", "desktop", "list"],
+		"dark_mode_support": true,
+		"embed_css_location": "/styles/embed.css"
+	},
+	"meta": {
+		"viewport": "width=device-width, initial-scale=1.0, shrink-to-fit=no"
+	}
+}

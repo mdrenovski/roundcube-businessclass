@@ -1,0 +1,170 @@
+// =============================================================================
+// skins/businessclass/styles/_search.scss
+// Search tokens, refine panel, results summary — BUILD.md §4.3.
+//
+// The box itself lives in _header.scss with the rest of the app header; this
+// file is everything that only exists once a search is being composed.
+//
+// Tokens only — no literal colors, sizes, radii or shadows.
+// =============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// -- Filter tokens ------------------------------------------------------------
+// Brand-tint chips in front of the free text, each one an IMAP criterion (§4.3).
+// display:contents so the chips join the box's own wrap flow rather than
+// forming a second row that never wraps.
+.bc-search__tokens {
+  display: contents;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bc-token {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bc-s-4);
+  max-width: 240px;
+  padding: var(--bc-s-2) var(--bc-s-4) var(--bc-s-2) var(--bc-s-8);
+  border-radius: var(--bc-radius-m);
+  background: var(--bc-brand-tint-selected);
+  color: var(--bc-brand-fg-strong);
+  @include bc-badge;
+  white-space: nowrap;
+}
+
+.bc-token__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bc-token__key { font-weight: var(--bc-weight-semibold); }
+
+.bc-token__remove {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--bc-s-16);
+  height: var(--bc-s-16);
+  border-radius: var(--bc-radius-s);
+  color: inherit;
+  cursor: pointer;
+
+  &:hover { background: var(--bc-bg-1); }
+  &:focus-visible { @include bc-focus-ring; }
+
+  .bc-icon { width: 12px; height: 12px; }
+}
+
+// -- Refine panel -------------------------------------------------------------
+// 260px on --bc-bg-2 (§4.3). Anchored to the right edge below the header rather
+// than added as a grid column, so opening it never disturbs the pane widths
+// §3.1's splitters are driving.
+.bc-refine {
+  position: absolute;
+  top: var(--bc-header-h);
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  width: 260px;
+  border-left: 1px solid var(--bc-stroke-2);
+  background: var(--bc-bg-2);
+
+  &[hidden] { display: none; }
+}
+
+// The shell gives up the strip the panel covers, so nothing hides under it.
+body.bc-refine-open .bc-shell { padding-right: 260px; }
+
+.bc-refine__head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--bc-s-8);
+  height: var(--bc-toolbar-h);
+  padding: 0 var(--bc-s-8) 0 var(--bc-s-16);
+  border-bottom: 1px solid var(--bc-stroke-2);
+}
+
+.bc-refine__title {
+  flex: 1;
+  margin: 0;
+  @include bc-body1-strong;
+}
+
+.bc-refine__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--bc-s-20);
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--bc-s-16) 14px;
+}
+
+.bc-refine__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bc-s-8);
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  > legend {
+    padding: 0 0 var(--bc-s-4);
+    @include bc-caption1;
+    font-weight: var(--bc-weight-semibold);
+    color: var(--bc-fg-3);
+  }
+}
+
+.bc-refine__actions {
+  display: flex;
+  flex: none;
+  gap: var(--bc-s-8);
+  padding: var(--bc-s-12) 14px;
+  border-top: 1px solid var(--bc-stroke-2);
+
+  > .bc-btn { flex: 1; }
+}
+
+// -- Results summary ----------------------------------------------------------
+// "18 results in All folders" above the list (§4.3).
+.bc-list__summary {
+  flex: none;
+  padding: var(--bc-s-8) 14px;
+  border-bottom: 1px solid var(--bc-stroke-3);
+  @include bc-caption2;
+  color: var(--bc-fg-3);
+
+  &[hidden] { display: none; }
+}
+
+// -- Folder chip on a result row ----------------------------------------------
+// Only in a cross-folder search, where a row's folder is not implied by which
+// folder is selected (§4.3). It shares the row's chip line with the category
+// chips, because every child of td.subject is placed explicitly in the row grid
+// and a stray one would take a cell of its own.
+.bc-folderchip {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  max-width: 140px;
+  overflow: hidden;
+  padding: 0 var(--bc-s-4);
+  border-radius: var(--bc-radius-s);
+  background: var(--bc-brand-tint-selected);
+  color: var(--bc-brand-fg-strong);
+  @include bc-badge;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+// Compact has no room for it — the row is one 28px line with fixed size and
+// date columns. The folder stays in the row's accessible name, which is the
+// same trade-off the category chips make there (§8, §9).
+.bc-messagelist.bc-density-compact .bc-folderchip { display: none; }

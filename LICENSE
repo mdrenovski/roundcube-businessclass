@@ -1,0 +1,69 @@
+BusinessClass — a Roundcube skin
+MIT License with an attribution requirement
+
+Copyright (c) 2026 JetHost — https://jethost.com
+
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+1. ATTRIBUTION
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   In addition, any deployment or distribution of the Software or a derivative
+   of it, commercial or otherwise, must credit its origin as:
+
+       BusinessClass by JetHost — https://jethost.com
+
+   The credit must be reachable by a user of the deployed product — the
+   "Settings > About" screen satisfies this, and the Software ships that credit
+   there by default. Removing or obscuring it without providing the credit
+   somewhere else a user can reach terminates the rights granted above.
+
+   Rebranding the interface is expressly permitted and is the reason the
+   branding profile mechanism exists. Rebranding the product name and vendor
+   does not remove the attribution requirement.
+
+2. TRADEMARKS
+
+   This license grants rights in copyright only. It grants no rights in the
+   JetHost name, the JetHost logos, or the "BusinessClass" name as a mark.
+
+   The files skins/businessclass/images/logo-jethost-*.svg,
+   skins/businessclass/images/symbol-jethost.svg,
+   skins/businessclass/images/favicon-jethost.svg and the branding profiles that
+   reference them are published as a worked example of a filled-in profile. They
+   are JetHost's marks. Use them to understand the mechanism; do not ship them
+   as the branding of a service that is not JetHost's, and do not use them in a
+   way that suggests JetHost endorses or provides your service.
+
+   The attribution required by clause 1 is a statement of origin and is not a
+   trademark use requiring permission.
+
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+---
+
+NOT COVERED BY THIS LICENSE
+
+  Roundcube Webmail itself is a separate work under the GNU GPL v3. This skin is
+  installed into a Roundcube tree but is not derived from it.
+
+  The Fluent 2 icons under skins/businessclass/images/icons/ are Microsoft's
+  Fluent UI System Icons, MIT licensed, (c) Microsoft Corporation. "Fluent 2" is
+  a Microsoft design language; this skin follows it and is not a Microsoft
+  product, is not affiliated with Microsoft, and contains no Microsoft product
+  branding.

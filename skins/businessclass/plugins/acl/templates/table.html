@@ -1,0 +1,77 @@
+<!-- Folder sharing — the acl plugin (BUILD.md §12 step 11, §1.6).
+
+     Not a page. acl's folder_form hook parses this file and drops the result in
+     as one more tab of the folder-properties form (acl.php:212), so it renders
+     inside <fieldset><legend>Sharing</legend> in folderedit.html and inherits
+     the form styling from _settings.scss. That is also why there is no
+     header/footer include here.
+
+     Deliberately not Elastic's shape. Elastic hides Edit, Delete and the
+     advanced toggle behind an "Actions" menu opened with data-popup= — an
+     attribute only Elastic's own ui.js understands, so in this skin that menu
+     could never open. Three buttons and a checkbox in one row need no menu, and
+     everything stays reachable by keyboard.
+
+     Core drives all four controls: acl.js enables acl-create and
+     acl-mode-switch on init, and enables/disables acl-edit and acl-delete from
+     the table's selection (acl.js:171). -->
+<div class="bc-acl">
+	<h2 class="voice" id="aria-label-acltable"><roundcube:label name="acl.ariasummaryacltable" /></h2>
+
+	<!-- html_table, with a <thead> of one column per right. acl_add_row() clones
+	     that header row to build each new one (acl.js:242), so the head must
+	     stay in the markup even though the design never shows column labels for
+	     the rights — the abbreviations are unreadable and the cell glyphs carry
+	     the state instead. -->
+	<roundcube:object name="acltable" id="acl-table" class="bc-acl__table"
+		aria-labelledby="aria-label-acltable" />
+
+	<div class="bc-acl__actions">
+		<roundcube:button command="acl-create" type="link" label="acl.add" title="acl.newuser"
+			class="bc-btn bc-btn--secondary" innerclass="bc-btn__label" data-bc-icon="people_add" />
+
+		<roundcube:button command="acl-edit" type="link" label="edit" title="acl.editperms"
+			class="bc-btn bc-btn--secondary" innerclass="bc-btn__label" data-bc-icon="edit" />
+
+		<roundcube:button command="acl-delete" type="link" label="delete" title="acl.deleteperms"
+			class="bc-btn bc-btn--secondary bc-btn--danger" innerclass="bc-btn__label" data-bc-icon="delete" />
+
+		<!-- The id and the nested checkbox are both required as-is: acl.js marks
+		     the current mode with $('#acl-switch').addClass('selected') and ticks
+		     the box with .find('input') (acl.js:46, :160). Rendering it as a
+		     checkbox rather than Elastic's menu item is what makes that tick
+		     visible. -->
+		<roundcube:if condition="!in_array('acl_advanced_mode', (array)config:dont_override)" />
+		<div id="acl-switch" class="bc-acl__mode">
+			<input type="checkbox" id="acl-advanced"
+				onclick="return rcmail.command('acl-mode-switch', '', this, event)" />
+			<label for="acl-advanced"><roundcube:label name="acl.advanced" /></label>
+		</div>
+		<roundcube:endif />
+	</div>
+</div>
+
+<!-- The add/edit form. acl_init_form() calls .show() on it and hands it to
+     show_popup_dialog(), which moves it into a jQuery UI dialog and moves it
+     back to <body> on close (acl.js:359). So it must start hidden, and it must
+     NOT be positioned or given a surface of its own — the dialog supplies both.
+     Elastic gives it class="popupmenu", which in this skin would mean absolute
+     positioning and a shadow inside the dialog; .bc-aclform is display:none and
+     nothing else. -->
+<div id="aclform" class="bc-aclform" role="form" aria-labelledby="aria-label-aclform">
+	<h3 id="aria-label-aclform" class="voice"><roundcube:label name="acl.arialabelaclform" /></h3>
+
+	<!-- A span, not a <label>: templ_user() emits its own "Username" label bound
+	     to this input, and where the server exposes special identifiers it wraps
+	     the whole thing in a <ul id="usertype"> of radio choices. A second label
+	     for the same control would be announced twice. -->
+	<div class="bc-aclform__row">
+		<span class="bc-aclform__legend"><roundcube:label name="acl.identifier" /></span>
+		<roundcube:object name="acluser" id="acluser" class="bc-aclform__user" />
+	</div>
+
+	<div class="bc-aclform__row">
+		<span class="bc-aclform__legend"><roundcube:label name="acl.myrights" /></span>
+		<roundcube:object name="aclrights" class="bc-aclform__rights" />
+	</div>
+</div>

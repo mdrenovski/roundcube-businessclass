@@ -1,0 +1,35 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Canned responses (BUILD.md §4.4) — the same three panes as Identities. -->
+<div id="layout" class="bc-shell bc-shell--settings">
+	<roundcube:include file="/templates/includes/menu.html" />
+	<roundcube:include file="/templates/includes/settings-menu.html" />
+
+	<div id="layout-list" class="bc-list">
+		<div class="bc-pane__head">
+			<h1 class="bc-pane__title"><roundcube:label name="responses" /></h1>
+			<roundcube:button command="add" type="link" title="newresponse" label="create"
+				class="bc-iconbtn" innerclass="voice" data-bc-icon="add" />
+			<roundcube:button command="delete" type="link" title="delete" label="delete"
+				class="bc-iconbtn bc-iconbtn--danger" innerclass="voice" data-bc-icon="delete" />
+		</div>
+
+		<div class="bc-list__scroll bc-scroll">
+			<roundcube:object name="responseslist" id="responses-table" class="bc-recordlist" noheader="true" />
+		</div>
+	</div>
+
+	<main id="layout-content" class="bc-reading bc-settings__detail"
+		aria-label="<roundcube:label name='responses' />">
+		<roundcube:object name="contentframe" id="preferences-frame" class="bc-reading__frame"
+			src="env:blankpage" title="responses" />
+
+		<div class="bc-empty bc-reading__empty">
+			<svg class="bc-empty__icon" aria-hidden="true"><use href="#ic_fluent_mail_template_20_regular" /></svg>
+			<p class="bc-empty__title"><roundcube:label name="bc_noresponseselected" /></p>
+			<p class="bc-empty__text"><roundcube:label name="bc_pickresponse" /></p>
+		</div>
+	</main>
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

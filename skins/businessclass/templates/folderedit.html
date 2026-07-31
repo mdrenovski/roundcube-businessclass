@@ -1,0 +1,24 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Folder properties: create, rename, reparent, and the message count and
+     size for this one folder (§4.4). All of it is core's folderdetails object,
+     which also carries the tabs plugins add here — the acl plugin's sharing
+     table is one — so nothing is enumerated by hand. -->
+<div class="bc-formpage">
+	<div class="bc-formpage__head">
+		<h1 class="bc-formpage__title"><roundcube:label name="folderproperties" /></h1>
+	</div>
+
+	<div class="bc-formpage__body bc-scroll">
+		<roundcube:object name="folderdetails" />
+	</div>
+
+	<div class="bc-formpage__foot">
+		<roundcube:button command="save" type="input" class="bc-btn bc-btn--primary" label="save" />
+		<button type="button" id="bc-form-cancel" class="bc-btn bc-btn--secondary"><roundcube:label name="cancel" /></button>
+	</div>
+</div>
+
+<roundcube:add_label name="bc_changesdiscarded" />
+
+<roundcube:include file="/templates/includes/footer.html" />

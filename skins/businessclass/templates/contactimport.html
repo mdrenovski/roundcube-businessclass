@@ -1,0 +1,18 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Import contacts (§4.5). Framed, like the advanced search: app.js's import
+     command loads this into a simple_dialog whose own button submits whichever
+     form the current step registered (importform, then importformmap for the
+     column-mapping step), so no footer here either.
+
+     importstep renders all three steps — file picker, mapping, result — from the
+     same object, which is why nothing in this file names them. -->
+<div class="bc-formpage">
+	<h1 class="voice"><roundcube:label name="importcontacts" /></h1>
+
+	<div class="bc-formpage__body bc-scroll">
+		<roundcube:object name="importstep" class="bc-contact__import" />
+	</div>
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

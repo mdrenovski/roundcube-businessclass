@@ -1,0 +1,287 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Pane widths come from the persisted prefs (§3.1). Elastic's ids are kept so
+     third-party plugins that target #layout / #layout-* keep working (§1.2).
+
+     Guarded, because businessclass_prefs is what publishes these: with the plugin
+     missing the style would read "--bc-folders-w: px", and since that is still a
+     valid custom-property token the grid-template-columns using it would be
+     dropped and the shell would collapse. Without the attribute the :root
+     defaults in _tokens.scss apply instead. -->
+<roundcube:if condition="env:bc_folders_w" />
+<div id="layout" class="bc-shell" style="--bc-folders-w: <roundcube:var name='env:bc_folders_w' />px; --bc-list-w: <roundcube:var name='env:bc_list_w' />px; --bc-list-h: <roundcube:var name='env:bc_list_h' />px">
+<roundcube:else />
+<div id="layout" class="bc-shell">
+<roundcube:endif />
+
+	<roundcube:include file="/templates/includes/menu.html" />
+	<roundcube:include file="/templates/includes/links.html" />
+
+	<div class="bc-splitter" id="bc-splitter-folders" role="separator" aria-orientation="vertical"
+		tabindex="0" aria-label="<roundcube:label name='bc_resizefolders' />"
+		aria-valuemin="200" aria-valuemax="360" aria-valuenow="<roundcube:var name='env:bc_folders_w' />"></div>
+
+	<!-- Message list (§3.5). -->
+	<div id="layout-list" class="bc-list">
+
+		<!-- Toolbar. Core toggles aria-disabled/tabindex on command buttons whose
+		     command is currently unavailable (app.js set_button), so the disabled
+		     look is driven off [aria-disabled] rather than a swapped class.
+		     Density and reading-pane toggles arrive with step 5, the sort menu and
+		     the More overflow with step 4 (§5). -->
+		<h2 id="aria-label-listtoolbar" class="voice"><roundcube:label name="arialabeltoolbar" /></h2>
+		<div id="messagelist-header" class="bc-toolbar" role="toolbar" aria-labelledby="aria-label-listtoolbar">
+
+			<!-- Toggles between the select-all and select-none commands, so it is a
+			     plain button driven by ui.js rather than a roundcube:button bound to
+			     one command. -->
+			<button type="button" id="bc-select-all" class="bc-iconbtn" aria-pressed="false"
+				aria-disabled="true" title="<roundcube:label name='select' />">
+				<span class="voice"><roundcube:label name="select" /></span>
+				<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_checkbox_unchecked_20_regular" /></svg>
+			</button>
+
+			<!-- label + innerclass, not content=: for type="link" the button renderer
+			     uses content INSTEAD of the label (rcmail_output_html.php:1886), so
+			     pairing the two would wrap the icon in the visually-hidden span and
+			     leave the button with no accessible name at all. The icon is
+			     prepended by ui.js from data-bc-icon; without JS these stay text
+			     buttons and still work (§1.4). -->
+			<roundcube:button command="mark" prop="read" type="link" title="markread" label="markread"
+				class="bc-iconbtn" innerclass="voice" data-bc-icon="mail_read" />
+
+			<roundcube:button command="mark" prop="unread" type="link" title="markunread" label="markunread"
+				class="bc-iconbtn" innerclass="voice" data-bc-icon="mail_unread" />
+
+			<roundcube:button command="delete" type="link" title="deletemessage" label="delete"
+				class="bc-iconbtn bc-iconbtn--danger" innerclass="voice" data-bc-icon="delete" />
+
+			<!-- §3.5 puts Archive here, but the archive plugin registers itself into
+			     the "toolbar" container, which the reading-pane ribbon owns — a
+			     container rendered in two places emits the same button ids twice and
+			     core would only ever find the first. So this one is hand-rendered
+			     against the same command; both copies register under it and core
+			     enables and disables them together. -->
+			<roundcube:if condition="env:archive_folder" />
+			<roundcube:button command="plugin.archive" type="link" title="buttontitle" label="buttontext" domain="archive"
+				class="bc-iconbtn" innerclass="voice" data-bc-icon="archive" />
+			<roundcube:endif />
+
+			<div class="bc-toolbar__spacer"></div>
+
+			<!-- Sort split-button (§3.5): the label flips the order of the current
+			     column, the chevron opens the column list. ui.js fills both from
+			     env.coltypes, so the menu offers exactly the columns core will
+			     accept for this folder. -->
+			<div class="bc-popover__anchor bc-split">
+				<button type="button" id="bc-sort" class="bc-btn bc-btn--subtle bc-split__main"
+					title="<roundcube:label name='sortby' />">
+					<span class="voice"><roundcube:label name="sortby" /></span>
+					<span class="bc-sort__label" aria-hidden="true"></span>
+					<svg class="bc-icon bc-icon--16 bc-sort__dir" aria-hidden="true"><use href="#ic_fluent_arrow_sort_20_regular" /></svg>
+				</button>
+				<button type="button" id="bc-sort-more" class="bc-btn bc-btn--subtle bc-split__toggle"
+					aria-haspopup="menu" aria-expanded="false" aria-controls="bc-sort-menu"
+					title="<roundcube:label name='bc_sortoptions' />">
+					<span class="voice"><roundcube:label name="bc_sortoptions" /></span>
+					<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_chevron_down_20_regular" /></svg>
+				</button>
+				<div id="bc-sort-menu" class="bc-popover" role="menu" aria-labelledby="bc-sort-more" hidden></div>
+			</div>
+
+			<!-- Density (§3.5). A straight two-state toggle, as the design draws it;
+			     the class it writes on #messagelist is what the CSS keys off. -->
+			<button type="button" id="bc-density" class="bc-iconbtn" aria-pressed="false"
+				title="<roundcube:label name='bc_density' />">
+				<span class="voice"><roundcube:label name="bc_density" /></span>
+				<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_text_density_20_regular" /></svg>
+			</button>
+
+			<!-- Reading pane (§3.5). Three positions, so a menu rather than a cycle:
+			     a one-button cycle gives a screen reader no way to know the options.
+			     Selecting one goes through set_list_options(), which is what core
+			     persists the layout pref through (list.php:63). -->
+			<div class="bc-popover__anchor">
+				<button type="button" id="bc-pane" class="bc-iconbtn"
+					aria-haspopup="menu" aria-expanded="false" aria-controls="bc-pane-menu"
+					title="<roundcube:label name='bc_readingpane' />">
+					<span class="voice"><roundcube:label name="bc_readingpane" /></span>
+					<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_panel_right_20_regular" /></svg>
+				</button>
+				<div id="bc-pane-menu" class="bc-popover" role="menu" aria-labelledby="bc-pane" hidden>
+					<button type="button" role="menuitemradio" aria-checked="false" data-bc-layout="widescreen"><roundcube:label name="bc_paneright" /></button>
+					<button type="button" role="menuitemradio" aria-checked="false" data-bc-layout="desktop"><roundcube:label name="bc_panebottom" /></button>
+					<button type="button" role="menuitemradio" aria-checked="false" data-bc-layout="list"><roundcube:label name="bc_paneoff" /></button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Focused / Other (§3.5, §7.4). Rendered only where the preference is
+		     on — it is off until a user asks for it. The two scopes are IMAP
+		     searches run through filter_mailbox(), which passes _filter straight
+		     to SEARCH (search.php:57), so this needs no server code. -->
+		<roundcube:if condition="env:bc_focused" />
+		<div class="bc-tabs" role="tablist" aria-label="<roundcube:label name='bc_focusedtabs' />">
+			<button type="button" role="tab" id="bc-tab-focused" class="bc-tabs__tab"
+				aria-selected="true" data-bc-scope="focused"><roundcube:label name="bc_focused" /></button>
+			<button type="button" role="tab" id="bc-tab-other" class="bc-tabs__tab"
+				aria-selected="false" data-bc-scope="other"><roundcube:label name="bc_other" /></button>
+			<!-- §3.5 puts a "Filter" link on this row, opening the refine panel.
+			     That panel is §4.3 and is not built yet, so the link is left out
+			     rather than shipped pointing at nothing. -->
+		</div>
+		<roundcube:endif />
+
+		<!-- "18 results in All folders" (§4.3). Filled by ui.js from
+		     env.messagecount and the scope in force; hidden unless a search is
+		     actually running. -->
+		<div id="bc-search-summary" class="bc-list__summary" hidden aria-live="polite"></div>
+
+		<h2 id="aria-label-messagelist" class="voice"><roundcube:label name="arialabelmessagelist" /></h2>
+		<div id="messagelist-content" class="bc-list__scroll bc-scroll" tabindex="-1">
+			<!-- The list is a role="listbox" whose rows rcube_list_widget makes
+			     role="option" itself (list.js:106, :213), together with
+			     aria-labelledby and the roving tabindex. role= cannot be set here:
+			     the object renders through html_table, whose attribute whitelist
+			     (html.php:737) passes only id/class/style/width/summary/cell*/border
+			     plus anything aria-* or data-*, and drops the rest. ui.js therefore
+			     sets role at parse time, before rcmail.init() builds the widget. -->
+			<roundcube:object name="messages" id="messagelist" class="bc-messagelist"
+				aria-labelledby="aria-label-messagelist" data-list="message_list" data-label-msg="listempty" />
+		</div>
+
+		<!-- Labels ui.js needs client-side: date group headings and row badges.
+
+		     One tag per label, never name="a,b,c": xml_command() hands
+		     $attrib['name'] straight to add_label() and nothing splits on the
+		     comma, so a list registers a single label literally named "a,b,c"
+		     and every key in it falls back to itself on screen. Core's own
+		     skins write them one at a time for the same reason. Checked by
+		     `npm run lint:labels`. -->
+		<roundcube:add_label name="today" />
+		<roundcube:add_label name="bc_yesterday" />
+		<roundcube:add_label name="bc_thisweek" />
+		<roundcube:add_label name="bc_lastweek" />
+		<roundcube:add_label name="bc_thismonth" />
+		<roundcube:add_label name="bc_older" />
+		<roundcube:add_label name="bc_selectnone" />
+		<roundcube:add_label name="bc_thread" />
+		<roundcube:add_label name="select" />
+		<roundcube:add_label name="sortby" />
+		<roundcube:add_label name="unread" />
+		<roundcube:add_label name="withattachment" />
+		<roundcube:add_label name="flagged" />
+		<roundcube:add_label name="listempty" />
+		<roundcube:add_label name="bc_comfortable" />
+		<roundcube:add_label name="bc_compact" />
+		<roundcube:add_label name="bc_sortascending" />
+		<roundcube:add_label name="bc_sortdescending" />
+		<roundcube:add_label name="bc_quickactions" />
+		<roundcube:add_label name="bc_quickarchive" />
+		<roundcube:add_label name="bc_quickdelete" />
+		<roundcube:add_label name="bc_quickflag" />
+		<roundcube:add_label name="bc_quickunflag" />
+		<roundcube:add_label name="bc_quickpin" />
+		<roundcube:add_label name="bc_quickunpin" />
+	</div>
+
+	<div class="bc-splitter" id="bc-splitter-list" role="separator" aria-orientation="vertical"
+		tabindex="0" aria-label="<roundcube:label name='bc_resizelist' />"
+		aria-valuemin="320" aria-valuemax="520" aria-valuenow="<roundcube:var name='env:bc_list_w' />"></div>
+
+	<!-- Reading pane (§3.6). The ribbon sits in this document rather than inside
+	     the preview iframe, so it is on screen and correctly disabled before a
+	     message is picked; message.html renders its own copy only when the
+	     message has its own window. -->
+	<main id="layout-content" class="bc-reading" role="region" aria-live="polite"
+		aria-label="<roundcube:label name='arialabelmailpreviewframe' />">
+		<roundcube:include file="/templates/includes/ribbon.html" />
+		<roundcube:object name="contentframe" id="messagecontframe" class="bc-reading__frame"
+			src="env:blankpage" title="arialabelmailpreviewframe" />
+
+		<!-- Shown while nothing is selected. Core hides the iframe inline rather
+		     than marking the pane, so ui.js wraps show_contentframe() to put the
+		     state on the pane itself. -->
+		<div class="bc-empty bc-reading__empty">
+			<svg class="bc-empty__icon" aria-hidden="true"><use href="#ic_fluent_mail_20_regular" /></svg>
+			<p class="bc-empty__title"><roundcube:label name="bc_nomessageselected" /></p>
+			<p class="bc-empty__text"><roundcube:label name="bc_pickmessage" /></p>
+		</div>
+	</main>
+
+	<div class="floating-action-buttons"></div>
+</div>
+
+<!-- Refine panel (§4.3). Outside the shell, so opening it does not have to
+     rewrite the column template that §3.1's splitters depend on; the shell just
+     reserves 260px on its right while the panel is open.
+
+     Every control here feeds a parameter Roundcube already has: the scope
+     radios set env.search_scope, the date select is core's own searchinterval
+     object — which registers itself as the search_interval gui object, so
+     search_params() picks it up with no help from us — and the "Only show"
+     boxes become IMAP criteria merged into _filter alongside any search tokens.
+     No new server code (§4.3). -->
+<aside id="bc-refine" class="bc-refine" hidden aria-labelledby="bc-refine-title">
+	<div class="bc-refine__head">
+		<h2 id="bc-refine-title" class="bc-refine__title"><roundcube:label name="bc_refine" /></h2>
+		<button type="button" id="bc-refine-close" class="bc-iconbtn" title="<roundcube:label name='close' />">
+			<span class="voice"><roundcube:label name="close" /></span>
+			<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_dismiss_20_regular" /></svg>
+		</button>
+	</div>
+
+	<div class="bc-refine__body">
+		<!-- §4.3 also lists "All accounts". Roundcube is a single-account client
+		     — there is no such scope in the search action — so the radio is left
+		     out rather than shipped doing the same thing as "All folders". -->
+		<fieldset class="bc-refine__group">
+			<legend><roundcube:label name="searchscope" /></legend>
+			<label class="bc-check"><input type="radio" name="bc-scope" value="base" checked> <span><roundcube:label name="currentfolder" /></span></label>
+			<label class="bc-check"><input type="radio" name="bc-scope" value="sub"> <span><roundcube:label name="subfolders" /></span></label>
+			<label class="bc-check"><input type="radio" name="bc-scope" value="all"> <span><roundcube:label name="allfolders" /></span></label>
+		</fieldset>
+
+		<div class="bc-field">
+			<label for="bc-search-interval"><roundcube:label name="date" /></label>
+			<roundcube:object name="searchinterval" id="bc-search-interval" class="bc-input" />
+		</div>
+
+		<fieldset class="bc-refine__group">
+			<legend><roundcube:label name="bc_onlyshow" /></legend>
+			<label class="bc-check"><input type="checkbox" data-bc-filter="unread"> <span><roundcube:label name="unread" /></span></label>
+			<label class="bc-check"><input type="checkbox" data-bc-filter="attachment"> <span><roundcube:label name="withattachment" /></span></label>
+			<label class="bc-check"><input type="checkbox" data-bc-filter="flagged"> <span><roundcube:label name="flagged" /></span></label>
+		</fieldset>
+	</div>
+
+	<div class="bc-refine__actions">
+		<button type="button" id="bc-refine-apply" class="bc-btn bc-btn--primary"><roundcube:label name="search" /></button>
+		<button type="button" id="bc-refine-reset" class="bc-btn bc-btn--secondary"><roundcube:label name="resetsearch" /></button>
+	</div>
+</aside>
+
+<roundcube:add_label name="bc_resultsin" />
+<roundcube:add_label name="bc_removefilter" />
+<roundcube:add_label name="bc_searchfrom" />
+<roundcube:add_label name="bc_searchto" />
+<roundcube:add_label name="bc_searchcc" />
+<roundcube:add_label name="bc_searchbcc" />
+<roundcube:add_label name="bc_searchsubject" />
+<roundcube:add_label name="bc_searchbody" />
+<roundcube:add_label name="bc_searchhas" />
+<roundcube:add_label name="bc_searchis" />
+<roundcube:add_label name="withattachment" />
+<roundcube:add_label name="unread" />
+<roundcube:add_label name="flagged" />
+<roundcube:add_label name="currentfolder" />
+<roundcube:add_label name="subfolders" />
+<roundcube:add_label name="allfolders" />
+<roundcube:add_label name="bc_nomessages" />
+<roundcube:add_label name="bc_noresults" />
+<roundcube:add_label name="bc_noresultstext" />
+<roundcube:add_label name="bc_nomessageselected" />
+<roundcube:add_label name="bc_pickmessage" />
+<roundcube:add_label name="nomessagesfound" />
+
+<roundcube:include file="/templates/includes/footer.html" />

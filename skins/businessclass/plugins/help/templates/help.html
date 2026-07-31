@@ -1,0 +1,68 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Help — the help plugin (BUILD.md §12 step 11).
+
+     The plugin registers a task of its own and adds its rail button through the
+     taskbar container (help.php:41), so menu.html picks it up with no edit; the
+     icon comes from ui.js's TASK_ICONS.
+
+     Two panes, not three: a section nav and a content frame. The nav rows reuse
+     .bc-folderlist for the same reason the Settings nav does — one set of hover,
+     selected and focus treatments (§4.4).
+
+     Each row is the plugin's tablink object rather than a plain link: it builds
+     the href, and more importantly the onclick that calls the plugin's own
+     show_help_content(), which is what loads the frame without a page reload.
+     The selected row cannot come from the object — tablink has no notion of the
+     current action — so it is set from env:action here, the way core's
+     settings_tabs does it for Settings. -->
+<div id="layout" class="bc-shell bc-shell--settings-plain">
+	<roundcube:include file="/templates/includes/menu.html" />
+
+	<nav id="layout-sidebar" class="bc-folders bc-settingsnav"
+		aria-label="<roundcube:label name='help.help' />">
+		<div class="bc-folders__scroll bc-scroll">
+			<div class="bc-folders__section"><roundcube:label name="help.help" /></div>
+
+			<ul id="help-menu" class="bc-folderlist">
+				<roundcube:if condition="env:action == 'index'" />
+				<li class="help selected"><roundcube:object name="tablink" action="index" label="help.help" data-bc-icon="question_circle" /></li>
+				<roundcube:else />
+				<li class="help"><roundcube:object name="tablink" action="index" label="help.help" data-bc-icon="question_circle" /></li>
+				<roundcube:endif />
+
+				<roundcube:if condition="env:action == 'about'" />
+				<li class="about selected"><roundcube:object name="tablink" action="about" label="help.about" data-bc-icon="info" /></li>
+				<roundcube:else />
+				<li class="about"><roundcube:object name="tablink" action="about" label="help.about" data-bc-icon="info" /></li>
+				<roundcube:endif />
+
+				<roundcube:if condition="env:action == 'license'" />
+				<li class="license selected"><roundcube:object name="tablink" action="license" label="help.license" data-bc-icon="document" /></li>
+				<roundcube:else />
+				<li class="license"><roundcube:object name="tablink" action="license" label="help.license" data-bc-icon="document" /></li>
+				<roundcube:endif />
+
+				<!-- Where a plugin adds a help section of its own. -->
+				<roundcube:container name="helptabs" id="help-menu" />
+			</ul>
+		</div>
+	</nav>
+
+	<main id="layout-content" class="bc-reading bc-settings__detail"
+		aria-label="<roundcube:label name='help.help' />">
+
+		<div class="bc-formpage__head">
+			<h1 class="bc-formpage__title"><roundcube:object name="pagetitle" /></h1>
+		</div>
+
+		<!-- src=env:blankpage, not the help content: show_help_content() sets the
+		     frame's location on load and on every nav click, and pointing it at a
+		     section here would load that section twice. Without watermark.html at
+		     the skin root this is where the web server's 404 page would appear. -->
+		<roundcube:object name="contentframe" id="helpcontentframe" class="bc-reading__frame"
+			src="env:blankpage" title="help.arialabelhelpcontent" />
+	</main>
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

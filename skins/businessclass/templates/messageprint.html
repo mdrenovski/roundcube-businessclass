@@ -1,0 +1,30 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Print view. The print stylesheet itself is _print.scss (§13). -->
+<article class="bc-message bc-print">
+	<!-- Letterhead, the same block contactprint.html carries. Two sources, in
+	     order: branding.json's logo.print, which is where the rest of this skin's
+	     logos live, then core's own logo object, which reads $config['skin_logo']
+	     and so covers an install branded the Roundcube way. Neither set means no
+	     letterhead — _print.scss takes the block out when it holds no image.
+
+	     No alt= on the object on purpose: core defaults it to the productname
+	     object, and a roundcube: tag nested inside an attribute is never resolved,
+	     since parse_xml is a single non-recursive pass the nesting would break. -->
+	<div class="bc-print__brand">
+		<roundcube:if condition="env:bc_logo_print" />
+		<img src="/<roundcube:var name='env:bc_logo_print' />" alt="">
+		<roundcube:else />
+		<roundcube:object name="logo" id="logo" logo-type="print" logo-match="template" />
+		<roundcube:endif />
+	</div>
+
+	<h1 class="bc-message__subject"><roundcube:object name="messageHeaders" valueof="subject" /></h1>
+	<roundcube:object name="messageHeaders" class="bc-message__headers" exclude="subject" max="10" />
+	<roundcube:object name="messageAttachments" id="attachment-list" class="bc-attachments" />
+	<section class="bc-message__body">
+		<roundcube:object name="messageBody" id="messagebody" />
+	</section>
+</article>
+
+<roundcube:include file="/templates/includes/footer.html" />

@@ -1,0 +1,14 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Import a key file. Always inside a 500x180 iframe dialog whose Import
+     button belongs to jQuery UI (enigma.js:109), so there is no submit row
+     here and no page chrome — env:framed is true, so header.html renders none.
+
+     part="import" is what suppresses the plugin's own button, leaving the
+     dialog's (enigma_ui.php:614). Without part= the object would render the
+     search form as well and two buttons with it. -->
+<div class="bc-dialogpage bc-keyimport">
+	<roundcube:object name="importform" part="import" class="bc-keyimport__form" />
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

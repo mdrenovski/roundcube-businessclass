@@ -1,0 +1,522 @@
+// =============================================================================
+// skins/businessclass/styles/_addressbook.scss
+// Contacts — address books 200 · contact list 300 · detail (BUILD.md §4.5).
+//
+// Three panes, no splitters, so the widths are fixed and nothing is persisted.
+//
+// The detail pane is an iframe, as in Settings, and what it frames is core's
+// own markup:
+//
+//   fieldset.<fieldset-class>            one per section: contact, personal, …
+//     legend                             section name
+//     fieldset.contactfieldgroup         one per field type
+//       legend                           field name — only for subtyped fields
+//       div.row
+//         label.contactfieldlabel        subtype ("Home") or field name
+//         div.contactfieldcontent        the value
+//
+// §4.5's "90px 1fr definition grid" is that markup re-gridded, not replaced
+// (§1.3). ui.js folds each group's field name into its first row and moves the
+// subtype next to the value, which is what makes the left column read "Email"
+// rather than "Home"; core's own legend is only left showing when JS did not run.
+//
+// Tokens only — no literal colors, sizes, radii or shadows.
+// =============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// -- Shell --------------------------------------------------------------------
+.bc-shell--contacts {
+  grid-template-columns:
+    var(--bc-rail-w)
+    var(--bc-books-w)
+    var(--bc-settings-list-w)
+    minmax(0, 1fr);
+}
+
+// -- Address book pane --------------------------------------------------------
+// One treelist widget over the same markup as the mail folder tree, so
+// .bc-folderlist already does the rows; this adds only what Contacts brings.
+.bc-directory__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--bc-s-4);
+  padding: 0 var(--bc-s-8);
+
+  .bc-folders__section {
+    flex: 1 1 auto;
+    min-width: 0;
+    @include bc-truncate;
+  }
+}
+
+// Books, their groups and saved searches all come through .bc-folderlist, which
+// reserves a 20px icon column; ui.js fills it from the row's class
+// (li.addressbook, li.contactgroup, li.contactsearch). Groups are a nested <ul>
+// and indent from `.bc-folderlist ul li > a` with nothing extra here.
+.bc-directory__books,
+.bc-directory__searches {
+  padding: var(--bc-s-4) 0;
+}
+
+// A book you cannot write to still lists and searches, so it is marked rather
+// than disabled — and only on the icon, because the name has to stay at 4.5:1
+// like every other row (§9).
+.bc-directory__books li.readonly > a .bc-icon {
+  color: var(--bc-fg-3);
+}
+
+// The twisty core emits between a book and its groups. Positioned against the
+// <li>, since the row itself is the <a> and the two are siblings.
+.bc-directory li {
+  position: relative;
+}
+
+.bc-directory .treetoggle {
+  position: absolute;
+  top: var(--bc-s-8);
+  left: 0;
+  width: var(--bc-s-16);
+  height: var(--bc-s-16);
+  color: var(--bc-fg-3);
+  cursor: pointer;
+
+  &::before {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: currentcolor;
+    clip-path: polygon(35% 20%, 45% 10%, 75% 50%, 45% 90%, 35% 80%, 60% 50%);
+  }
+
+  &.expanded::before {
+    clip-path: polygon(20% 35%, 10% 45%, 50% 75%, 90% 45%, 80% 35%, 50% 60%);
+  }
+}
+
+// -- Contact list -------------------------------------------------------------
+// Rows are <tr><td class="name"> plus an empty <td class="action">; the avatar
+// and the email line go inside td.name, added by ui.js (§4.5).
+.bc-contactlist {
+  tr {
+    // 8 + 20 (name) + 18 (email) + 8. Held even when a contact has no email so
+    // the list keeps one rhythm and the avatars stay on a grid.
+    min-height: 54px;
+    padding: var(--bc-s-8) 10px;
+  }
+
+  td.name {
+    display: grid;
+    grid-template-columns: var(--bc-avatar) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 10px;
+    align-items: center;
+  }
+
+  // Spans both text rows, centred against them.
+  .bc-avatar {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  .bc-contactlist__name {
+    grid-column: 2;
+    grid-row: 1;
+    @include bc-body1-strong;
+    @include bc-truncate;
+  }
+
+  .bc-contactlist__mail {
+    grid-column: 2;
+    grid-row: 2;
+    @include bc-caption2;
+    color: var(--bc-fg-3);
+    @include bc-truncate;
+  }
+
+  tr.selected .bc-contactlist__mail { color: inherit; }
+
+  // Groups are rows in this list too, carrying core's "list this group" link in
+  // the action cell where a contact has its email.
+  td.action {
+    flex: none;
+    color: var(--bc-fg-3);
+
+    a {
+      display: block;
+      padding: 0 var(--bc-s-4);
+      color: inherit;
+      text-decoration: none;
+    }
+  }
+}
+
+// -- Contact detail -----------------------------------------------------------
+// §4.5 asks for 20px padding and an 18px gap. 18 is not one of the spacing steps
+// and 20 is, so both come off the same token rather than one becoming a literal.
+.bc-contact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bc-s-20);
+  min-height: 100%;
+  padding: var(--bc-s-20);
+  background: var(--bc-bg-1);
+  color: var(--bc-fg-1);
+}
+
+.bc-contact__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;                          // §4.5
+}
+
+.bc-contact__photo {
+  flex: none;
+}
+
+// contacthead in the read view: a fieldset of div.<blockname> lines. Its legend
+// names the block for a screen reader and would otherwise read as a heading over
+// a person's name, so it goes; the edit form keeps its own.
+.bc-contact__ident {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  > legend { display: none; }
+
+  .source {
+    @include bc-caption1;
+    color: var(--bc-fg-3);
+  }
+
+  .names,
+  .displayname {
+    @include bc-subtitle1;
+    color: var(--bc-fg-1);
+  }
+
+  .nickname {
+    @include bc-body1;
+    color: var(--bc-fg-3);
+  }
+
+  // Job title · organization · department on one line (§4.5), composed by ui.js
+  // out of the three separate lines core emits — their order there is
+  // organization, department, jobtitle, and the design reads the other way. The
+  // originals only give way once that has happened, so without JS they stack.
+  &.is-composed {
+    .organization,
+    .department,
+    .jobtitle { display: none; }
+  }
+}
+
+.bc-contact__role {
+  @include bc-body1;
+  color: var(--bc-fg-3);
+}
+
+.bc-contact__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bc-s-20);
+}
+
+// One section — contact, personal, notes, groups.
+.bc-contact__section {
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  // The same section label as the Settings forms (§4.4), so the two screens read
+  // as one system.
+  > legend {
+    width: 100%;
+    margin-bottom: var(--bc-s-12);
+    padding-bottom: var(--bc-s-4);
+    border-bottom: 1px solid var(--bc-stroke-3);
+    font: var(--bc-weight-semibold) var(--bc-size-caption1) / var(--bc-lh-caption1) var(--bc-font-body);
+    color: var(--bc-fg-3);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+}
+
+// One field type inside a section. The fieldset is not itself the grid: a
+// <legend> is the fieldset's rendered legend, laid out above the content box
+// rather than as a child of it, so it could never sit in the label column. The
+// rows carry the grid instead.
+.bc-contact__section .contactfieldgroup {
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  // The field name. Reset first: _settings.scss styles every legend inside a
+  // .bc-formpage__body as an uppercase section label over a rule, and this is a
+  // field label inside one of those sections, not a section of its own.
+  > legend {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    @include bc-caption1;
+    color: var(--bc-fg-3);
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  .row {
+    display: grid;
+    // §4.5's definition grid. 10px is the row rhythm the folder and message rows
+    // already use.
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: 10px var(--bc-s-16);
+    align-items: baseline;
+    padding-block: var(--bc-s-2);
+  }
+
+  .contactfieldlabel {
+    @include bc-body1;
+    color: var(--bc-fg-3);
+  }
+
+  .contactfieldcontent,
+  .contactfield {
+    min-width: 0;
+    @include bc-body1;
+    color: var(--bc-fg-1);
+    overflow-wrap: break-word;
+
+    a { color: var(--bc-brand-fg); }
+  }
+
+  // A value with no label of its own — notes, address lines — still starts in
+  // the value column rather than at the margin.
+  .row > .contactfield { grid-column: 2; }
+
+  .contactfieldcontent.textarea,
+  .contactfieldcontent.text.notes { white-space: pre-wrap; }
+}
+
+// ui.js has folded each group's field name into its first row, so core's own
+// legend would only repeat it.
+.bc-contact__details.is-composed .contactfieldgroup > legend { display: none; }
+
+// The subtype ("Home", "Work", "Mobile"), moved out of the label column so that
+// column can carry the field name. Never the only copy of anything — the value
+// it belongs to is right beside it.
+.bc-contact__subtype {
+  margin-left: var(--bc-s-8);
+  @include bc-caption1;
+  color: var(--bc-fg-3);
+}
+
+// -- Group membership chips ---------------------------------------------------
+// Core renders membership as a live checkbox per group: ticking one posts the
+// change at once. The checkbox stays the control and stays focusable; the chip is
+// its label, and ui.js mirrors checked onto .is-member because this skin does
+// not rely on :has().
+.bc-contact__section .contactgroups {
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  ul.proplist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--bc-s-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  label {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--bc-s-2) var(--bc-s-8);
+    border: 1px solid var(--bc-stroke-accessible);
+    border-radius: var(--bc-radius-m);
+    // 12/16 per §4.5. The category chips in _controls.scss are a tag, not a
+    // control, and sit a step smaller.
+    @include bc-caption1;
+    color: var(--bc-fg-2);
+    cursor: pointer;
+    transition: background-color var(--bc-dur-fast) var(--bc-ease-decel);
+
+    &:hover { background: var(--bc-bg-3); }
+
+    // The chip is what is seen, so the ring belongs on the chip; the input
+    // inside it is what actually holds focus.
+    &:focus-within { @include bc-focus-ring; }
+  }
+
+  // Member: brand tint, brand-fg-strong text and a brand border, so membership
+  // is carried by the border weight and the checkbox state as well as by colour
+  // (§9). The tick stays in the accessibility tree either way.
+  label.is-member {
+    border-color: var(--bc-brand-primary);
+    background: var(--bc-brand-tint-selected);
+    color: var(--bc-brand-fg-strong);
+  }
+
+  // Read-only books disable the boxes; ui.js marks those chips so they can look
+  // as inert as they behave.
+  label.is-locked {
+    color: var(--bc-fg-disabled);
+    cursor: default;
+
+    &:hover { background: none; }
+  }
+
+  input.groupmember {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+// -- Edit form ----------------------------------------------------------------
+// contactedit takes .bc-formpage from _settings.scss for the page frame and its
+// sticky footer, so this covers only what a contact adds to it.
+.bc-contact--edit {
+  gap: 0;
+  padding: 0;
+
+  .bc-contact__head { margin-bottom: var(--bc-s-20); }
+
+  // No initials here — the name is still being typed, and core registers this
+  // element as the photo drop target. A dashed ring says both "no picture" and
+  // "you can drop one here"; a real picture fills the circle and covers it.
+  .bc-contact__photo {
+    background: var(--bc-bg-3);
+    box-shadow: inset 0 0 0 1px var(--bc-stroke-2);
+    outline: 1px dashed var(--bc-stroke-accessible);
+    outline-offset: 2px;
+  }
+
+  // The photo, its drop target, and core's Add/Replace/Delete actions.
+  .bc-contact__photoedit {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--bc-s-8);
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  // Name fields, rendered with use-labels="true", so they are label + control
+  // rows and take the same two columns as the read view. The grid is on the
+  // fieldset and the rows dissolve into it, which is what keeps the blocks that
+  // have no label of their own — the name parts, the "Add field" selector —
+  // lined up with the controls rather than starting at the margin.
+  //
+  // display:contents is safe against core hiding a row: it does that with an
+  // inline style, which wins over this.
+  .bc-contact__identedit {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: var(--bc-s-4) var(--bc-s-16);
+    align-items: center;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    > legend {
+      margin-bottom: var(--bc-s-8);
+      font: var(--bc-weight-semibold) var(--bc-size-caption1) / var(--bc-lh-caption1) var(--bc-font-body);
+      color: var(--bc-fg-3);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .row { display: contents; }
+
+    .names,
+    p.addfield { grid-column: 2; }
+
+    // The name parts are several controls on one line; core sizes them with a
+    // size= attribute, which _settings.scss overrides to full width.
+    .names {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--bc-s-8);
+
+      input {
+        flex: 1 1 140px;
+        width: auto;
+        min-width: 0;
+      }
+    }
+  }
+
+  // compact-form="true" drops the .contactfieldcontent wrapper and puts the
+  // subtype <select> where the label was, so a row here is select + input +
+  // delete rather than label + value.
+  .contactfieldgroup .row {
+    grid-template-columns: 90px minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  // Core's per-value delete link; ui.js turns its inner "Delete" span into an
+  // icon and keeps the word for screen readers.
+  .contactfieldbutton {
+    display: grid;
+    place-items: center;
+    width: var(--bc-s-24);
+    height: var(--bc-s-24);
+    border-radius: var(--bc-radius-m);
+    color: var(--bc-fg-3);
+    text-decoration: none;
+
+    &:hover {
+      background: var(--bc-bg-3);
+      color: var(--bc-danger);
+    }
+
+    &:focus-visible { @include bc-focus-ring; }
+  }
+
+  // "Add field" selector at the foot of each section.
+  p.addfield { margin: var(--bc-s-8) 0 0; }
+}
+
+// -- Import and advanced search -----------------------------------------------
+// Both are framed into a dialog that supplies its own button, so each is a
+// scrolling body and nothing else. The markup inside is core's, one table or
+// fieldset per step.
+.bc-contact__import {
+  @include bc-body1;
+
+  table { width: auto; }
+
+  td,
+  th {
+    padding: var(--bc-s-4) var(--bc-s-8) var(--bc-s-4) 0;
+    vertical-align: middle;
+  }
+
+  th {
+    color: var(--bc-fg-3);
+    font-weight: var(--bc-weight-regular);
+  }
+
+  p { margin-bottom: var(--bc-s-12); }
+}
+
+// -- Print --------------------------------------------------------------------
+// .bc-print__brand moved to _print.scss when messageprint.html grew the same
+// letterhead: one owner for a block both print views use.

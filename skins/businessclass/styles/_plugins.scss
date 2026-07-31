@@ -1,0 +1,772 @@
+// =============================================================================
+// skins/businessclass/styles/_plugins.scss
+// Plugin screens and plugin-supplied markup (BUILD.md §2, §1.6, §12 step 11)
+//
+// In order: core popup menus; the primitives plugin forms emit; Bounce; the
+// generic dialog host; zipdownload; archive and markasjunk; newmail_notifier;
+// password; acl; enigma; help.
+//
+// Two properties of this skin decide how much of this file has to exist.
+//
+//   1. meta.json has "extends": null, so rcube_plugin::local_skin_path()
+//      resolves to skins/businessclass/plugins/<id> and a plugin's own
+//      skins/elastic/*.css is never loaded. Nothing a plugin emits arrives
+//      pre-styled. (include_stylesheet() checks is_file() and returns quietly
+//      when the file is absent — rcube_plugin_api.php:728 — so an absent
+//      per-plugin stylesheet is skipped, not a 404.)
+//
+//   2. All of it lives here rather than in per-plugin .css files under
+//      skins/businessclass/plugins/, so it compiles from tokens, is covered by
+//      the token linter, and follows the theme switch. BUILD.md §2 asks for
+//      exactly that.
+//
+// Tokens only — no literal colors, sizes, radii or shadows.
+// =============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// -- Core popup menus ---------------------------------------------------------
+// rcmail.show_menu() is core's own menu machinery (app.js:8752): it moves the
+// element to <body>, sets left/top in pixels, and calls .show() on it. So the
+// element must be absolutely positioned and must start hidden — and neither can
+// come from anywhere else, because with "extends": null there is no parent skin
+// to inherit Elastic's .popupmenu from.
+//
+// Without these rules every such menu would sit permanently expanded and
+// unstyled at the foot of the page. Two shipped plugins raise one: zipdownload's
+// download-format menu (zipdownload.php:119) and enigma's compose encryption
+// options (enigma_ui.php:892).
+//
+// The surface deliberately matches .bc-popover in _reading.scss, so a plugin's
+// menu and the skin's own overflow menu read as the same kind of object.
+.popupmenu {
+  position: absolute;
+  z-index: 40;
+  display: none;
+  min-width: 200px;
+  max-height: 60vh;
+  padding: var(--bc-s-4);
+  overflow-y: auto;
+  @include bc-surface(var(--bc-radius-l), var(--bc-shadow-8));
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li > a,
+  li > label {
+    display: flex;
+    align-items: center;
+    gap: var(--bc-s-8);
+    padding: var(--bc-s-4) var(--bc-s-8);
+    border-radius: var(--bc-radius-m);
+    @include bc-caption2;
+    color: var(--bc-fg-1);
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--bc-bg-3);
+      text-decoration: none;
+    }
+
+    // show_menu() moves keyboard focus to the first item itself, so a visible
+    // ring is all that is needed here.
+    &:focus-visible { @include bc-focus-ring; }
+  }
+
+  // Core marks an unavailable command with class="disabled" and aria-disabled.
+  li > a.disabled,
+  li > a[aria-disabled="true"] {
+    color: var(--bc-fg-disabled);
+    pointer-events: none;
+  }
+
+  // A menu built from form controls rather than commands — enigma's is three
+  // checkboxes — needs rows, not links.
+  .form-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--bc-s-12);
+    padding: var(--bc-s-4) var(--bc-s-8);
+    @include bc-caption2;
+    color: var(--bc-fg-1);
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: var(--bc-s-16);
+    height: var(--bc-s-16);
+    accent-color: var(--bc-brand-primary);
+  }
+}
+
+// -- Primitives plugin forms emit ---------------------------------------------
+// _settings.scss already covers the vocabulary shared with core's own forms
+// inside .bc-formpage__body: fieldset, legend, td.title, .hint, .boxwarning,
+// .boxcontent, ul.proplist, .formbuttons. What follows is what only the plugin
+// screens use.
+
+// The informational counterpart to .boxwarning. Brand tint rather than a new
+// colour, and --bc-brand-fg-strong for the text because plain brand on a tint
+// fails 4.5:1 (§9).
+.boxinformation {
+  margin-bottom: var(--bc-s-16);
+  padding: var(--bc-s-8) var(--bc-s-12);
+  border: 1px solid var(--bc-brand-stroke);
+  border-radius: var(--bc-radius-m);
+  background: var(--bc-brand-tint-selected);
+  color: var(--bc-brand-fg-strong);
+  @include bc-body1;
+}
+
+.boxerror {
+  margin-bottom: var(--bc-s-16);
+  padding: var(--bc-s-8) var(--bc-s-12);
+  border: 1px solid var(--bc-danger-stroke);
+  border-radius: var(--bc-radius-m);
+  background: var(--bc-danger-tint);
+  color: var(--bc-danger-fg);
+  @include bc-body1;
+}
+
+// "It worked" — a good signature, a successful decryption (enigma_ui.php:1011).
+// Success rather than brand: this is a statement about the message, not about
+// the application.
+.boxconfirmation {
+  margin-bottom: var(--bc-s-16);
+  padding: var(--bc-s-8) var(--bc-s-12);
+  border: 1px solid var(--bc-success-stroke);
+  border-radius: var(--bc-radius-m);
+  background: var(--bc-success-tint);
+  color: var(--bc-success);
+  @include bc-body1;
+}
+
+// A real data table with a header row — enigma's subkey and user-id lists.
+// Distinct from .bc-recordlist, whose rows are selectable list items: nothing
+// here is a row you click.
+table.records-table {
+  width: 100%;
+  margin-top: var(--bc-s-4);
+  border-collapse: collapse;
+  @include bc-body1;
+
+  th,
+  td {
+    padding: var(--bc-s-4) var(--bc-s-8);
+    border-bottom: 1px solid var(--bc-stroke-3);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  thead th {
+    border-bottom: 1px solid var(--bc-stroke-2);
+    @include bc-caption1;
+    font-weight: var(--bc-weight-semibold);
+    color: var(--bc-fg-3);
+    white-space: nowrap;
+  }
+
+  // Set by enigma on a revoked or expired subkey and on an invalid user id
+  // (enigma_ui.php:431). Struck through as well as dimmed: "no longer valid" is
+  // the point of the row and must not rest on colour alone (§9).
+  tr.deleted td {
+    color: var(--bc-fg-3);
+    text-decoration: line-through;
+  }
+}
+
+// Bootstrap leftovers in plugin markup. Elastic is a Bootstrap skin, so the
+// plugins write these; here they only need to not break the layout.
+.form-control,
+.custom-select { max-width: 100%; }
+
+.d-block { display: block; }
+
+// -- Bounce (§12 step 11) -----------------------------------------------------
+// Rendered inside a jQuery UI dialog's iframe, so this is the whole document.
+.bc-bounce {
+  padding: var(--bc-s-16) var(--bc-s-16) var(--bc-s-8);
+  background: var(--bc-bg-1);
+  color: var(--bc-fg-1);
+  @include bc-body1;
+}
+
+// bounceObjects always emits the "resent unchanged" note, and a warning under it
+// when the original carried Bcc recipients (bounce.php:112).
+.bc-bounce__notices {
+  .boxinformation,
+  .boxwarning { margin-bottom: var(--bc-s-12); }
+
+  > :last-child { margin-bottom: var(--bc-s-16); }
+}
+
+// The rows are .bc-compose__row from _compose.scss — label · control · trailing
+// actions. At dialog width the trailing Cc/Bcc buttons have nowhere to sit
+// beside the field, so they are allowed to wrap.
+.bc-bounce__headers {
+  .bc-compose__addheaders { flex-wrap: wrap; }
+
+  // Nothing in a bounce is long-form, and a recipient field that grew to six
+  // lines would push "Save sent message in" out of the dialog.
+  textarea { max-height: calc(var(--bc-s-40) * 2); }
+
+  // "Save sent message in" is not a recipient row and its label does not fit the
+  // 70px track the others share — at that width it painted over the folder
+  // select. An auto track lets the label take what it needs and gives the select
+  // the rest; there is no third column here, so nothing is displaced.
+  #bounce_store {
+    grid-template-columns: auto minmax(0, 1fr);
+    border-bottom: 0;
+  }
+}
+
+// -- Generic dialog host ------------------------------------------------------
+// Any $rcmail->output->send('dialog') lands in dialog.html; enigma's two import
+// frames reuse the same wrapper. Always inside a dialog iframe.
+.bc-dialogpage {
+  padding: var(--bc-s-16);
+  background: var(--bc-bg-1);
+  color: var(--bc-fg-1);
+  @include bc-body1;
+
+  p { margin: 0 0 var(--bc-s-12); }
+  p:last-child { margin-bottom: 0; }
+
+  input[type="text"],
+  input[type="search"],
+  input[type="file"],
+  select {
+    width: 100%;
+    min-height: var(--bc-control-h);
+    padding: var(--bc-s-4) var(--bc-s-8);
+    border: 1px solid var(--bc-stroke-accessible);
+    border-radius: var(--bc-radius-m);
+    background: var(--bc-bg-1);
+    color: var(--bc-fg-1);
+    @include bc-body1;
+
+    &:focus {
+      border-bottom-width: 2px;
+      border-bottom-color: var(--bc-brand-primary);
+      outline: none;
+    }
+  }
+
+  .hint {
+    margin-top: var(--bc-s-4);
+    @include bc-caption1;
+    color: var(--bc-fg-3);
+  }
+}
+
+// The one dialog_class core sets, for the raw-header viewer
+// (mail/headers.php:70). Header names arrive as <font class="bold">, folded
+// continuation lines as leading &nbsp;s and line breaks as <br> — preformatted
+// text in all but name, so it gets a monospace face and a horizontal scrollbar
+// instead of wrapping.
+.bc-dialogpage.text-nowrap {
+  overflow: auto;
+  font: var(--bc-weight-regular) var(--bc-size-caption1) / var(--bc-lh-body1) var(--bc-font-mono);
+  white-space: nowrap;
+
+  .bold,
+  font.bold {
+    font-weight: var(--bc-weight-semibold);
+    color: var(--bc-fg-1);
+  }
+}
+
+// -- zipdownload --------------------------------------------------------------
+// Two pieces of UI. The download-format menu is a .popupmenu, covered above;
+// this is the "Download all" link the plugin appends after the attachment list
+// when a message carries more than one (zipdownload.php:80). It arrives as
+// <a class="button zipdownload"> immediately after our </ul>, so it is styled
+// where it lands rather than moved.
+.bc-message__attachments a.button.zipdownload {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bc-s-4);
+  margin-top: var(--bc-s-8);
+  padding: var(--bc-s-2) var(--bc-s-8);
+  border-radius: var(--bc-radius-m);
+  @include bc-caption1;
+  color: var(--bc-brand-fg);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--bc-bg-3);
+    color: var(--bc-brand-fg-strong);
+    text-decoration: underline;
+  }
+
+  &:focus-visible { @include bc-focus-ring; }
+}
+
+// -- archive and markasjunk ---------------------------------------------------
+// Both add <a class="button …"> to the "toolbar" container, which this skin
+// renders inside the reading-pane ribbon (includes/ribbon.html). The button
+// shape comes from _reading.scss and the icon from ui.js's PLUGIN_ICONS, so
+// there is nothing to add here — this note is so nobody goes looking for it.
+//
+// markasjunk's alternative placement, the "markmenu" container, has no home in
+// this skin: the design draws no Mark menu. markasjunk_toolbar defaults to true
+// (markasjunk.php:68), so the toolbar path is the one installs take.
+
+// -- newmail_notifier ---------------------------------------------------------
+// Its preference rows are core html_table rows, already styled by
+// _settings.scss. Its own contribution is the "Test" link beside each option
+// (newmail_notifier.php:115) — a bare <a> in the middle of a form row.
+.bc-formpage__body td a[onclick*="newmail_notifier_test"] {
+  margin-left: var(--bc-s-8);
+  color: var(--bc-brand-fg);
+
+  &:hover { color: var(--bc-brand-fg-strong); }
+}
+
+// -- password -----------------------------------------------------------------
+// The one core plugin that renders a whole settings page of its own, hosted by
+// templates/plugin.html. It brings page furniture written for a skin that has
+// none of ours:
+//
+//   #prefs-title.boxtitle          its own "Change Password" heading
+//   .box.formcontainer.scroller    its own scroll container
+//   .boxcontent.formcontent        the form
+//   p.formbuttons.footerleft       its own submit row
+//
+// The heading and the scroller each duplicate something plugin.html already
+// provides, so both are undone. .formbuttons is kept and styled by
+// _settings.scss, because the plugin owns its submit and our form footer is not
+// rendered on this page.
+.bc-formpage {
+  // Would print "Change Password" a second time, immediately under
+  // .bc-formpage__title, which renders the same pagetitle.
+  #prefs-title.boxtitle { display: none; }
+
+  // A scroll container inside .bc-formpage__body — which is already the
+  // scroller — gives two nested scrollbars and a form that cannot reach its own
+  // bottom.
+  .box.formcontainer,
+  .formcontainer.scroller {
+    height: auto;
+    overflow: visible;
+  }
+
+  // The strength and length rules, as a list under the fields.
+  #ruleslist {
+    margin: var(--bc-s-4) 0 0;
+    padding-left: var(--bc-s-16);
+
+    li { margin-bottom: var(--bc-s-2); }
+  }
+}
+
+// -- acl (folder sharing) -----------------------------------------------------
+// Rendered as one tab of the folder-properties form, so it sits inside
+// .bc-formpage__body and inherits its fieldset, legend and control rules.
+.bc-acl {
+  // list_rights() builds a grid: one row per identifier, one column per right,
+  // each right cell empty apart from a <span> and a class naming its state.
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    @include bc-body1;
+
+    th,
+    td {
+      padding: var(--bc-s-4) var(--bc-s-8);
+      border-bottom: 1px solid var(--bc-stroke-3);
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    thead th {
+      border-bottom: 1px solid var(--bc-stroke-2);
+      @include bc-caption1;
+      font-weight: var(--bc-weight-semibold);
+      color: var(--bc-fg-3);
+    }
+
+    // The identifier is the only text column; the rest are states.
+    th.user,
+    td.user {
+      width: 40%;
+      text-align: start;
+    }
+
+    td.user a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    tbody tr {
+      cursor: pointer;
+
+      &:hover { background: var(--bc-bg-3); }
+      &:focus-visible { @include bc-focus-ring; }
+    }
+
+    tbody tr.selected {
+      background: var(--bc-brand-tint-selected);
+      color: var(--bc-brand-fg-strong);
+      font-weight: var(--bc-weight-semibold);
+    }
+  }
+
+  // Granted / partly granted / not granted. A glyph, not a colour: the three
+  // states have to be distinguishable in monochrome, and generated content is
+  // in the accessibility tree. Whether that is enough for a screen reader is
+  // revisited in the §9 audit at step 14.
+  &__table td.enabled span::before {
+    content: "\2713";
+    color: var(--bc-success);
+  }
+
+  &__table td.partial span::before {
+    content: "\2013";
+    color: var(--bc-warning-fg);
+  }
+
+  &__table td.disabled span::before {
+    content: "\00b7";
+    color: var(--bc-fg-disabled);
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--bc-s-8);
+    margin-top: var(--bc-s-12);
+  }
+
+  // acl.js marks the current mode by putting .selected on this wrapper and
+  // ticking the checkbox inside it (acl.js:46, :160), so the label is bound to
+  // the input in the ordinary way and no state of the skin's own is involved.
+  &__mode {
+    display: flex;
+    align-items: center;
+    gap: var(--bc-s-4);
+    margin-left: auto;
+
+    input[type="checkbox"] {
+      width: var(--bc-s-16);
+      height: var(--bc-s-16);
+      accent-color: var(--bc-brand-primary);
+    }
+
+    label {
+      @include bc-caption1;
+      color: var(--bc-fg-2);
+      cursor: pointer;
+    }
+  }
+}
+
+// The add/edit form, which acl.js moves into a jQuery UI dialog and back out
+// again (acl.js:359). Hidden until it does; the dialog supplies the surface.
+.bc-aclform {
+  display: none;
+
+  &__row {
+    margin-bottom: var(--bc-s-16);
+
+    &:last-child { margin-bottom: 0; }
+  }
+
+  // A span, not a <label>: templ_user() emits its own, bound to the input.
+  &__legend {
+    display: block;
+    margin-bottom: var(--bc-s-4);
+    @include bc-caption1;
+    font-weight: var(--bc-weight-semibold);
+    color: var(--bc-fg-3);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  // Either a bare input group, or — where the server exposes special
+  // identifiers — a <ul id="usertype"> whose first item holds the free-text
+  // field and whose others are radio choices.
+  &__user {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: var(--bc-s-8);
+      margin-bottom: var(--bc-s-4);
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: var(--bc-s-8);
+      min-width: 0;
+    }
+
+    .input-group-text {
+      @include bc-caption1;
+      color: var(--bc-fg-3);
+      white-space: nowrap;
+    }
+
+    input[type="text"] {
+      flex: 1 1 auto;
+      min-width: 0;
+      min-height: var(--bc-control-h);
+      padding: var(--bc-s-4) var(--bc-s-8);
+      border: 1px solid var(--bc-stroke-accessible);
+      border-radius: var(--bc-radius-m);
+      background: var(--bc-bg-1);
+      color: var(--bc-fg-1);
+      @include bc-body1;
+
+      &:focus {
+        border-bottom-width: 2px;
+        border-bottom-color: var(--bc-brand-primary);
+        outline: none;
+      }
+    }
+  }
+
+  // templ_rights() emits both lists every time and acl.js shows whichever mode
+  // is current (acl.js:312), so neither may be hidden from here.
+  &__rights,
+  #simplerights,
+  #advancedrights {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: var(--bc-s-8);
+      padding: var(--bc-s-2) 0;
+    }
+
+    input[type="checkbox"] {
+      width: var(--bc-s-16);
+      height: var(--bc-s-16);
+      accent-color: var(--bc-brand-primary);
+    }
+
+    label {
+      @include bc-body1;
+      color: var(--bc-fg-1);
+      cursor: pointer;
+    }
+  }
+}
+
+// -- enigma -------------------------------------------------------------------
+// Keys list pane. The search row is core's search_form: one <form> around one
+// _q input, with no wrapper of its own.
+.bc-keys__search {
+  flex: none;
+  padding: var(--bc-s-8) var(--bc-s-12);
+  border-bottom: 1px solid var(--bc-stroke-3);
+
+  form { margin: 0; }
+
+  input {
+    width: 100%;
+    min-height: var(--bc-control-h);
+    padding: var(--bc-s-4) var(--bc-s-8);
+    border: 1px solid var(--bc-stroke-accessible);
+    border-radius: var(--bc-radius-m);
+    background: var(--bc-bg-1);
+    color: var(--bc-fg-1);
+    @include bc-body1;
+
+    &:focus {
+      border-bottom-width: 2px;
+      border-bottom-color: var(--bc-brand-primary);
+      outline: none;
+    }
+  }
+}
+
+// Key details.
+.bc-keyinfo__data {
+  // Short key ids, in the subkey and user-id tables.
+  #enigmasubkeytable td.id { font-family: var(--bc-font-mono); }
+
+  // The fingerprint. It has no class of its own, and it is the last row of the
+  // first fieldset — the basics table, whose four rows tpl_key_data() writes in
+  // a fixed order ending with the fingerprint (enigma_ui.php:392). Monospaced
+  // because 40 hex characters have to be comparable one by one, and broken
+  // anywhere because it does not fit the value column otherwise.
+  > fieldset:first-of-type tr:last-child td:not(.title) {
+    font-family: var(--bc-font-mono);
+    word-break: break-all;
+  }
+}
+
+// Key generation.
+.bc-keycreate__form {
+  // The private key is stored on the server. That is the most consequential
+  // sentence on the page, so it keeps the full box treatment and stays first.
+  #key-notice { margin-bottom: var(--bc-s-16); }
+
+  // The identities to bind the key to.
+  ul.proplist {
+    padding-left: 0;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: var(--bc-s-8);
+      padding: var(--bc-s-2) 0;
+      list-style: none;
+    }
+  }
+
+  // Both password fields are emitted as type="text", with an oninput that
+  // switches them to type="password" once they hold anything
+  // (enigma_ui.php:764), so they cannot be selected on their type. The ids are
+  // stable.
+  #key-pass,
+  #key-pass-confirm { width: 100%; }
+}
+
+// Import from a file / look up on a keyserver. Both are small dialog frames
+// whose buttons belong to the dialog, so the only thing left is keeping the file
+// input inside 500px.
+.bc-keyimport__form,
+.bc-keysearch__form {
+  input[type="file"] { max-width: 100%; }
+}
+
+// Compose encryption options. enigma only uses the composeoptions container on
+// Elastic and skins derived from it; every other skin — this one included — gets
+// a toolbar button plus a #enigmamenu popup instead (enigma_ui.php:860). The
+// .popupmenu rules above style it; all it needs of its own is width, because
+// three labelled switches want more room than a list of commands.
+#enigmamenu { min-width: 260px; }
+
+// Signature and decryption status, prepended to the message body by the
+// message_body_prefix hook (enigma_ui.php:956). It is part of the message
+// document rather than the sanitised body iframe, so these rules reach it.
+//
+// Each box arrives with two classes: a box* one saying how serious it is —
+// handled above — and an enigma* one naming the subject. What is added here is
+// the row shape and room for the icon ui.js puts in front, so that an encrypted
+// or verified message is marked as such and not merely coloured (§9).
+#enigma-message {
+  display: flex;
+  align-items: center;
+  gap: var(--bc-s-8);
+  margin-bottom: var(--bc-s-12);
+
+  .bc-icon {
+    flex: none;
+    color: inherit;
+  }
+}
+
+// The "this message carries a public key" offer, with its Import button
+// (enigma_ui.php:1128).
+.enigmaattachment {
+  display: flex;
+  align-items: center;
+  gap: var(--bc-s-12);
+
+  button.import {
+    flex: none;
+    height: var(--bc-control-h);
+    padding: 0 var(--bc-s-12);
+    border: 1px solid var(--bc-stroke-1);
+    border-radius: var(--bc-radius-m);
+    background: var(--bc-bg-1);
+    color: var(--bc-fg-1);
+    @include bc-body1-strong;
+    cursor: pointer;
+
+    &:hover { background: var(--bc-bg-3); }
+    &:focus-visible { @include bc-focus-ring; }
+  }
+}
+
+// -- help ---------------------------------------------------------------------
+// The body is whatever the admin pointed the plugin at — the bundled
+// about.html / license.html, or an external page — so this is document
+// typography for arbitrary HTML, not a layout.
+.bc-helpcontent {
+  height: 100%;
+  max-width: var(--bc-read-measure);
+  padding: var(--bc-s-24);
+  overflow-y: auto;
+  background: var(--bc-bg-1);
+  color: var(--bc-fg-1);
+  @include bc-body1;
+
+  h1,
+  h2,
+  h3 {
+    margin: var(--bc-s-24) 0 var(--bc-s-8);
+    color: var(--bc-fg-1);
+  }
+
+  h1 { @include bc-title3; }
+  h2 { @include bc-subtitle1; }
+  h3 { @include bc-body1-strong; }
+
+  > :first-child { margin-top: 0; }
+
+  p { margin: 0 0 var(--bc-s-12); }
+
+  ul,
+  ol {
+    margin: 0 0 var(--bc-s-12);
+    padding-left: var(--bc-s-24);
+  }
+
+  li { margin-bottom: var(--bc-s-4); }
+
+  a {
+    color: var(--bc-brand-fg);
+
+    &:hover { color: var(--bc-brand-fg-strong); }
+  }
+
+  code,
+  pre {
+    font-family: var(--bc-font-mono);
+    background: var(--bc-bg-2);
+  }
+
+  pre {
+    padding: var(--bc-s-8) var(--bc-s-12);
+    border-radius: var(--bc-radius-m);
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    margin-bottom: var(--bc-s-12);
+    border-collapse: collapse;
+
+    th,
+    td {
+      padding: var(--bc-s-4) var(--bc-s-8);
+      border-bottom: 1px solid var(--bc-stroke-3);
+      text-align: start;
+    }
+  }
+
+  hr {
+    margin: var(--bc-s-24) 0;
+    border: 0;
+    border-top: 1px solid var(--bc-stroke-2);
+  }
+}

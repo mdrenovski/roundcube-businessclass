@@ -1,0 +1,844 @@
+# Decisions
+
+Every decision that is not obvious from the code, with **who** made it and **what
+it would take to change**. That last column is the point of this file: a decision
+recorded without its cost is just an opinion.
+
+**Who**: `USER` — Metodi decided it, do not quietly reverse it. `BUILD` — the
+contract says so. `BUILT` — an engineering call made while building; the most
+freely revisable.
+
+---
+
+## Architecture
+
+### D-1 · Standalone skin, `"extends": null`
+**BUILD** (§1.1). No parent skin to inherit from.
+**Consequence:** every template Roundcube might ask for must exist, because a
+missing one is *fatal* — `parse()` raises a 404 and exits. This is why
+`_scaffold.scss` and plain-but-working `bounce.html` / `dialog.html` /
+`plugin.html` exist at all.
+**To change:** setting `"extends": "elastic"` would let undesigned screens fall
+back, but you would inherit Elastic's CSS and JS and its layout assumptions.
+Not worth it now that only two screens are unstyled.
+
+### D-2 · Two plugins, one required
+**BUILT.** `businessclass_prefs` is **required** — it publishes branding and pane
+widths into the templates and whitelists the skin's preferences (`save_pref.php`
+rejects anything not on its hardcoded list or contributed by a plugin).
+`businessclass_preview` is optional; without it message rows lose the third line.
+**To change:** folding `prefs` into the skin is impossible — a skin cannot run
+PHP. Splitting it further is possible but every split adds a thing an installer
+can forget.
+
+### D-3 · Everything renders on core's own template objects
+**BUILT**, consistently. The contact list is `addresslist`, the directory is
+`directorylist`, the login form is `loginform`, the identity form is
+`identityform`. The skin styles what core emits and decorates it from `ui.js`
+rather than rebuilding it.
+**Why:** command enabling/disabling, treelist drag-and-drop, group membership
+posting, paging, `dont_override`, and every plugin container keep working
+untouched.
+**To change:** don't. Each screen that was hand-rebuilt would silently lose one of
+those, and the loss shows up as a bug report months later.
+
+### D-4 · `styles.css` is committed
+**BUILD** (§2). Shared hosts have no build step.
+**Consequence:** `npm run build` is mandatory before any hand-off.
+
+### D-5 · Sass and the Fluent icon SVGs are the only dependencies
+**BUILD** (§14) — ask before adding any other.
+Icons are subset into one inlined SVG sprite by `tools/build-sprite.mjs`. **No
+icon webfont** (§10).
+
+### D-6 · One `ui.js`, one IIFE, ES5-flavoured
+**BUILT.** `var`, no arrow functions, no optional chaining, feature-detected
+`rcmail`. Every module no-ops where its markup is absent, because `init()` runs
+in framed pages too.
+**To change:** safe to modernise — Roundcube 1.6 targets modern browsers — but
+it would be a large diff for no user-visible gain.
+
+---
+
+## Layout
+
+### D-14 · The three-pane shell is a **flex column**, not a grid
+**BUILT**, after a bug. Was `display: grid` with two rows on `body.task-*`.
+**Why it had to change:** the `task-*` class is on `<body>` for *every* document
+of that task, including framed ones that render no header — so a framed page's
+content landed in the header's 48px row and was clipped, which is why Save/Cancel
+footers were unreachable. And any third in-flow child of `<body>` (a plugin's
+`add_header()` content, which the parser moves into the body) took a numbered row
+and pushed the shell down.
+**To change:** don't go back to a grid keyed on `<body>`. If you need grid
+semantics, put them on `#layout`, never on `body`.
+
+### D-15 · `.floating-action-buttons` is positioned absolute now, designed at step 13
+**BUILT.** `mail.html` carries the container so plugins that inject into it work
+(§1.2). Unstyled it was a seventh child in a six-column grid and stole a row's
+height. It is empty, so it draws nothing.
+**To change:** step 13 gives it its real mobile design.
+
+### D-16 · Search stays in the app header on the Contacts screen
+**USER.** §4.5 could be read as putting a search box in the contacts pane.
+**To change:** trivial — but ask, this was an explicit choice.
+
+### D-17 · No contact count per address book
+**USER.** No data without one query per book, including LDAP where it can be slow
+or unsupported. The count for the book you are in shows under the list, from
+Roundcube's own counter.
+**To change:** needs a plugin hook doing per-book counts, cached. Expensive on
+LDAP. Do not do it without measuring.
+
+### D-18 · Contact rows keep their height when there is no email address
+**USER.** The second line is simply empty rather than the row collapsing.
+**To change:** one CSS rule, but rhythm suffers.
+
+### D-19 · `_print.scss` had no owner in `BUILD.md` §12 — **closed**
+**USER**, 2026-07-30: raised as unowned, and the answer was "do it now, before
+step 11" (the third of four options offered). So printing is an unnumbered
+addition between steps 10 and 11, like the avatar work before it. What it decided
+is D-42 to D-45.
+
+---
+
+## Contacts
+
+### D-20 · Group membership is chips that toggle
+**USER**, chosen from alternatives. The `<input type="checkbox">` core renders
+stays the control — it is what Roundcube binds `group_member_change` to, and what
+a keyboard and a screen reader use. Only the *appearance* moves to the `<label>`.
+Member chips get a brand tint **and** a brand border, so membership is never
+carried by colour alone (§9).
+**To change:** the appearance is free to change. Do not replace the checkbox with
+a `<button>` — the membership POST goes with it.
+
+### D-21 · Roundcube's section headings are kept in the contact detail pane
+**BUILT**, a deviation from §4.5, which draws one flat definition list. Core owns
+the grouping (Properties / Personal information / Notes / Groups) and flattening
+it would leave Notes and the group chips with **no label at all**, because the
+design labels those from a left column that a flat structure does not have.
+**To change:** you would have to synthesise labels for the unlabelled groups.
+Possible; it was judged worse than keeping core's headings.
+
+### D-22 · The label column reads the field name; the subtype moves next to the value
+**BUILT.** Core labels each row with its *subtype* ("Home") and puts the field
+name on a `<legend>` — which a fieldset renders above its content box and so can
+never sit in the label column. `ui.js` folds the field name into the group's first
+row and moves the subtype beside the value, giving
+`Email │ rita@… Home`.
+**To change:** the alternative is `Home │ rita@…` with a heading above, which is
+what core does and is not what the design draws.
+
+### D-23 · Group and saved-search actions live behind one overflow button
+**BUILT.** §4.5 gives group-create/rename/delete and search-save/delete no home.
+Same reasoning for the More popover in the contact detail toolbar: §4.5 names four
+buttons, and everything else core registers would otherwise be unreachable.
+**To change:** free, if the design grows a home for them.
+
+---
+
+## Avatars, photos, and what recipients see
+
+### D-24 · Nothing goes outbound to recipients
+**USER**, chosen over a signature image and over BIMI.
+The reasoning that led to the question, worth keeping because it will come up
+again: **no mail standard carries a sender avatar that the recipient's client will
+display.** Gravatar is looked up *by the recipient's software* and only the account
+holder can register a picture there. BIMI is one logo per *domain*, needs DMARC at
+`p=quarantine`/`p=reject` and a paid Verified Mark Certificate (~$1,000/yr). The
+only thing that works in every client today is a picture embedded in the
+signature — and the user chose not to have it.
+**To change:** the signature-image option is the cheap one and is fully specified
+in the conversation: embed the photo as an inline `cid:` attachment at the top of
+that identity's signature. BIMI is mail-infrastructure work, not skin work.
+
+### D-25 · Avatar source is address book → Gravatar → initials
+**USER**, chosen over address-book-only and over Gravatar-only.
+Address-book lookup is free: core's `contacts/photo?_email=` action already
+searches every book and caches for a day. Gravatar is
+`businessclass_prefs::contact_photo` returning a `url`, which core then redirects
+to — so **the browser** contacts Automattic, disclosing a SHA-256 of the address
+and the user's IP.
+**To change:** `$config['businessclass_gravatar'] = false` turns just the Gravatar
+step off and leaves the rest working. Documented in `README.md` because on shared
+hosting this may need disclosing.
+**Rejected alternative:** fetching Gravatar server-side would hide the user's IP
+but needs an outbound HTTP client, a cache and timeouts in PHP — a new dependency
+(D-5) for a privacy gain the switch already offers.
+
+### D-26 · Message-list rows stay initials-only
+**BUILT.** Fifty rows would be fifty outbound lookups per folder page. The header
+circle, the reading-pane sender and the contact card get photos; list rows do not.
+**To change:** if you ever want them, do it lazily on scroll and only for
+addresses already known to have a local contact photo.
+
+### D-27 · The identity photo is stored on the matching contact
+**USER**, chosen over a base64 blob in the user's preferences.
+Roundcube's `identities` table has no photo column and this project does not touch
+the schema. The address book already has photo storage, an uploader, and a
+resizer — and storing it there is what makes the picture appear as the account
+circle, as that person's sender avatar, and in an exported vCard, with nothing
+else told about it.
+**Rejected alternative:** the preferences blob is loaded on *every* request, so a
+4–8 KB photo would tax every page for the life of the account.
+**Consequence:** the photo is keyed on the address the identity is saved with, so
+the address changing has to move it — see D-39, which is what closed the wart this
+entry used to record.
+
+### D-28 · The upload is its own request, not part of saving the identity
+**BUILT.** Goes to `plugin.businessclass.identityphoto` via core's
+`rcmail.file_upload()`. Core's identity save is untouched and the identity form
+needs no `enctype`.
+**Why `file_upload()` and not `fetch()`:** it sends the request token in the header
+Roundcube checks and hands the reply to `http_response()`, so the plugin's
+commands dispatch like any other action's. A hand-rolled `fetch` needs
+`http_response(parsedObject)`, not raw text — an easy thing to get wrong.
+
+### D-29 · The dashed ring is keyed on `.is-photo`, set on `load`
+**BUILT**, after getting it wrong once. `:has(img)` looked right but the `<img>` is
+in the DOM from the moment the request starts, so the ring vanished before
+anything was known and reappeared if the request 404'd.
+
+---
+
+## Localization
+
+### D-30 · One `<roundcube:add_label>` tag per label — never a comma list
+**BUILT**, after a bug that silently broke every client-side string in the skin.
+`xml_command()` hands `$attrib['name']` to `add_label()` whole and **nothing splits
+on the comma**, so `name="a,b,c"` registers one label literally called `a,b,c` and
+every key in it renders as itself. Core's own skins write them one at a time.
+**Guarded by** `npm run lint:labels`, which rejects a comma outright.
+**To change:** if the verbosity ever becomes intolerable, the alternative is a
+single array passed from `businessclass_prefs` on the `render_page` hook —
+`add_label()` *does* accept an array, and the hook fires before `js_labels` is
+serialised. It was rejected because it moves skin knowledge into the plugin and
+would also have to cover the skin's plugin-template overrides.
+
+### D-31 · Bulgarian ships; other languages are copy-and-translate
+**USER** asked for English and Bulgarian. Roundcube loads `en_US.inc` first and the
+session language over it, so a missing key falls back to English rather than
+breaking. `lint:labels` still demands the full set — a half-translated pane is
+worse than a consistently English one.
+
+### D-32 · Skin strings are `bc_*`, plugin strings live with the plugin
+**BUILT.** `$this->gettext()` inside a plugin resolves against the plugin's own
+texts, so anything the plugin words (`bc_photosaved`, the Appearance labels, the
+pin messages) belongs in `plugins/businessclass_prefs/localization/`.
+`add_texts('localization', true)` pushes them to the browser automatically, which
+is why `pluginLabel()` needs no `add_label` tag.
+
+---
+
+## Branding
+
+### D-33 · Three presets side by side, activated by renaming
+**BUILT.** `branding.json` (generic, the free-distribution default),
+`branding.jethost.json`, `branding.jethost-bg.json`. `vendor` is separate from
+`product_name` so the header stays short while About carries the full credit
+("BusinessClass by JetHost.com").
+**Open:** both JetHost presets are **placeholders** — accent hex, logos, favicon
+and support URL are all outstanding and need the user.
+
+### D-34 · `support_url` doubles as "Forgot password?"
+**BUILT.** Roundcube has no password-reset flow of its own. With no `support_url`
+set, the link is absent rather than dead.
+
+### D-35 · `mail_domain` is never guessed
+**BUILT.** With several domains served from one install, guessing before the user
+has identified themselves would be exactly that. Unset means the subtitle is
+omitted.
+
+---
+
+## Preferences
+
+### D-36 · Six preferences, all clamped or whitelisted server-side
+`businessclass_theme`, `_density`, `_focused`, `_folders_w`, `_list_w`,
+`_list_h`. The reading-pane position is core's own `layout` pref — the Appearance
+block and core's Mailbox View both write it, so they always agree on load.
+
+### D-37 · Saving Appearance reloads the page
+**BUILT.** All of these are rendered into the document server-side, so there is
+nothing to update in place.
+
+### D-38 · The old `fluent2_*` preference names are abandoned, not migrated
+**BUILT.** An install that ran the pre-rename build keeps those rows unread;
+theme, density and pane widths fall back to defaults once and are saved under the
+new names as soon as they change.
+**To change:** a migration is possible but was judged not worth it for a skin that
+had not shipped.
+
+---
+
+## The identity photo follows its address
+
+### D-39 · The photo moves with the identity, conservatively
+**USER**, asked for directly ("first fix the identity-photo wart"), 2026-07-30.
+Because D-27 keys the picture on the identity's address, changing that address used
+to leave the face behind on the old contact. `businessclass_prefs::identity_update`
+now carries it across. Four rules, each one a decision in its own right:
+
+- **Nothing moves unless the old address has a photo.** No photo, no work, and in
+  particular no contact created at the new address for nothing.
+- **A photo already on the new address wins.** It is the more recent choice *for
+  that address*, and it is not this feature's business to overwrite it.
+- **One card carrying both addresses is left alone.** It already answers a lookup
+  by either, so there is nothing to move — and clearing it would destroy the only
+  copy.
+- **The old photo is cleared only after the new one is written.** A failed write
+  leaves everything where it was.
+
+Failures are silent: this rides along with saving an identity, that save succeeded,
+and there is no sensible way to interrupt it to report that a picture did not
+follow.
+**Why `identity_update` and not something after the save:** it is the only moment
+both addresses exist — the new one is in the posted record, the old one is still in
+the database (`identity_save.php:124`). There is no `identity_update_after`.
+**To change:** the four rules are independent; each is a couple of lines in
+`move_photo()`. Making it aggressive (always overwrite the target) is the one to
+avoid — it silently discards a picture the user chose.
+
+### D-40 · Deleting an identity leaves its photo alone
+**BUILT.** The picture belongs to a *contact*, which is a real address-book record
+that may be in use for other reasons. An identity going away is not a reason to
+edit it.
+**To change:** an `identity_delete` hook would be the place, but it would have to
+distinguish a contact this feature created from one the user already had, and
+nothing records that.
+
+### D-41 · The photo well is server-gated per screen, and says so when it cannot work
+**BUILT.** Three states, all decided in `startup` (or in the save-path hooks) and
+tested by `npm run verify:idphoto`:
+
+- an identity that exists → the well, upload and remove;
+- **add-identity** → the fieldset with one line of explanation, because there is no
+  address yet to attach a picture to. Core hands the editor straight back after the
+  insert, so this state lasts exactly one save;
+- **identities_level 4**, where core disables every field → nothing, so the photo
+  is not the one writeable control on a read-only form.
+
+**Why not the `identity_form` hook**, which would be the natural place to know
+which identity is on screen: the template branches in a `<roundcube:if>`, and
+conditions are resolved in an earlier pass than template objects
+(`parse_conditions()` then `parse_xml()`, `rcmail_output_html.php:824-825`), so by
+the time `identity_form` fires the branch has been taken. The env has to be set
+before `write()` — `startup` for a normal render, and `identity_update` /
+`identity_create_after` for the form core re-renders after a save, which happens
+long after `startup` has run.
+**To change:** all three states are one `<roundcube:if>` chain in
+`identityedit.html` plus one block in `startup()`.
+
+---
+
+## Print
+
+Everything here was decided on 2026-07-30, when D-19 was answered. Print is the one
+part of the skin with no mockup in the design file, so these are the answers to
+questions the design never asked.
+
+### D-42 · Print is monochrome, with the accent on links only
+**USER**, chosen over full brand colour and over pure black-and-white.
+Black text on white, hairline grey rules, and the accent surviving *only* as the
+link colour so a printed URL still reads as a link. Implemented as `@mixin bc-print`
+in `_tokens.scss` — the same shape as `bc-dark` and `bc-hc` — applied from
+`@media print`.
+**Two things it has to do, not one:** take the ink out of every fill, *and* undo the
+theme. A reader in dark mode would otherwise print white text on a dark page.
+**The specificity trap:** the undo must be `html[data-bc-theme]` (0,1,1), matching
+`html[data-bc-theme="dark"]`, and win the tie by being later in the cascade. Written
+as plain `html` it loses, and the subject prints white on white — invisible, and
+measured that way before the selector was corrected.
+**`--bc-brand-primary` is never overridden**, because `header.html` writes it as an
+inline style on `<html>` and no stylesheet can beat that. Anything that must lose
+the accent and takes it from that variable directly has to be neutralised where it
+is used — which is why the unread bar needs its own rule, with `!important`, since
+the rules that set it carry a state class too.
+**To change:** one mixin. Full colour means deleting most of it; pure monochrome
+means also overriding `a { color }` inside the print block.
+
+### D-43 · Both print views carry a letterhead, from two possible sources
+**USER**, chosen over contacts-only and over no logo anywhere.
+Order: `branding.json`'s `logo.print`, then core's own `logo` object, which reads
+`$config['skin_logo']`. Neither set means no letterhead, and the block removes
+itself.
+**Why two sources:** `logo.print` is where the rest of this skin's logos live, so
+that is where an admin will look; `skin_logo` is Roundcube's documented mechanism
+and works with the plugin absent. It is also its own entry rather than the header
+logo reused — a letterhead is usually a different asset, and printing is the one
+place an install may deliberately want none.
+**Why `:not(:has(img))` and not `:empty`:** the block holds a comment and
+whitespace, and whether those count as empty changed between selector spec levels.
+Whether there is an image in it did not.
+**To change:** one `<roundcube:if>` in each print template.
+
+### D-44 · Ctrl+P is routed to Roundcube's own print view
+**USER**, chosen over leaving Ctrl+P to the browser.
+`ui.js initPrint()` intercepts Ctrl/Cmd+P and calls `rcmail.command('print')`
+whenever `get_single_uid()`/`get_single_cid()` — the very functions core's own print
+command branches on — return something. With nothing selected the event is left
+alone, so the browser prints and `@media print` cleans the page up.
+**Why route at all:** the reading pane is an iframe, and an iframe cannot grow to
+its content. Printing the app window can only ever produce the page the frame
+happens to fill, however long the message is. Core already opens a proper
+standalone document for this.
+**The residual limitation, stated plainly:** print from the *browser menu* with a
+message open still prints one page of the frame. `.bc-reading__frame` is given
+`height: 100vh` in print so it is a full page rather than the 150px an auto-height
+iframe collapses to. There is no CSS fix; only the routed path is complete.
+**To change:** deleting `initPrint()` restores the browser's behaviour and loses
+nothing else.
+
+### D-45 · One stylesheet, and no app header in print markup
+**BUILT.** Two bugs found while implementing, both live before this:
+
+- `includes/header.html` linked `/styles/print.css`, **which has never existed** —
+  every print view fetched a 404 for it. Print lives in `styles.css` behind
+  `@media print` and a `body.action-print` hook, which is what `styles.scss` already
+  assumed by importing `_print.scss` last.
+- The print views rendered the **whole app header** — brand, search box, settings,
+  avatar — because they are not framed and the header's condition only excluded
+  framed pages. Now excluded by `env:action != 'print'` in the template rather than
+  hidden in CSS, so neither the markup nor the logo request behind it is made.
+
+`body.bc-scrollable` in `_reset.scss` is still declared and still applied to
+nothing; `body.action-print` in `_print.scss` is what actually lets a print window
+scroll. Left alone rather than wired up, because which pages should carry it is a
+step-13 question.
+**Deliberately not set: paper size.** `@page` carries a margin and nothing else, so
+the printer's own default (A4 here, Letter in the US) is what is used. Forcing
+`size: A4` would override the user's printer and can trigger scaling.
+
+### D-46 · No repeating table header in print
+**BUILT**, against the usual print idiom. `thead { display: table-header-group }`
+would have printed a column header the skin never shows: this list's head is hidden
+by design in comfortable density, its sort links living in the toolbar
+(`_list.scss:174`), and in compact density that head is a grid, which
+`table-header-group` would undo. Whatever the density shows is what prints.
+
+---
+
+## Plugin screens (step 11)
+
+Decided on 2026-07-30, building `BUILD.md` §12 step 11. The user chose which plugins
+to design for: **enigma, acl, password and help**, on top of the four `BUILD.md` §1.6
+already commits to (`zipdownload`, `archive`, `markasjunk`, `newmail_notifier`).
+Step 11's other half — the calendar — stays deferred (see D-19's note); it was
+confirmed out of scope for this step, so §12 step 11 is complete *except* the
+calendar, which becomes an item of its own at the end of the build.
+
+### D-47 · Every plugin arrives unstyled, and all of it is styled in one file
+**FORCED, then chosen.** `meta.json` has `"extends": null`, so
+`rcube_plugin::local_skin_path()` resolves to `skins/businessclass/plugins/<id>` and
+a plugin's own `skins/elastic/*.css` is **never loaded**. Nothing a plugin emits
+arrives with any styling at all.
+**Not a 404 risk:** `rcube_plugin_api::include_stylesheet()` checks `is_file()` and
+returns quietly when the path does not exist (`rcube_plugin_api.php:728`), so a
+plugin asking for a stylesheet this skin does not ship is silently skipped. *The
+comment in `skins/businessclass/plugins/managesieve/managesieve.css` claiming the
+file "has to exist or the browser reports a 404" is wrong;* it was corrected rather
+than the files removed, since they are harmless and the directory has to exist for
+the template overrides anyway.
+**Chosen:** all of it lives in `styles/_plugins.scss` rather than in per-plugin
+`.css` files, so it compiles from tokens, is covered by `lint:tokens`, and follows
+the theme switch. `BUILD.md` §2 asks for exactly that.
+**To change:** moving a plugin's rules into `skins/businessclass/plugins/<id>/<id>.css`
+would work at runtime but leaves the token linter and the theme switch behind.
+
+### D-48 · `.popupmenu` is styled by the skin, because core positions it and nothing else styles it
+**FOUND, live.** `rcmail.show_menu()` (`app.js:8752`) moves the menu element to
+`<body>`, sets `left`/`top` in pixels and calls `.show()` on it. It supplies no CSS.
+With no parent skin to inherit Elastic's `.popupmenu` from, every such menu would
+have sat **permanently expanded and unstyled at the foot of the page** — measured
+that way: `display=block, position=static` with the rules removed.
+Two shipped plugins raise one: zipdownload's download-format menu
+(`zipdownload.php:119`) and enigma's compose encryption options
+(`enigma_ui.php:892`). The surface deliberately matches `.bc-popover`.
+**To change:** nothing, unless the skin grows its own menu machinery for plugin
+menus, which would mean intercepting `menu-open`.
+
+### D-49 · Bounce is a dialog, and its form is built one header at a time
+**FOUND, live — the feature did not work.** `rcmail.bounce()` always opens
+`?_action=bounce&_framed=1` in an iframe inside a 400x300 `simple_dialog`
+(`app.js:4527`). The scaffold called `<roundcube:object name="composeHeaders" />`
+with **no `part=`**, and `rcmail_sendmail::headers_output()` switches on the part
+name and falls through returning nothing — so the bounce form rendered **no From, To,
+Cc or Bcc field at all**, and `post_func` refuses to post without a recipient.
+Measured: `_from=ABSENT _to=ABSENT _cc=ABSENT _bcc=ABSENT` with the `part=`
+attributes removed again.
+**Also removed:** the scaffold's own Send button. The dialog supplies Bounce and
+Cancel; the framed bounce page never enables the `bounce` command
+(`app.js:384`), so ours could only ever have been a permanently disabled button.
+**The `</form>`:** `composeFormHead` opens the form and never closes it, so the
+template must. Measured too — and leaving it out does *not* lose the fields: HTML5
+keeps an unclosed form open to the end of the body. It swallows `footer.html` into
+the form instead. Well-formedness, not function.
+**To change:** the fields are `.bc-compose__row`s reusing compose's ids, so ui.js's
+recipient pills and Cc/Bcc disclosure work here unchanged.
+
+### D-50 · Dialogs core sizes too small are resized on the event core already fires
+**BUILT.** `show_popup_dialog()` fires `dialog-open` with the popup element
+(`app.js:8840`). ui.js listens and widens three dialogs whose fixed sizes cannot
+hold this skin's type: bounce (400x300 → 560x460) and enigma's two import frames
+(500x180 / 500x150 → 520x340 / 520x260, the first measured at 288px of content).
+Matched on the URL the iframe was pointed at, because at that moment the frame is
+same-origin but not necessarily loaded.
+**Why not reimplement the commands:** `rcmail.bounce()` and
+`enigma_key_import()` each read a form out of the frame and post it from the parent.
+A copy in the skin would have to be kept in step with theirs for no gain.
+**To change:** `DIALOG_SIZES` in `ui.js` is a list of `[url-fragment, w, h]`.
+
+### D-51 · acl gets three buttons and a checkbox, not Elastic's Actions menu
+**CHOSEN**, over copying `acl/skins/elastic/templates/table.html`. That template
+hides Edit, Delete and the advanced-mode toggle behind a menu opened with
+`data-popup="acl-menu"` — an attribute **only Elastic's own ui.js understands**, so
+in this skin that menu could never open and those three controls would be
+unreachable. Three buttons and a checkbox in one row need no menu.
+**The toggle keeps acl.js's contract exactly:** `#acl-switch` as the wrapper, with a
+real `<input type="checkbox">` inside it, because acl.js marks the current mode with
+`$('#acl-switch').addClass('selected')` and ticks the box with `.find('input')`
+(`acl.js:46`, `:160`). Rendering it as a checkbox rather than Elastic's menu item is
+what makes that tick visible.
+**`#aclform` is not a `.popupmenu`** here. acl.js hands it to `show_popup_dialog()`,
+which moves it into a jQuery UI dialog and back to `<body>` on close (`acl.js:359`);
+with our `.popupmenu` rules it would be absolutely positioned with a shadow *inside*
+the dialog. `.bc-aclform` is `display: none` and nothing else.
+**To change:** the rights cells are the constraint — `acl_add_row()` clones
+`thead > tr` (`acl.js:242`), so the header row must stay in the markup even though
+the design never shows the abbreviations.
+
+### D-52 · An ACL right is a glyph, not a colour
+**BUILT** (§9). `list_rights()` emits each right cell as an empty `<span>` plus a
+class — `enabled`, `partial`, `disabled`. Rendered as `✓`, `–` and `·` through
+`::before`, so the three states survive monochrome and reach the accessibility tree.
+Measured both ways: with the `content` rules removed all three cells come back
+identical (`glyphs-distinct=1`).
+**Open:** whether generated content is *enough* for a screen reader here is a §9
+question, deliberately left to the step 14 audit rather than guessed at now.
+
+### D-53 · The password plugin's own page furniture is undone, not restyled
+**FOUND.** `password` renders a whole settings page hosted by `templates/plugin.html`
+and brings furniture written for a skin that has none of ours: `#prefs-title.boxtitle`
+(its own heading) and `.box.formcontainer.scroller` (its own scroll container). The
+heading would print "Change Password" a **second time** directly under
+`.bc-formpage__title`, which renders the same `pagetitle`; the scroller would give
+two nested scrollbars inside `.bc-formpage__body`, which is already the scroller.
+Both are undone. `.formbuttons` is kept and styled, because the plugin owns its
+submit and our form footer is not rendered on this page.
+
+### D-54 · `.boxinformation` is forced monochrome in print
+**FOUND, after the boxes existed.** `bc-print` whitens every status *tint* but
+deliberately leaves `--bc-brand-fg` / `--bc-brand-fg-strong` alone — those are what
+carries the accent onto links, the one exception D-42 allows. `.boxinformation` takes
+its **body text** from `brand-fg-strong`, so a whole sentence would print in accent
+ink on a box that had just been turned white. Reachable on paper through enigma's
+"this message contains a public key" offer, which sits in the message body.
+Measured before and after: `color(srgb 0.045 0.322 0.563)` → `rgb(0, 0, 0)`. The
+Import button in that box is hidden too; it does nothing on paper.
+
+### D-55 · JetHost branding: Navy is the accent, and orange cannot be
+**From the October 2025 brandbook (English and Bulgarian, 37pp each) and the RGB
+logo kit.** The palette is Orange `#FE6400`, Apricot `#F1901A`, Honey `#F1B51C`,
+North Sea `#92ADCE`, Navy `#253082`.
+
+The accent is not a free choice. `_header.scss:17` paints the whole 48px app
+header with `--bc-brand-primary` and puts every header icon and the search box on
+it in `--bc-on-brand` white, so the accent has to carry white — and it is also
+the link colour, the focus ring and the unread bar. Measured:
+
+| | on white | white on it |
+|---|---|---|
+| Navy `#253082` | 11.51:1 | 11.51:1 |
+| Orange `#FE6400` | 2.98:1 | 2.98:1 |
+
+Orange fails AA for text both ways and misses even the 3:1 bar for non-text UI.
+As the accent it would break the header, links, focus rings and the unread bar at
+once. **Navy is the accent**; the derived `--bc-brand-fg-strong` lands on
+`#1C2463` at 14.17:1. *(Superseded by D-63: the client chose to keep the design's
+`#0F6CBD` and brand through the logos instead. The reasoning below stands — it is
+why orange could never have been the accent either way.)* Per the client's answer, orange stays inside the logo
+artwork and is used nowhere else in the UI.
+
+The two brandbooks carry the same palette, the same kit and the same typography;
+they differ only in language and in photography guidance a mail client never
+reaches. So `branding.jethost.json` and `branding.jethost-bg.json` are identical
+but for `vendor`.
+
+**Inter is not adopted.** It is the corporate primary font, but the client chose
+to keep the Fluent 2 stack rather than take on the only real dependency the theme
+would have (BUILD.md §14). `--bc-font-body` is unchanged.
+
+### D-56 · The kit's logo files cannot be shipped as they are
+**FOUND, three separate defects, each measured in Chrome.** `tools/build-brand-assets.mjs`
+derives the four shipped assets from the kit; no path data is redrawn.
+
+1. **Two files carry a full-canvas backdrop rect.** `JH_logo_HORIZONTAL_WHITE.svg`
+   opens with a black `<rect width="2500" height="1500">` and the `on_BLUE`
+   variant with a navy one — there so the artwork is visible in a file browser.
+   Shipped unmodified, the header logo paints a 2500×1500 navy block across the
+   header and the print logo a black block across the paper.
+
+2. **No intrinsic size.** Every kit file has a `viewBox` and no `width`/`height`,
+   which gives an aspect ratio but no intrinsic size. `.bc-header__brand` is a
+   flex item inside a grid `auto` track, so the width it would resolve against
+   depends on its own content — and that circularity resolves to **zero**.
+   Measured: the header logo laid out at `0.0px x 0.0px` and the navy band came
+   up empty. The skin's own `logo-default.svg` has carried `width`/`height` since
+   step 3 for exactly this reason. The generator now writes the ink box as the
+   intrinsic size.
+
+3. **The canvas is 6× the ink.** `viewBox="0 0 2500 1500"` (1.667:1) holds a mark
+   at `x=450 y=623.5 w=1600 h=253` (6.325:1). `object-fit: contain` fits the
+   canvas, not the ink. Measured with defect 2 corrected but no trim: the header
+   box holds `40x24` of which `25.6x4.0` is wordmark. Trimmed: `120x19`, solid.
+
+Clear space is deliberately *not* baked in. The brandbook's rule (p.4) is one bar
+height — 41.25 user units, or 3.9px at a 24px logo — and `.bc-header__brand`
+already sets `gap: var(--bc-s-8)` with `padding-left: var(--bc-s-4)`, over twice
+that.
+
+The header takes the kit's `WHITE_ORANGE on_BLUE` variant rather than plain
+white: it is the pairing the kit itself supplies for a navy ground, and orange on
+navy measures 3.86:1 — past the 3:1 bar for a non-text graphic.
+
+### D-57 · The favicon is reconstructed, because the kit has no symbol-only file
+All 72 kit assets are lockups. Elements 9–11 of every horizontal lockup are the
+three speed bars — widths 258/172/86 at 41.25 tall on a 79.56 pitch, which is the
+6-across-by-5-down grid the brandbook describes on p.2 — and they are the only
+part of the logo that reads at 16px. The favicon is those three rects at their
+original coordinates in a square viewBox padded to 320 units.
+
+One colour, not two: at 16px the orange-on-white pairing (2.98:1) is the weakest
+thing the brand owns, and a favicon is the smallest place it could appear. Navy
+for light browser chrome, white for dark, switched by a `prefers-color-scheme`
+rule inside the SVG — which a raster favicon could not carry. Precedent for a
+one-colour symbol is the kit's own `JH_logo_HORIZONTAL_WHITE`, where the bars are
+drawn white along with the wordmark.
+
+**Caveat:** SVG favicons are not honoured by every browser; where they are not,
+the tab falls back to a generic icon. Cosmetic, and the alternative — a raster
+file — cannot follow the browser's colour scheme.
+
+### D-58 · Navy exposes a dark-theme bug in the header (deferred to step 12)
+**FOUND.** `header.html:3` writes `--bc-brand-primary` as an *inline style* on
+`<html>`, which outranks the `bc-dark` mixin's `--bc-brand-primary: #479EF5`. So
+in dark mode the header band stays the admin's accent — but `bc-dark` also sets
+`--bc-on-brand: #000000`, because Fluent's dark brand ramp assumes a *light* blue
+accent that black reads on.
+
+With Navy the two no longer agree. Measured on the real stylesheet: band
+`rgb(37, 48, 130)`, icon colour `rgb(0, 0, 0)`, **1.82:1** — unreadable.
+
+Pre-existing and structural rather than caused by the branding: any dark accent
+does this, and the old `#0F6CBD` default was already poor. Left for step 12,
+which is where the dark ramp is built, and recorded here so it is fixed with the
+measurement rather than rediscovered.
+
+### D-59 · `symbol` and `header` are separate branding slots, and `rail` is a third
+**Client-directed layout.** The header carries the JetHost *symbol* beside the
+product name in live text; the full lockup moves to the foot of the app rail,
+below logout.
+
+The header brand slot therefore has to distinguish two kinds of asset, and it is
+a property of the asset rather than a preference: `header` is a full lockup with
+the product name drawn into it and **replaces** the text; `symbol` is a mark and
+**accompanies** it. Rendering a lockup *and* the text would print the name twice.
+Hence two entries and a three-branch template, with `symbol` winning where both
+are set — not one entry plus a flag.
+
+The symbol is `alt=""` and `aria-hidden`, because the name beside it is already
+live text; the rail logo likewise, and it is deliberately **not a link** — the
+rail is task navigation, and a logo that went somewhere would be the only thing
+in it that left the app.
+
+The rail logo is the *positive* lockup, not the reversed one: `.bc-rail` is
+`--bc-bg-3`, a light neutral, not the accent band.
+
+### D-60 · The rail logo is rotated by an out-of-flow element, not a centred one
+**FOUND while building D-59.** The rail is 48px and the lockup is 6.325:1, so
+upright it would be 40×27 with the wordmark on two ~12px lines. Rotated 90° it is
+24×152 and reads properly, which is what the client picked.
+
+A transform does not change the layout box, so the image is laid out 152px wide
+inside a 48px rail — and `.bc-rail` sets `overflow: hidden`. The first attempt
+centred it as a grid item with `place-items: center`. **Chrome falls back to
+start alignment for a grid item larger than its cell**, so the image was placed
+at the wrapper's left edge instead of overhanging both sides. Measured: the
+rotated logo landed at x `77–101` while the rail spanned `13–61` — entirely
+outside it, and clipped away to nothing with no error anywhere.
+
+Replaced with an absolutely positioned image pinned by its own centre
+(`top/left: 50%`, `translate(-50%, -50%) rotate(-90deg)` — translate written
+first so it applies last, or it would run along the rotated axes). Measured
+after: `24.5–48.5` inside `13.0–61.0`, 24px clear.
+
+### D-61 · `refcheck` now validates branding assets and the SVGs they point at
+**Added after two silent failures in one sitting.** Both a branding path that
+resolves to nothing and a malformed SVG present identically — an empty brand
+slot, no console error, nothing in any log. So `verify:refs` now checks, for
+every `branding*.json`: that it parses, that every non-null `logo.*` path exists,
+and that `accent` passes the same `/^#[0-9a-f]{6}$/i` the plugin applies
+server-side. And for every SVG at the top level of `images/`: no `--` inside a
+comment (illegal in XML — this cost the rail logo, `naturalWidth = 0`), no XML
+declaration anywhere but the first byte (this cost all three logos at once), and
+a `width`/`height` on the **root** `<svg>`.
+
+`images/icons/` is excluded from the intrinsic-size rule: the sprite there is
+inlined by `sprite.html`, not loaded through `<img>`.
+
+Each of the four was tested by reintroducing the bug and confirming it fails. That
+caught a fifth: the intrinsic-size check originally searched the whole file, so a
+child `<rect width=…>` satisfied it and an SVG whose *root* had no size passed.
+It is scoped to the opening tag now.
+
+### D-62 · The branding profile is named in config, not by renaming a file
+**FOUND in the field.** A live install was showing generic branding — Fluent blue
+`#0F6CBD` and the default "Webmail" logo — with the JetHost presets sitting
+unused beside it. Working as built, and badly designed: `load_branding()` read
+`branding.json` and nothing else, so a preset was inert until someone copied it
+over that file. The README said so in one line, which is not enough.
+
+The rename is also the wrong mechanism. It lives *inside* the skin directory, so
+the next deploy that ships the skin reverts it — silently, with the install
+falling back to generic branding and nothing in any log.
+
+So the profile is named in Roundcube's config instead:
+
+```php
+$config['businessclass_branding'] = 'jethost';   // -> branding.jethost.json
+```
+
+Unset, empty or `'default'` keeps `branding.json`. A profile that is *named* but
+unreadable logs and falls back — a typo should not quietly serve someone else's
+brand.
+
+**The name reaches a filesystem path**, so it is whitelisted rather than escaped:
+`/^[A-Za-z0-9_-]+$/`, which admits no separator and no dot, hence no `..`.
+
+The guard is real, and proving it took some care. `../evil` and friends pass with
+the guard *removed*, because the profile is interpolated between `branding.` and
+`.json` — `../evil` builds `branding.../evil.json`, which resolves to nothing. An
+escape needs a real directory named `branding.<x>`; given one, `x/../../evil`
+builds `skins/businessclass/branding.x/../../evil.json`, which is
+`skins/evil.json` — outside the skin. Measured both ways: guard removed, that
+returns accent `#FF0000` / vendor `PWNED`; guard in place, it falls back.
+`tools/verify/brandingcheck.php` creates that fixture, asserts the refusal and
+removes it, so the one case that can actually bite is the one that is tested.
+
+The harness runs one process per case: `load_branding()` memoises into a
+function-level `static`, shared across instances and not resettable from outside,
+so a single process would answer every case with whichever profile it loaded
+first and the suite would pass while testing nothing.
+
+**Not asserted, deliberately:** whether `JETHOST` resolves. That is a property of
+the filesystem, not this code — it falls back on the Linux servers this ships to
+and loads `branding.jethost.json` on the case-insensitive macOS volume it is
+developed on. Measured both ways; asserting either would make the suite lie on
+the other platform.
+
+### D-63 · The JetHost profiles keep the design's accent; branding is in the logos
+**Client decision, superseding the accent half of D-55.** Seeing navy on a live
+install, the client asked why the interface changed colour at all. It was
+specified behaviour — `BUILD.md` §3.2 paints the 48px header with
+`--f2-brand-primary`, and §13 lists "changing `branding.json` accent + logo
+restyles the whole UI" as an acceptance criterion, with `#0F6CBD` being the
+*default accent value* rather than a fixed header colour — but specified is not
+the same as wanted. Both JetHost profiles now carry `#0F6CBD`.
+
+So the interface stays Fluent 2 blue and JetHost appears in the header symbol,
+the rail logo, the login card, the letterhead and the favicon. Everything D-55
+established about the palette still holds; only the accent value changed.
+
+**This broke the header symbol, which was orange.** The band is whatever the
+active accent is, so the symbol has to survive all of them:
+
+| | on `#253082` navy | on `#0F6CBD` blue |
+|---|---|---|
+| orange `#FF6600` | 3.92:1 | **1.83:1** |
+| white | 11.51:1 | 5.38:1 |
+
+Orange only ever worked against the darkest accent the brand owns; on the default
+blue it effectively disappears. The symbol is white now — the same treatment the
+kit gives its own single-colour lockup (`JH_logo_HORIZONTAL_WHITE` draws the bars
+white along with the wordmark), and the same colour as the product name and every
+icon on that band.
+
+The rail logo is untouched and stays full-colour navy-and-orange: it sits on
+`--bc-bg-3`, a light neutral, not on the accent.
+
+**`brandingcheck.php` had to be rekeyed.** It told profiles apart by accent, and
+all three now share one — so every assertion would have passed for every profile.
+It keys on `logo.symbol` instead, which only the JetHost presets carry. The suite
+caught this itself on the first run after the change.
+
+**Still open for step 12:** D-58's dark-mode contrast. `--bc-on-brand` flips to
+black there while the band keeps the accent, which is 3.60:1 on `#0F6CBD` — worse
+than it looks, and the white symbol would flip with it.
+
+### D-64 · The rail logo links to the vendor's site when `brand_url` is set
+**Client-directed, reversing half of D-59.** `branding.json` gains `brand_url`;
+the JetHost presets point at `https://jethost.com` and `https://jethost.bg`.
+
+D-59 argued the logo should not be a link, because the rail is task navigation
+and a logo that went somewhere would be the only thing in it that left the app.
+That reasoning was about *surprise*, and it is answered by making the departure
+explicit rather than by refusing the link: `target="_blank"` with
+`rel="noopener noreferrer"`, so a webmail session is never the opener of a
+marketing page.
+
+Through `sanitize_url`, the same gate as `support_url` — `^https?://` only, which
+is what keeps `javascript:` out of an href assembled from a hand-edited file.
+
+**Accessibility.** As a decorative image the logo was `alt=""` and `aria-hidden`;
+as a link it needs a name, and the name is not the logo. The image stays
+decorative and the anchor carries `.voice` text reading "<vendor> website" — a
+link announced as bare "JetHost.com" gives no clue that it leaves the app. Without
+`brand_url` it stays a plain image and is not focusable at all, which is right: an
+unlabelled logo in the tab order is a stop that does nothing.
+
+**Layout.** The anchor is `position: absolute; inset: 0` rather than sized to its
+content. Its only in-flow child is the visually hidden `.voice` text — the image
+is out of flow — so left to itself the link collapses to a few pixels and cannot
+be clicked. `inset: 0` also makes the anchor the positioned ancestor the image
+centres against, which is the same box `.bc-rail__brand` was, so the rotation
+geometry is unchanged. Measured: link `47x152`, logo `24x152` at x `12.5-36.5`
+inside a rail spanning `1-49`, below logout, name "JetHost.com website".
+
+### D-65 · Public repository: MIT with attribution, brand kit and design capture excluded
+**Client-directed.** The skin is published on GitHub for anyone to clone, use
+commercially and contribute to, on one condition: the credit "BusinessClass by
+JetHost — https://jethost.com" stays reachable.
+
+**The license is MIT with an attribution clause**, not plain MIT and not CC BY.
+Plain MIT requires the notice to survive in the *source*, which a deployed
+webmail never shows anyone — so it would not deliver what was asked for. CC BY
+delivers exactly the asked-for condition but Creative Commons themselves advise
+against CC licenses for software, and it carries no warranty or patent language
+tuned for code. Apache-2.0's NOTICE file was the third option and has the same
+gap as MIT: it travels with the source, not with the running product. So the
+clause is written explicitly, and the file is labelled "MIT with attribution"
+rather than claiming to be MIT, because it is no longer OSI-approved MIT and
+saying otherwise would be false.
+
+**The skin satisfies its own license by default.** `about.html` carries a fixed
+credit line, deliberately *not* built from `product_name`/`vendor`: a rebranded
+install replaces both with its own, and the origin would vanish with them. That
+is the one line in the skin that a branding profile cannot reach, and it is the
+reason clause 1 is satisfiable without a rebrander doing anything.
+
+**The JetHost logos and both presets ship.** Client's call, against the safer
+option of shipping only the generic profile. The case for it is real — a filled-in
+profile is a better specification of the mechanism than any prose — and the
+exposure is trademark, not copyright, so the license cannot cover it. Handled by
+LICENSE clause 2 and a README section: copyright is granted, marks are not.
+
+**Two inputs are gitignored.** The Fluent 2 design capture, because publishing it
+under a license granting unlimited commercial use redistributes Microsoft's
+material, which is not ours to grant — the skin it produced is original and stays.
+And `jethost-branding/`, 114MB of brandbook PDFs and the full RGB kit, which is
+internal. Consequence: `npm run brand:assets` and `npm run sprite` only run on a
+machine with their inputs. Everything they generate is committed, `npm run verify`
+passes on a bare clone, and nothing in the build, test or rebrand path needs
+either input. `ms-handoff/BUILD.md` is published with a preamble noting the skin's
+rename from `fluent2` and that the design file it points at is not in the repo.

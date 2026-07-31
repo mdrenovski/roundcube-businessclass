@@ -1,0 +1,28 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- The raw Sieve source of the current set (§4.4: mono theme, --bc-font-mono,
+     --bc-bg-2, 13/20). The editor is CodeMirror, which the plugin loads itself;
+     _settings.scss restyles its .CodeMirror wrapper.
+
+     The </form> below is not a stray tag: filterset_editraw() strips its own
+     closing tag before returning (rcube_sieve_engine.php), so the template has
+     to supply it. Elastic's copy of this file does the same. -->
+<div class="bc-formpage bc-rawsieve">
+	<div class="bc-formpage__head">
+		<h1 class="bc-formpage__title"><roundcube:label name="managesieve.filterseteditraw" /></h1>
+	</div>
+
+	<div class="bc-formpage__body bc-scroll">
+		<roundcube:object name="filterseteditraw" /></form>
+	</div>
+
+	<!-- Save only. The Cancel on the other forms is a native form.reset(), and
+	     CodeMirror keeps its own copy of the text — resetting the textarea
+	     underneath it would leave the editor showing the edits it claims to
+	     have discarded. Leaving the button out beats shipping one that lies. -->
+	<div class="bc-formpage__foot">
+		<roundcube:button command="plugin.managesieve-save" type="input" class="bc-btn bc-btn--primary" label="save" />
+	</div>
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 24" width="120" height="24" role="img" aria-label="Webmail">
+  <title>Webmail</title>
+  <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+    <rect x="1.8" y="4.8" width="20.4" height="14.4" rx="2.4"/>
+    <path d="M2.6 7.2 12 13.6l9.4-6.4"/>
+  </g>
+  <text x="30" y="17" fill="currentColor" font-family="'Segoe UI Variable Display','Segoe UI',system-ui,sans-serif" font-size="14" font-weight="600">Webmail</text>
+</svg>

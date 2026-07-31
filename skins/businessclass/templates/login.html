@@ -1,0 +1,75 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Sign-in (BUILD.md §4.2).
+
+     The form itself is core's: loginform renders the hidden fields, a two-column
+     table of label + input, and the submit button. It is styled where it stands
+     rather than rebuilt, so login_username_filter, the server selector, OAuth
+     and any loginform_content plugin all keep working. ui.js adds the three
+     things core has no markup for: the password reveal toggle, the autocomplete
+     hints, and moving focus to the error banner. -->
+<main id="layout-content" class="bc-login">
+	<div class="bc-login__card">
+
+		<div class="bc-login__brand">
+			<roundcube:if condition="env:bc_logo_login" />
+			<img class="bc-login__logo" src="/<roundcube:var name='env:bc_logo_login' />" alt="<roundcube:var name='env:bc_product_name' />">
+			<roundcube:else />
+			<span class="bc-login__product"><roundcube:var name="env:bc_product_name" /></span>
+			<roundcube:endif />
+		</div>
+
+		<div class="bc-login__head">
+			<h1 class="bc-login__title"><roundcube:label name="login" /></h1>
+			<!-- Absent unless the admin has said which domain this is: with several
+			     served from one install, guessing before the user has identified
+			     themselves would be exactly that. -->
+			<roundcube:if condition="env:bc_mail_domain" />
+			<p class="bc-login__subtitle"><roundcube:var name="env:bc_product_name" /> — <roundcube:var name="env:bc_mail_domain" /></p>
+			<roundcube:endif />
+		</div>
+
+		<!-- Core's message container, above the fields as §4.2 requires. Empty
+		     until something is announced; core gives the notice role="alert" and
+		     ui.js moves focus here when a sign-in fails. -->
+		<roundcube:object name="message" id="bc-login-message" class="bc-login__message" />
+
+		<roundcube:form id="login-form" name="login-form" method="post" class="bc-login__form">
+		<roundcube:object name="loginform" form="login-form" size="40" submit="true" />
+		</form>
+
+		<div class="bc-login__aside">
+			<!-- §4.2: shown only where the admin has set a support URL, because
+			     Roundcube has no password-reset flow of its own to point at. -->
+			<roundcube:if condition="env:bc_support_url" />
+			<a class="bc-login__link" href="<roundcube:var name='env:bc_support_url' />" target="_blank" rel="noopener noreferrer"><roundcube:label name="bc_forgotpassword" /></a>
+			<roundcube:else />
+			<span></span>
+			<roundcube:endif />
+
+			<!-- Language of the sign-in page itself. Filled by ui.js from
+			     env.bc_languages and applied by businessclass_prefs; hidden without the
+			     plugin and without JS, so what is never shown is a control that
+			     would not have worked. -->
+			<label class="bc-login__lang" hidden>
+				<span class="voice"><roundcube:label name="language" /></span>
+				<select id="bc-login-lang" class="bc-input"></select>
+			</label>
+		</div>
+
+		<div class="bc-login__footer" role="contentinfo">
+			<roundcube:object name="productname" condition="config:display_product_info &gt; 0" />
+			<roundcube:object name="version" condition="config:display_product_info == 2" />
+			<roundcube:container name="loginfooter" id="login-footer" />
+		</div>
+	</div>
+
+	<noscript>
+		<p class="bc-login__noscript"><roundcube:label name="noscriptwarning" /></p>
+	</noscript>
+</main>
+
+<roundcube:add_label name="bc_showpassword" />
+<roundcube:add_label name="bc_hidepassword" />
+
+<roundcube:include file="/templates/includes/footer.html" />

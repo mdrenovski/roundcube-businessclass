@@ -1,0 +1,22 @@
+<!-- Live region for row-selection, new-mail and toast announcements (§9). -->
+<div id="bc-live" class="voice" aria-live="polite" aria-atomic="true"></div>
+<div id="bc-live-assertive" class="voice" aria-live="assertive" aria-atomic="true"></div>
+
+<!-- Toast host (§2). Roundcube appends every display_message() notice into the
+     "message" gui object, so without one on the page display_message() has
+     nowhere to put anything and silently keeps it pending (app.js:8003) — no
+     "Message sent", no error, no upload warning.
+
+     Rendered everywhere except the two templates that place the notice inside
+     their own layout instead: login puts it above the fields (§4.2) and the
+     error page makes it the content. add_gui_object() keeps only the last
+     registration, so a second one here would take those over. -->
+<roundcube:if condition="env:task != 'login' &amp;&amp; template:name != 'error'" />
+<roundcube:object name="message" id="bc-toasts" class="bc-toasts" />
+<roundcube:else />
+<div id="bc-toasts" class="bc-toasts"></div>
+<roundcube:endif />
+
+<script src="/ui.js"></script>
+</body>
+</html>

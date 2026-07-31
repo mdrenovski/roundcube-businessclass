@@ -1,0 +1,102 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- PGP keys — the enigma plugin (BUILD.md §12 step 11, §1.6).
+
+     Reached from Settings: enigma's settings_actions hook adds a section whose
+     class is "enigma keys" (enigma.php:199), which is what ui.js keys the nav
+     icon off. So this is the same three panes as Identities and Responses —
+     nav 220 · list 300 · detail iframe — and everything in it is core's own
+     list widget and content frame.
+
+     enigma.js owns the behaviour: it builds the list from gui_objects.keyslist,
+     registers every plugin.enigma-* command, and registers the four paging
+     commands itself (enigma.js:18). Nothing here needs JS of the skin's own. -->
+<div id="layout" class="bc-shell bc-shell--settings">
+	<roundcube:include file="/templates/includes/menu.html" />
+	<roundcube:include file="/templates/includes/settings-menu.html" />
+
+	<div id="layout-list" class="bc-list">
+		<div class="bc-pane__head">
+			<h1 class="bc-pane__title"><roundcube:label name="enigma.enigmakeys" /></h1>
+		</div>
+
+		<!-- Core's own search_form: a <form> around one _q input whose submit runs
+		     rcmail.command('search'), which enigma.js registers. Given a plain
+		     filter row rather than the mail search bar, which carries scopes and
+		     a refine panel this list has no use for.
+
+		     No wrapper= attribute — that is what makes search_form emit a heading
+		     and an options button of its own (rcmail_output_html.php:2544), and
+		     this pane wants neither. The visually-hidden <label> the object
+		     always writes is what names the field. -->
+		<div class="bc-keys__search">
+			<roundcube:object name="searchform" id="rcmqsearchbox" class="bc-keys__searchinput" />
+		</div>
+
+		<h2 id="bc-label-keyslist" class="voice"><roundcube:label name="enigma.enigmakeys" /></h2>
+		<div class="bc-list__scroll bc-scroll">
+			<roundcube:object name="keyslist" id="keys-table" class="bc-recordlist"
+				noheader="true" aria-labelledby="bc-label-keyslist" />
+		</div>
+
+		<roundcube:include file="/templates/includes/pagenav.html" />
+	</div>
+
+	<main id="layout-content" class="bc-reading bc-settings__detail"
+		aria-label="<roundcube:label name='enigma.keyprops' />">
+
+		<div class="bc-pane__head" role="toolbar" aria-label="<roundcube:label name='arialabeltoolbar' />">
+			<roundcube:button command="plugin.enigma-key-create" type="link"
+				label="create" title="enigma.createkeys"
+				class="bc-btn bc-btn--secondary" innerclass="bc-btn__label" data-bc-icon="add" />
+
+			<roundcube:button command="plugin.enigma-key-import" type="link"
+				label="import" title="enigma.importkeys"
+				class="bc-btn bc-btn--secondary" innerclass="bc-btn__label" data-bc-icon="arrow_upload" />
+
+			<span class="bc-pane__spacer"></span>
+
+			<roundcube:button command="plugin.enigma-key-import-search" type="link"
+				label="search" title="enigma.keyimportsearchlabel"
+				class="bc-iconbtn" innerclass="voice" data-bc-icon="search" />
+
+			<!-- Export all vs. export the selection. Both matter — the second is
+			     how you hand one public key to one correspondent — and core keeps
+			     them as two commands, so they are two items rather than one
+			     button with a hidden default. -->
+			<div class="bc-popover__anchor">
+				<button type="button" id="bc-keys-export" class="bc-iconbtn"
+					aria-haspopup="true" aria-expanded="false" aria-controls="bc-keys-export-menu"
+					title="<roundcube:label name='enigma.arialabelkeyexportoptions' />">
+					<span class="voice"><roundcube:label name="enigma.arialabelkeyexportoptions" /></span>
+					<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_arrow_download_20_regular" /></svg>
+				</button>
+
+				<div id="bc-keys-export-menu" class="bc-popover bc-popover--form" role="group"
+					aria-labelledby="bc-keys-export" hidden>
+					<roundcube:button command="plugin.enigma-key-export" type="link" prop="sub"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="exportall" title="enigma.exportkeys" data-bc-icon="arrow_download" />
+					<roundcube:button command="plugin.enigma-key-export-selected" type="link" prop="sub"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="exportsel" title="enigma.exportkeys" data-bc-icon="arrow_download" />
+				</div>
+			</div>
+
+			<roundcube:button command="plugin.enigma-key-delete" type="link"
+				label="delete" title="enigma.keyremove"
+				class="bc-iconbtn bc-iconbtn--danger" innerclass="voice" data-bc-icon="delete" />
+		</div>
+
+		<roundcube:object name="contentframe" id="keyframe" class="bc-reading__frame"
+			src="env:blankpage" title="enigma.keyprops" />
+
+		<div class="bc-empty bc-reading__empty">
+			<svg class="bc-empty__icon" aria-hidden="true"><use href="#ic_fluent_key_20_regular" /></svg>
+			<p class="bc-empty__title"><roundcube:label name="bc_nokeyselected" /></p>
+			<p class="bc-empty__text"><roundcube:label name="bc_pickkey" /></p>
+		</div>
+	</main>
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

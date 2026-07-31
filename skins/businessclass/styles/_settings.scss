@@ -1,0 +1,733 @@
+// =============================================================================
+// skins/businessclass/styles/_settings.scss
+// Preferences, folder manager, identities, responses, managesieve (BUILD.md §4.4)
+//
+// Three panes: nav 220 · list 300 · detail. The detail pane is an iframe on
+// every screen except About and the plugin pages, because that is how Roundcube
+// saves one section at a time.
+//
+// None of the forms here are ours. Core and its plugins emit
+//
+//   <form>
+//     <fieldset class="…"><legend>Block</legend>
+//       <table><tr><td class="title"><label>…</label></td><td>control</td></tr></table>
+//     </fieldset>
+//   </form>
+//
+// with the exact shape varying by section and by plugin, so this file styles
+// those primitives rather than a layout of its own (§1.3). Everything is scoped
+// to .bc-formpage__body, which is the one thing the skin does own.
+//
+// Tokens only — no literal colors, sizes, radii or shadows.
+// =============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// -- Shell --------------------------------------------------------------------
+// Fixed widths, unlike the mail screen: these panes have no splitters, so there
+// is nothing to persist and nothing to restore.
+.bc-shell--settings {
+  grid-template-columns:
+    var(--bc-rail-w)
+    var(--bc-settings-nav-w)
+    var(--bc-settings-list-w)
+    minmax(0, 1fr);
+}
+
+// Screens that are a single form: About, password, vacation, forward.
+.bc-shell--settings-plain {
+  grid-template-columns:
+    var(--bc-rail-w)
+    var(--bc-settings-nav-w)
+    minmax(0, 1fr);
+}
+
+// -- Section nav --------------------------------------------------------------
+// Rows reuse .bc-folderlist from _folders.scss: §4.4 asks for "nav rows like
+// folder rows", and reusing them means one set of hover, selected and focus
+// treatments rather than two that can drift apart.
+.bc-settingsnav {
+  justify-content: space-between;
+}
+
+.bc-settingsnav__foot {
+  flex: none;
+  padding: var(--bc-s-8);
+  border-top: 1px solid var(--bc-stroke-2);
+}
+
+.bc-settingsnav__about {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--bc-s-32);
+  padding: 0 var(--bc-s-8);
+  border-radius: var(--bc-radius-m);
+  color: var(--bc-fg-3);
+  @include bc-body1;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--bc-bg-4);
+    color: var(--bc-fg-1);
+    text-decoration: none;
+  }
+
+  &:focus-visible { @include bc-focus-ring; }
+}
+
+// -- Pane header (40px) -------------------------------------------------------
+// Title on the left, the pane's own actions on the right.
+.bc-pane__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--bc-s-2);
+  height: var(--bc-pane-head-h);
+  padding: 0 var(--bc-s-8) 0 var(--bc-s-12);
+  border-bottom: 1px solid var(--bc-stroke-2);
+}
+
+.bc-pane__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  @include bc-body1-strong;
+  color: var(--bc-fg-1);
+  @include bc-truncate;
+}
+
+// Core marks an unavailable command with aria-disabled rather than a class.
+.bc-pane__head [aria-disabled="true"] {
+  color: var(--bc-fg-disabled);
+  pointer-events: none;
+}
+
+// Used where the head has no title to take the slack — Contacts' detail toolbar
+// (§4.5), which is buttons from edge to edge.
+.bc-pane__spacer {
+  flex: 1 1 auto;
+}
+
+.bc-pane__filter {
+  flex: none;
+  padding: var(--bc-s-8) var(--bc-s-12);
+  border-bottom: 1px solid var(--bc-stroke-3);
+
+  select { width: 100%; }
+}
+
+// -- Record lists -------------------------------------------------------------
+// Sections, identities, responses, filters and filter sets are all
+// rcube_list_widget tables of <tr id="rcmrow…"><td>. Laid out as blocks so the
+// rows can be sized and padded like list rows instead of table cells; the
+// widget only ever addresses rows by id, so this is invisible to it.
+.bc-recordlist {
+  display: block;
+  width: 100%;
+  border-collapse: collapse;
+
+  > tbody { display: block; }
+
+  tr {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--bc-s-8);
+    min-height: var(--bc-s-40);
+    padding: var(--bc-s-8) var(--bc-s-12);
+    border-bottom: 1px solid var(--bc-stroke-3);
+    @include bc-body1;
+    color: var(--bc-fg-1);
+    cursor: pointer;
+
+    &:hover { background: var(--bc-bg-3); }
+    &:focus-visible { @include bc-focus-ring; }
+  }
+
+  td {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    @include bc-truncate;
+  }
+
+  // Selected reads like a selected folder row: brand tint, semibold, and the
+  // 3px bar. brand-fg-strong because brand on a tint fails 4.5:1 (§9).
+  tr.selected {
+    background: var(--bc-brand-tint-selected);
+    color: var(--bc-brand-fg-strong);
+    font-weight: var(--bc-weight-semibold);
+
+    &::before { @include bc-brand-bar(var(--bc-s-8)); }
+  }
+}
+
+// -- Folder manager -----------------------------------------------------------
+// The tree is the same markup as the mail folder pane, so .bc-folderlist
+// already sizes and indents it. What differs here is the trailing subscribe
+// checkbox and the drag handle.
+.bc-foldertree {
+  padding: var(--bc-s-8) 0;
+
+  li > a {
+    // handle · icon · name · subscribe checkbox
+    grid-template-columns: var(--bc-s-16) var(--bc-s-20) minmax(0, 1fr) var(--bc-s-16);
+  }
+
+  // Injected by ui.js. The column is reserved either way, so rows line up
+  // whether or not JS ran (§1.4).
+  .bc-draghandle {
+    color: var(--bc-fg-disabled);
+    cursor: grab;
+    opacity: 0;
+    transition: opacity var(--bc-dur-fast) var(--bc-ease-decel);
+  }
+
+  li:hover > a .bc-draghandle,
+  li:focus-within > a .bc-draghandle { opacity: 1; }
+
+  // Emitted by core inside the row's <a>, after the folder name.
+  input[type="checkbox"] {
+    justify-self: end;
+    width: var(--bc-s-16);
+    height: var(--bc-s-16);
+    accent-color: var(--bc-brand-primary);
+    cursor: pointer;
+
+    &:disabled { cursor: default; }
+  }
+
+  // The empty root row core prepends as a "move to top level" drop target.
+  li.root > a { min-height: var(--bc-s-8); }
+}
+
+// Drag feedback while a folder is being reparented (rcmail.subscription_list).
+.bc-foldertree li.droptarget > a {
+  outline: 2px dashed var(--bc-brand-primary);
+  outline-offset: -2px;
+}
+
+// Destructive item in a form popover — "Delete filter set" is the only one, so
+// the modifier lives with its user rather than with .bc-popover__action.
+.bc-popover__action--danger {
+  color: var(--bc-danger-fg);
+
+  .bc-icon { color: inherit; }
+
+  &:hover { background: var(--bc-danger-tint); }
+}
+
+// -- Filters (managesieve) ----------------------------------------------------
+// §4.4 draws a second line summarising each rule. managesieve sends the client
+// only the filter name — the parsed script never leaves the server and there is
+// no hook to publish it — so the rows are single-line and the rule itself is
+// one click away in the detail pane.
+.bc-filtersets {
+  flex: none;
+  max-height: 25%;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--bc-stroke-2);
+  background: var(--bc-bg-2);
+}
+
+.bc-filtersets__scroll {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+// A set that is not the active one on the server.
+.bc-setlist tr.disabled td { color: var(--bc-fg-3); }
+
+.bc-filterlist tr { gap: var(--bc-s-12); }
+
+// A disabled filter keeps its name legible — the switch beside it carries the
+// state, so this is de-emphasis rather than a signal of its own (§9).
+.bc-filterlist tr.disabled td.name { color: var(--bc-fg-3); }
+
+.bc-filterlist td.bc-filterlist__switch {
+  flex: none;
+  width: auto;
+}
+
+// Drop indicator while a filter is dragged to a new position in the script.
+.bc-filterlist tr.filtermoveup td { box-shadow: 0 -2px 0 0 var(--bc-brand-primary) inset; }
+.bc-filterlist tr.filtermovedown td { box-shadow: 0 2px 0 0 var(--bc-brand-primary) inset; }
+
+// -- Detail pane --------------------------------------------------------------
+.bc-settings__detail { background: var(--bc-bg-1); }
+
+// -- Form page ----------------------------------------------------------------
+// Used both inside the detail iframe and as a whole page (About, password,
+// vacation, forward), so it fills whatever it is put in.
+.bc-formpage {
+  display: flex;
+  flex-direction: column;
+  // height for the framed case, where it is a child of <body>; flex for the
+  // whole-page one, where it is a child of the .bc-reading flex column.
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  background: var(--bc-bg-1);
+  color: var(--bc-fg-1);
+}
+
+.bc-formpage__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--bc-s-8);
+  min-height: var(--bc-toolbar-h);
+  padding: var(--bc-s-8) var(--bc-s-24);
+}
+
+.bc-formpage__title {
+  margin: 0;
+  @include bc-subtitle1;
+  color: var(--bc-fg-1);
+}
+
+.bc-formpage__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--bc-s-4) var(--bc-s-24) var(--bc-s-24);
+}
+
+// Sticky footer: Save (primary) then Cancel (§4.4).
+.bc-formpage__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--bc-s-8);
+  padding: var(--bc-s-12) var(--bc-s-24);
+  border-top: 1px solid var(--bc-stroke-2);
+  background: var(--bc-bg-1);
+}
+
+// -- Forms --------------------------------------------------------------------
+// Everything below styles what core and the plugins emit. Scoped to the body so
+// it cannot reach the list panes or a plugin's own dialog.
+.bc-formpage__body {
+  // Blocks. 12/16 semibold fg-3 section labels (§4.4) — a rule rather than a
+  // box, because a section here is a heading, not a card.
+  fieldset {
+    margin: 0 0 var(--bc-s-24);
+    padding: 0;
+    border: 0;
+
+    &:last-child { margin-bottom: 0; }
+  }
+
+  legend {
+    width: 100%;
+    padding: 0 0 var(--bc-s-8);
+    margin-bottom: var(--bc-s-16);
+    border-bottom: 1px solid var(--bc-stroke-3);
+    font: var(--bc-weight-semibold) var(--bc-size-caption1) / var(--bc-lh-caption1) var(--bc-font-body);
+    color: var(--bc-fg-3);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  // Two-column label/control table. --bc-s-16 row gaps (§4.4), done with cell
+  // padding because a <table> has no gap.
+  table {
+    width: 100%;
+    max-width: var(--bc-read-measure);
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  td,
+  th {
+    padding: 0 0 var(--bc-s-16);
+    text-align: start;
+    vertical-align: top;
+    font-weight: var(--bc-weight-regular);
+  }
+
+  td.title,
+  th {
+    width: 34%;
+    padding-top: var(--bc-s-4);
+    padding-right: var(--bc-s-16);
+    @include bc-body1;
+    color: var(--bc-fg-2);
+  }
+
+  label { cursor: pointer; }
+
+  // Controls. Core writes class="custom-select" / "form-control" for Bootstrap;
+  // matching on the element instead keeps plugins that write neither in shape.
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="url"],
+  input[type="number"],
+  input[type="search"],
+  select,
+  textarea {
+    max-width: 100%;
+    min-height: var(--bc-control-h);
+    padding: var(--bc-s-4) var(--bc-s-8);
+    border: 1px solid var(--bc-stroke-accessible);
+    border-radius: var(--bc-radius-m);
+    background: var(--bc-bg-1);
+    color: var(--bc-fg-1);
+    @include bc-body1;
+
+    &:focus {
+      border-bottom-width: 2px;
+      border-bottom-color: var(--bc-brand-primary);
+      outline: none;
+    }
+
+    &:disabled {
+      border-color: var(--bc-stroke-2);
+      background: var(--bc-bg-3);
+      color: var(--bc-fg-disabled);
+    }
+  }
+
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="url"],
+  select,
+  textarea { width: 100%; }
+
+  // Numbers are short; a full-width box for "5" reads as a mistake.
+  input[type="number"] { width: calc(var(--bc-s-40) * 2); }
+
+  textarea {
+    min-height: 120px;
+    resize: vertical;
+    font: inherit;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: var(--bc-s-16);
+    height: var(--bc-s-16);
+    accent-color: var(--bc-brand-primary);
+  }
+
+  input[type="checkbox"] + label,
+  input[type="radio"] + label {
+    margin-left: var(--bc-s-8);
+    margin-right: var(--bc-s-16);
+  }
+
+  // Marked by core when a submitted value failed validation.
+  .error,
+  input.error,
+  select.error {
+    border-color: var(--bc-danger);
+    border-bottom-width: 2px;
+  }
+
+  // Help text under a control, and the intro block some sections carry.
+  .hint,
+  .boxcontent,
+  #preferences-header {
+    @include bc-caption1;
+    color: var(--bc-fg-3);
+  }
+
+  #preferences-header,
+  .boxcontent { margin-bottom: var(--bc-s-16); }
+
+  .boxwarning {
+    margin-bottom: var(--bc-s-16);
+    padding: var(--bc-s-8) var(--bc-s-12);
+    border: 1px solid var(--bc-warning);
+    border-radius: var(--bc-radius-m);
+    background: var(--bc-warning-tint);
+    color: var(--bc-warning-fg);
+    @include bc-body1;
+  }
+
+  ul.proplist {
+    margin: var(--bc-s-8) 0 0;
+    padding-left: var(--bc-s-16);
+  }
+
+  // Plugins that ship their own submit row rather than using our footer —
+  // password is the one in core. Given the footer's treatment in place.
+  .formbuttons {
+    display: flex;
+    gap: var(--bc-s-8);
+    margin: var(--bc-s-24) 0 0;
+    padding-top: var(--bc-s-16);
+    border-top: 1px solid var(--bc-stroke-2);
+  }
+
+  .formbuttons input[type="button"],
+  .formbuttons input[type="submit"],
+  .formbuttons button {
+    height: var(--bc-control-h);
+    padding: 0 var(--bc-s-16);
+    border: 1px solid transparent;
+    border-radius: var(--bc-radius-m);
+    background: var(--bc-brand-primary);
+    color: var(--bc-fg-on-accent);
+    @include bc-body1-strong;
+    cursor: pointer;
+
+    &:hover { background: var(--bc-brand-hover); }
+    &:active { background: var(--bc-brand-pressed); }
+    &:focus-visible { @include bc-focus-ring; }
+  }
+}
+
+// -- managesieve rule and action rows -----------------------------------------
+// §4.4: "condition and action rows as 1fr 1fr 1fr auto grids of Fluent selects
+// and inputs with a trailing delete icon button".
+//
+// The plugin emits each row as
+//   <div class="rulerow"><table class="compact-table"><tr>
+//     <td class="rowactions"><div class="flexbox">…selects…</div></td>
+//     <td class="rowtargets">…value…</td>
+//     <td class="rowbuttons">…</td></tr></table></div>
+// Turning that one-row table into a grid gives the redline without touching the
+// plugin: rowactions holds the two selects (1fr 1fr), rowtargets the value
+// (1fr), rowbuttons the trailing icons (auto).
+.bc-filteredit {
+  .rulerow,
+  .actionrow { margin-bottom: var(--bc-s-8); }
+
+  table.compact-table {
+    display: block;
+    width: 100%;
+    max-width: none;
+
+    tbody { display: block; }
+
+    tr {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+      gap: var(--bc-s-8);
+      align-items: start;
+    }
+
+    td {
+      display: block;
+      min-width: 0;
+      padding: 0;
+    }
+  }
+
+  // The two selects that make up a condition: "Subject" + "contains".
+  .rowactions .flexbox {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--bc-s-8);
+  }
+
+  .rowactions select,
+  .rowtargets input[type="text"],
+  .rowtargets select { width: 100%; }
+
+  // Extra controls the "advanced" toggle reveals, and the multi-line inputs
+  // some actions use. They stack under the row rather than beside it.
+  .rowtargets > div,
+  .advanced {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--bc-s-8);
+    margin-top: var(--bc-s-8);
+  }
+
+  .rowtargets .label,
+  .rowtargets label {
+    @include bc-caption1;
+    color: var(--bc-fg-3);
+  }
+
+  // Add / delete / advanced, as icon buttons. The plugin gives each an <a> with
+  // a class and a <span class="inner"> holding the localized name; ui.js puts an
+  // icon in front and keeps that text as the accessible name.
+  .rowbuttons {
+    display: flex;
+    align-items: center;
+    gap: var(--bc-s-2);
+  }
+
+  .rowbuttons a {
+    @include bc-icon-btn(var(--bc-control-h));
+    color: var(--bc-fg-2);
+
+    &:focus-visible { @include bc-focus-ring; }
+
+    &.disabled {
+      color: var(--bc-fg-disabled);
+      pointer-events: none;
+    }
+  }
+
+  .rowbuttons a.delete:hover:not(.disabled) {
+    background: var(--bc-danger-tint);
+    color: var(--bc-danger-fg);
+  }
+
+  // §4.4 draws "Add condition" as a separate text button under the rows.
+  // managesieve has no such control: its "+" is per row and inserts *after that
+  // row*, which is more than an append. Rather than bolt a second, weaker
+  // affordance on top — and one that managesieve_rulefill() would wipe out
+  // every time it rebuilds the container — the plugin's own button is kept and
+  // given the plus icon (§4.4's shape) by ui.js.
+}
+
+// The tip layer managesieve pins to a field that failed validation. Appended to
+// <body>, not to the form, so it cannot be nested in .bc-filteredit.
+#managesieve-tip {
+  padding: var(--bc-s-4) var(--bc-s-8);
+  border-radius: var(--bc-radius-m);
+  background: var(--bc-bg-inverted);
+  color: var(--bc-bg-1);
+  @include bc-caption1;
+}
+
+// -- Raw Sieve editor ---------------------------------------------------------
+// §4.4: mono, --bc-bg-2, 13/20. CodeMirror is loaded by the plugin; only its
+// wrapper and gutter are restated here.
+.bc-rawsieve {
+  #rawfiltersettxt,
+  .CodeMirror {
+    width: 100%;
+    height: 100%;
+    min-height: 320px;
+    border: 1px solid var(--bc-stroke-1);
+    border-radius: var(--bc-radius-m);
+    background: var(--bc-bg-2);
+    color: var(--bc-fg-1);
+    font: var(--bc-weight-regular) 13px/20px var(--bc-font-mono);
+  }
+
+  .CodeMirror-gutters {
+    border-right: 1px solid var(--bc-stroke-2);
+    background: var(--bc-bg-3);
+  }
+
+  .CodeMirror-linenumber { color: var(--bc-fg-3); }
+  .CodeMirror-activeline-background { background: var(--bc-bg-3); }
+  .CodeMirror-cursor { border-left-color: var(--bc-fg-1); }
+}
+
+// -- About --------------------------------------------------------------------
+.bc-about__skin {
+  margin: 0 0 var(--bc-s-16);
+  @include bc-body1;
+  color: var(--bc-fg-2);
+
+  strong { color: var(--bc-fg-1); }
+}
+
+.bc-about__product {
+  margin: var(--bc-s-24) 0 var(--bc-s-4);
+  @include bc-body1-strong;
+}
+
+.bc-about__legal {
+  margin: 0 0 var(--bc-s-4);
+  @include bc-caption1;
+  color: var(--bc-fg-3);
+}
+
+.bc-about__section {
+  margin: var(--bc-s-24) 0 var(--bc-s-8);
+  font: var(--bc-weight-semibold) var(--bc-size-caption1) / var(--bc-lh-caption1) var(--bc-font-body);
+  color: var(--bc-fg-3);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+// The installed-plugins table on About: a plain data table, not a record list —
+// nothing in it is selectable.
+.bc-datatable {
+  width: 100%;
+  max-width: var(--bc-read-measure);
+  border-collapse: collapse;
+  @include bc-body1;
+
+  th,
+  td {
+    padding: var(--bc-s-4) var(--bc-s-8) var(--bc-s-4) 0;
+    border-bottom: 1px solid var(--bc-stroke-3);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  th {
+    @include bc-caption1;
+    color: var(--bc-fg-3);
+    font-weight: var(--bc-weight-semibold);
+  }
+}
+
+// -- Identity photo (§7.10) ---------------------------------------------------
+// The picture for one identity, which is really the photo on the contact whose
+// address matches it. Sits outside core's identity form, so none of the
+// label/control table rules above reach it.
+.bc-idphoto__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--bc-s-16);
+}
+
+// A dashed ring while it holds only initials, the way the contact editor marks
+// an empty photo: it says both "no picture yet" and "something goes here".
+//
+// Keyed on .is-photo, which ui.js sets when the image actually loads, and not on
+// :has(img) — the <img> is in the DOM from the moment the request starts, so the
+// ring would vanish before anything was known and come back if it 404'd.
+.bc-idphoto__well:not(.is-photo) {
+  outline: 1px dashed var(--bc-stroke-accessible);
+  outline-offset: 2px;
+}
+
+.bc-idphoto__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bc-s-8);
+  min-width: 0;
+}
+
+// The file input itself is the control — visually hidden rather than removed, so
+// it keeps its place in the tab order and its own accessible name, and the
+// <label> beside it is what looks like a button.
+.bc-idphoto__file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+// The focus ring belongs to the input, so it has to be drawn on the label
+// standing in for it — :focus-visible would never fire on the label itself. The
+// hover state needs nothing: the label already carries .bc-btn--secondary.
+//
+// Adjacent sibling, so the input must stay immediately after the label in the
+// markup.
+.bc-idphoto__file:focus-visible + .bc-idphoto__pick {
+  @include bc-focus-ring;
+}
+
+.bc-idphoto__pick { cursor: pointer; }
+
+// Its own line under the two buttons, whatever they wrap to.
+.bc-idphoto__hint {
+  flex: 1 0 100%;
+  margin: 0;
+  @include bc-caption1;
+  color: var(--bc-fg-3);
+}

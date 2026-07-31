@@ -1,0 +1,14 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Look a key up on a keyserver. Same shape as keyimport: a 500x150 iframe
+     dialog whose Search button is jQuery UI's (enigma.js:125), so no submit row
+     and no page chrome.
+
+     part="search" selects the search half of tpl_key_import_form and suppresses
+     its own button. enigma.js binds Enter in #rcmimportsearch to the search so
+     the field behaves the way a search field should (enigma.js:56). -->
+<div class="bc-dialogpage bc-keysearch">
+	<roundcube:object name="importform" part="search" class="bc-keysearch__form" />
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

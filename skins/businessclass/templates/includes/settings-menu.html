@@ -1,0 +1,27 @@
+<!-- Settings section nav — 220px, rows shaped like folder rows (BUILD.md §4.4).
+
+     Every entry comes from the settingstabs object, which starts from core's
+     four actions and then runs the settings_actions hook, so managesieve's
+     Filters / Vacation / Forward, password's Password and anything else a
+     plugin registers appear here without a template edit. tagname="li" makes
+     each one a list item; the class core puts on it (preferences, folders,
+     identities, responses, filter, vacation, forward, password, …) is what
+     ui.js keys the icon off. Without JS the 20px column is simply empty. -->
+<nav id="layout-sidebar" class="bc-folders bc-settingsnav" aria-label="<roundcube:label name='settings' />">
+	<div class="bc-folders__scroll bc-scroll">
+		<div class="bc-folders__section"><roundcube:label name="settings" /></div>
+		<ul id="settings-menu" class="bc-folderlist">
+			<roundcube:object name="settingstabs" tagname="li" />
+			<roundcube:container name="tabs" id="settings-menu" />
+		</ul>
+	</div>
+
+	<!-- About is not a settings section — the command redirects to a page of its
+	     own (app.js:804) — so settingstabs never lists it and nothing else in
+	     the skin links to it. Pinned to the bottom of the nav, where it stays
+	     out of the way of the sections. -->
+	<div class="bc-settingsnav__foot">
+		<roundcube:button command="about" type="link" label="about" title="about"
+			class="bc-settingsnav__about" data-bc-icon="info" />
+	</div>
+</nav>

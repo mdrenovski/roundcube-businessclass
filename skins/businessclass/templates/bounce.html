@@ -1,0 +1,95 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Bounce / resend (BUILD.md §12 step 11).
+
+     This page is never a page. rcmail.bounce() builds an <iframe> pointing at
+     ?_action=bounce&_framed=1 and hands it to simple_dialog() (app.js:4527), so
+     what is below always renders inside a modal dialog whose title bar, Bounce
+     button and Cancel button belong to jQuery UI — already styled in
+     _controls.scss. Two consequences:
+
+       * No submit button here. The dialog's own Bounce button posts the form:
+         it reads rcmail.gui_objects.messageform out of this frame, serialises
+         it, and posts from the parent (app.js:4538). A button of our own would
+         be a second, disabled one — the framed bounce page never enables the
+         'bounce' command (app.js:384).
+
+       * env:framed is true, so header.html renders no app header. Nothing to
+         exclude by hand.
+
+     The dialog is 400x300 in core, which cannot hold four address fields; ui.js
+     resizes it on the 'dialog-open' event (§7.7) rather than reimplementing
+     rcmail.bounce().
+
+     composeHeaders must be asked for one part at a time. Called without part=
+     it returns nothing at all — rcmail_sendmail::headers_output() switches on
+     the part name and falls through — and the form tag it would otherwise
+     return has already been emitted by composeFormHead, whose form_tags() only
+     ever yields it once. -->
+<div class="bc-bounce">
+
+	<!-- Always an information box ("the message is resent unchanged"), plus a
+	     warning when the original carried Bcc recipients (bounce.php:112). -->
+	<roundcube:object name="bounceObjects" id="bounce-objects" class="bc-bounce__notices" />
+
+	<roundcube:object name="composeFormHead" class="bc-bounce__form" />
+
+	<div id="bounceheaders" class="bc-compose__headers bc-bounce__headers"
+		role="region" aria-labelledby="aria-label-bounceheaders">
+		<h2 id="aria-label-bounceheaders" class="voice"><roundcube:label name="arialabelmessageheaders" /></h2>
+
+		<div class="bc-compose__row" id="compose_from">
+			<label for="_from"><roundcube:label name="from" /></label>
+			<roundcube:object name="composeHeaders" part="from" id="_from" form="form" tabindex="1"
+				class="bc-compose__select" />
+		</div>
+
+		<!-- Same ids as compose so ui.js's Cc/Bcc disclosure and its recipient
+		     pills work here unchanged; both are keyed on compose_<header> and on
+		     data-bc-recipients, not on the compose screen. -->
+		<div class="bc-compose__row" id="compose_to">
+			<label for="_to"><roundcube:label name="to" /></label>
+			<roundcube:object name="composeHeaders" part="to" id="_to" form="form" tabindex="1"
+				aria-required="true" data-bc-recipients="to" />
+			<div class="bc-compose__trail bc-compose__addheaders">
+				<button type="button" class="bc-link" data-bc-header="cc" aria-expanded="false" tabindex="1"><roundcube:label name="cc" /></button>
+				<button type="button" class="bc-link" data-bc-header="bcc" aria-expanded="false" tabindex="1"><roundcube:label name="bcc" /></button>
+			</div>
+		</div>
+
+		<div class="bc-compose__row" id="compose_cc" hidden>
+			<label for="_cc"><roundcube:label name="cc" /></label>
+			<roundcube:object name="composeHeaders" part="cc" id="_cc" form="form" tabindex="1"
+				data-bc-recipients="cc" />
+		</div>
+
+		<div class="bc-compose__row" id="compose_bcc" hidden>
+			<label for="_bcc"><roundcube:label name="bcc" /></label>
+			<roundcube:object name="composeHeaders" part="bcc" id="_bcc" form="form" tabindex="1"
+				data-bc-recipients="bcc" />
+		</div>
+
+		<!-- noform="true" so folder_selector does not open a second <form>
+		     around the select (rcmail_sendmail::form_tags). -->
+		<roundcube:if condition="!config:no_save_sent_messages" />
+		<div class="bc-compose__row" id="bounce_store">
+			<label for="compose-store-target"><roundcube:label name="savesentmessagein" /></label>
+			<roundcube:object name="storetarget" id="compose-store-target" noform="true" tabindex="1"
+				class="bc-compose__select" />
+		</div>
+		<roundcube:endif />
+	</div>
+
+	<!-- composeFormHead opens the form and never closes it (form_tags() returns
+	     the closing tag separately, and nothing asks for it), so every skin
+	     closes it in its own markup — Elastic included.
+
+	     Measured, not assumed: leaving this out does not lose the fields. HTML5
+	     keeps an unclosed <form> open to the end of the body, so they are still
+	     inside it and still posted. What it does is swallow everything
+	     footer.html renders — the toast host and the two live regions — into the
+	     form. Well-formedness, not function. -->
+	</form>
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

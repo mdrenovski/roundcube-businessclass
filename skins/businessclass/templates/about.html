@@ -1,0 +1,51 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- About. Not a framed section: the 'about' command is a full redirect to
+     ?_task=settings&_action=about (app.js:804), so this is a whole page and
+     carries the settings nav to get back out of.
+
+     The first line is the *install's* identity: "BusinessClass by JetHost.com"
+     in the free distribution, "by JetHost.BG" where that preset is installed.
+     Both come from branding.json's vendor field, published by
+     businessclass_prefs, so a rebrand needs no template edit (§2).
+
+     The credit line below it is the *skin's* origin, and is deliberately not
+     branded: it is fixed text, not a token, because a rebranded install replaces
+     product_name and vendor with its own and the origin would otherwise vanish
+     with them. LICENSE clause 1 requires this credit to stay reachable, and this
+     is where the skin satisfies that by default. -->
+
+<div id="layout" class="bc-shell bc-shell--settings-plain">
+	<roundcube:include file="/templates/includes/menu.html" />
+	<roundcube:include file="/templates/includes/settings-menu.html" />
+
+	<main id="layout-content" class="bc-reading bc-settings__detail">
+		<div class="bc-formpage">
+			<div class="bc-formpage__head">
+				<h1 class="bc-formpage__title"><roundcube:label name="about" /></h1>
+			</div>
+
+			<div class="bc-formpage__body bc-scroll">
+				<p class="bc-about__skin">
+					<strong><roundcube:var name="env:bc_product_name" /></strong>
+					<roundcube:if condition="env:bc_vendor" />
+					<roundcube:label name="bc_by" /> <roundcube:var name="env:bc_vendor" />
+					<roundcube:endif />
+				</p>
+
+				<p class="bc-about__legal">BusinessClass by <a href="https://jethost.com" target="_blank" rel="noopener noreferrer">JetHost</a> — a free Roundcube skin.</p>
+
+				<roundcube:object name="aboutcontent" />
+
+				<h2 class="bc-about__product">Roundcube Webmail <roundcube:object name="version" /></h2>
+				<p class="bc-about__legal"><roundcube:object name="copyright" /></p>
+				<p class="bc-about__legal"><roundcube:object name="license" /></p>
+
+				<h3 class="bc-about__section"><roundcube:label name="installedplugins" /></h3>
+				<roundcube:object name="pluginlist" id="pluginlist" class="bc-datatable" />
+			</div>
+		</div>
+	</main>
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

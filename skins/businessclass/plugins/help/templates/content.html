@@ -1,0 +1,18 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- One help section, inside help.html's content frame.
+
+     The body is whatever the admin configured: the plugin's own bundled
+     content/about.html or content/license.html, or an external page it points
+     the frame at instead (help.php:83). It is arbitrary third-party HTML, so
+     _plugins.scss gives it document typography — headings, paragraphs, lists,
+     links, tables — rather than assuming any structure.
+
+     The action name goes on the wrapper as help-index / help-about /
+     help-license, keeping the hook the plugin's own CSS would have used. -->
+<div id="help-<roundcube:var name='env:action' />" class="bc-helpcontent bc-scroll">
+	<h1 class="voice"><roundcube:object name="steptitle" /></h1>
+	<roundcube:object name="helpcontent" />
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

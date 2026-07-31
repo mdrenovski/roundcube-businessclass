@@ -1,0 +1,29 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Forwarding (§4.4). Same shape as Vacation: its own settings section,
+     compiled down to a Sieve redirect rule by the plugin. -->
+<div id="layout" class="bc-shell bc-shell--settings-plain">
+	<roundcube:include file="/templates/includes/menu.html" />
+	<roundcube:include file="/templates/includes/settings-menu.html" />
+
+	<main id="layout-content" class="bc-reading bc-settings__detail">
+		<div class="bc-formpage">
+			<div class="bc-formpage__head">
+				<h1 class="bc-formpage__title"><roundcube:label name="managesieve.forward" /></h1>
+			</div>
+
+			<div class="bc-formpage__body bc-scroll">
+				<roundcube:object name="forwardform" id="forwardform" />
+			</div>
+
+			<div class="bc-formpage__foot">
+				<roundcube:button command="plugin.managesieve-save" type="input" class="bc-btn bc-btn--primary" label="save" />
+				<button type="button" id="bc-form-cancel" class="bc-btn bc-btn--secondary"><roundcube:label name="cancel" /></button>
+			</div>
+		</div>
+	</main>
+</div>
+
+<roundcube:add_label name="bc_changesdiscarded" />
+
+<roundcube:include file="/templates/includes/footer.html" />

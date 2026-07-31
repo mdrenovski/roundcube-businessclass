@@ -1,0 +1,231 @@
+// =============================================================================
+// skins/businessclass/styles/_print.scss
+// Print styles
+// See BUILD.md §2. Tokens only — no literal colors, sizes, radii or shadows.
+//
+// Two audiences, and they are not the same page:
+//
+//   1. The dedicated print views. Roundcube opens `?_action=print` in a window
+//      of its own — messageprint.html and contactprint.html, both carrying
+//      .bc-print — and raises the browser's print dialog over it. That window
+//      stays on screen behind the dialog, so those pages need *screen* rules as
+//      much as print ones.
+//   2. Anyone pressing Ctrl+P, or Print in the browser menu, on the app itself.
+//      ui.js routes Ctrl+P to view 1 whenever there is a single message or
+//      contact to print, because a reading pane is an iframe and an iframe cannot
+//      grow to its content. The @media print block below is what the browser-menu
+//      path falls back to: the chrome comes off and what is left is the open
+//      message, or the list when nothing is open.
+//
+// The tokens go monochrome via @include bc-print — see _tokens.scss for what that
+// changes and why the accent survives on links.
+// =============================================================================
+
+@use "tokens" as *;
+
+// -- The print views as documents ---------------------------------------------
+// body carries `action-print` from the shared header include, which is the only
+// hook that says "this whole document is a print view".
+//
+// _reset.scss gives every body `height: 100%; overflow: hidden`, which is right
+// for the app shell — its panes scroll, the page never does — and wrong here: a
+// long message could not be scrolled in the print window, and a body that cannot
+// overflow is a body some engines clip to the first page.
+body.action-print {
+  display: block;
+  height: auto;
+  overflow: auto;
+  background: var(--bc-bg-1);
+}
+
+.bc-print {
+  max-width: var(--bc-read-measure);
+  margin-inline: auto;
+  padding: var(--bc-read-pad);
+}
+
+// -- Letterhead ---------------------------------------------------------------
+// Both print views carry this; it lives here rather than in _addressbook.scss now
+// that it is not the contact's alone.
+//
+// Core's logo object resolves logo-type="print" against the skin's config and
+// returns an empty string when branding.json names no print logo, so the block
+// has to disappear on its own. Keyed on :has(img) rather than :empty — it holds a
+// comment and whitespace, and whether those count as empty changed between
+// selector spec levels; whether there is an image in it did not.
+.bc-print__brand {
+  margin-bottom: var(--bc-s-16);
+  padding-bottom: var(--bc-s-12);
+  border-bottom: 1px solid var(--bc-stroke-2);
+
+  img { max-height: var(--bc-s-32); }
+
+  &:not(:has(img)) { display: none; }
+}
+
+// =============================================================================
+// Print
+// =============================================================================
+@media print {
+  @page { margin: $print-margin; }
+
+  // Undo the theme, whatever the reader had on screen. Specificity has to match
+  // html[data-bc-theme="dark"] from _tokens.scss (0,1,1) — being later in the
+  // cascade is what wins the tie, and `html` alone would lose outright. The
+  // second selector covers a document rendered before the theme attribute is
+  // written, which is only the case with JS off.
+  html[data-bc-theme],
+  html:not([data-bc-theme]) { @include bc-print; }
+
+  html,
+  body {
+    height: auto;
+    overflow: visible;
+    background: none;
+  }
+
+  // -- The chrome comes off ---------------------------------------------------
+  // Everything here navigates, searches, filters, resizes or notifies. None of it
+  // can be done on paper, and all of it costs a page.
+  #bc-header,
+  #layout-menu,
+  #layout-sidebar,
+  .bc-splitter,
+  .bc-toolbar,
+  .bc-ribbon,
+  .bc-message__ribbon,
+  .bc-tabs,
+  .bc-pagenav,
+  .bc-toasts,
+  .bc-search,
+  .bc-formpage__foot,
+  .floating-action-buttons,
+  .bc-message__details > summary { display: none !important; }
+
+  // The remaining headers are a <details>: on paper there is nothing to expand,
+  // so the content shows and the disclosure that would have opened it does not.
+  .bc-message__details > *:not(summary) { display: revert !important; }
+
+  // -- The panes become ordinary flow ----------------------------------------
+  // !important throughout: the screen rules that set these live on compound
+  // selectors (.bc-shell[data-bc-layout="desktop"] #layout-list and friends) that
+  // no plain selector here can outrank.
+  body.task-mail,
+  body.task-addressbook,
+  body.task-settings {
+    display: block !important;
+    height: auto !important;
+    background: none !important;
+  }
+
+  #layout,
+  .bc-shell,
+  #layout-list,
+  #layout-content,
+  .bc-list__scroll,
+  .bc-scroll {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border: 0 !important;
+    background: none !important;
+  }
+
+  // -- Which pane is the page ------------------------------------------------
+  // ui.js marks the detail pane .is-empty whenever nothing is open (its
+  // show_contentframe wrapper). Nothing open → the list *is* the page. Something
+  // open → that is what was asked for, and the list in front of it is noise.
+  #layout-content.is-empty { display: none !important; }
+
+  #layout-list:has(~ #layout-content:not(.is-empty)) { display: none !important; }
+
+  // An iframe cannot size to its content, so this can only ever be one page of a
+  // long message — which is why ui.js sends Ctrl+P to the real print view
+  // instead. This is the browser-menu fallback, and one full page beats the
+  // 150px an auto-height iframe would collapse to.
+  .bc-reading__frame {
+    height: 100vh !important;
+    min-height: 0 !important;
+  }
+
+  // -- Ink -------------------------------------------------------------------
+  // Chips and avatars keep a hairline, so a category still reads as a label
+  // rather than as stray words in the middle of a row. The fill behind it went
+  // with the tint tokens.
+  .bc-chip,
+  .bc-avatar { border: 1px solid var(--bc-stroke-2); }
+
+  // The unread bar. Every bc-brand-bar() takes its fill from --bc-brand-primary,
+  // which header.html writes as an inline style on <html> — no token override can
+  // reach it, so the pseudo-element's own background is the only place left to say
+  // "not in accent ink". The bar itself stays: on paper it is the clearest thing
+  // about the row, and the bold weight beside it is not enough on its own.
+  //
+  // !important because the rules that set it carry the state class as well
+  // (tr.message.unread::before, _list.scss:324) and so outrank anything written
+  // here without it. Measured: without !important the bar prints accent blue.
+  .bc-messagelist tr.message::before { background: var(--bc-fg-1) !important; }
+
+  // -- Paper -----------------------------------------------------------------
+  // The page box is the measure now, so the on-screen one comes off.
+  .bc-print {
+    max-width: none;
+    padding: 0;
+  }
+
+  .bc-message,
+  .bc-contact { padding: 0; }
+
+  .bc-message__body {
+    max-width: none;
+    overflow: visible;
+  }
+
+  img { max-width: 100%; }
+
+  a { text-decoration: underline; }
+
+  // A link on paper is dead without its address. Restricted to the message body:
+  // in a contact card the address is already the visible text, so doubling it
+  // there would read as a mistake.
+  .bc-message__body a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    @include bc-caption1;
+    color: var(--bc-fg-3);
+    word-break: break-all;
+  }
+
+  // Notice boxes (§12 step 11). bc-print turns every status *tint* white, but
+  // deliberately leaves --bc-brand-fg and --bc-brand-fg-strong alone — those are
+  // what carries the accent onto links, which is the one exception D-42 allows.
+  // .boxinformation takes its body text from brand-fg-strong, so without this it
+  // would print a whole sentence in accent ink on a box that is now white.
+  // Reachable on paper through enigma's "this message carries a public key"
+  // offer, which sits in the message body.
+  .boxinformation { color: var(--bc-fg-1); }
+
+  // And the button in it does nothing on paper.
+  .enigmaattachment button { display: none !important; }
+
+  // -- Page breaks -----------------------------------------------------------
+  h1, h2, h3,
+  .bc-message__subject,
+  .bc-contact__ident { break-after: avoid; }
+
+  tr,
+  .bc-message__headers,
+  .bc-message__sender,
+  .bc-attachments,
+  .bc-contact__section,
+  .bc-contact__head { break-inside: avoid; }
+
+  .bc-messagelist tr.message { break-inside: avoid; }
+
+  // Deliberately no `thead { display: table-header-group }` here, tempting as the
+  // repeat-the-header idiom is. This list's head is hidden by design in
+  // comfortable density — its sort links live in the toolbar (_list.scss:174) —
+  // so the rule would print a column header the skin never shows on screen; and
+  // in compact density the head is a grid, which table-header-group would undo.
+  // Whatever the density shows is what prints.
+}

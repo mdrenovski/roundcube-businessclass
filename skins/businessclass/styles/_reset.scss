@@ -1,0 +1,236 @@
+// =============================================================================
+// skins/businessclass/styles/_reset.scss
+// Baseline normalisation for a standalone skin (meta.json "extends": null —
+// nothing is inherited from Elastic, so every core element is reset here).
+// Tokens only: no literal colors, sizes, radii or shadows (BUILD.md §1.7).
+// =============================================================================
+
+@use "tokens" as *;
+
+// -- Box model ----------------------------------------------------------------
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+// -- Document -----------------------------------------------------------------
+html {
+  height: 100%;
+  // Roundcube ships user-scalable content; never block zoom (BUILD.md §9).
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;              // the app shell scrolls its panes, not the page
+  background: var(--bc-bg-1);
+  color: var(--bc-fg-1);
+  @include bc-body1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Non-app pages (login, print, message-in-new-window) scroll normally.
+body.bc-scrollable {
+  overflow: auto;
+}
+
+// -- Block flow ---------------------------------------------------------------
+h1, h2, h3, h4, h5, h6,
+p, figure, blockquote, dl, dd {
+  margin: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-size: inherit;
+  font-weight: var(--bc-weight-semibold);
+  line-height: inherit;
+}
+
+ul, ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+hr {
+  height: 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--bc-stroke-2);
+}
+
+// -- Text ---------------------------------------------------------------------
+a {
+  color: var(--bc-brand-fg);
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}
+
+b, strong { font-weight: var(--bc-weight-semibold); }
+
+small { font-size: var(--bc-size-caption1); }
+
+code, kbd, pre, samp {
+  font-family: var(--bc-font-mono);
+  font-size: 1em;
+}
+
+abbr[title] {
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
+::selection {
+  background: var(--bc-brand-tint-strong);
+  color: var(--bc-fg-1);
+}
+
+::placeholder {
+  color: var(--bc-fg-3);
+  opacity: 1;   // Firefox dims placeholders by default
+}
+
+// -- Media --------------------------------------------------------------------
+img, svg, video, canvas, object, embed {
+  display: block;
+  max-width: 100%;
+}
+
+svg { fill: currentColor; }
+
+iframe {
+  display: block;
+  border: 0;
+}
+
+// -- Forms --------------------------------------------------------------------
+button, input, optgroup, select, textarea {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+button,
+[type="button"],
+[type="reset"],
+[type="submit"] {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+
+  &:disabled { cursor: default; }
+}
+
+textarea {
+  resize: vertical;
+  overflow: auto;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+legend { padding: 0; }
+
+[disabled],
+.disabled {
+  color: var(--bc-fg-disabled);
+  cursor: default;
+}
+
+// Roundcube toggles this on the search input's clear button and elsewhere.
+[hidden] { display: none !important; }
+
+// -- Tables (the message list is a core-generated <table>) ---------------------
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 100%;
+}
+
+th, td {
+  padding: 0;
+  text-align: left;
+  font-weight: inherit;
+  vertical-align: middle;
+}
+
+// -- Focus --------------------------------------------------------------------
+// Suppress the UA ring only where we replace it; :focus-visible only (§9).
+:focus { outline: none; }
+
+:focus-visible {
+  @include bc-focus-ring;
+}
+
+// -- Screen-reader-only ------------------------------------------------------
+// `.voice` is emitted by Roundcube core (rcmail_output_html search labels,
+// app.js strips it from drag layers) — it must exist in a standalone skin.
+.voice,
+.bc-sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+// -- Scrollbars ---------------------------------------------------------------
+.bc-scroll,
+[class*="bc-pane"] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bc-stroke-1) transparent;
+}
+
+::-webkit-scrollbar {
+  width: var(--bc-s-12);
+  height: var(--bc-s-12);
+}
+
+::-webkit-scrollbar-track { background: transparent; }
+
+::-webkit-scrollbar-thumb {
+  border: var(--bc-s-4) solid transparent;
+  border-radius: var(--bc-radius-circular);
+  background-clip: content-box;
+  background-color: var(--bc-stroke-1);
+
+  &:hover { background-color: var(--bc-stroke-accessible); }
+}
+
+// -- Drag helper --------------------------------------------------------------
+// app.js appends #rcmDraglayer to <body> when dragging messages/contacts.
+#rcmDraglayer {
+  position: absolute;
+  z-index: 1000;
+  max-width: 20em;
+  padding: var(--bc-s-4) var(--bc-s-8);
+  border: 1px solid var(--bc-stroke-1);
+  border-radius: var(--bc-radius-m);
+  background: var(--bc-bg-1);
+  box-shadow: var(--bc-shadow-8);
+  color: var(--bc-fg-1);
+  @include bc-caption1;
+  pointer-events: none;
+  opacity: .9;
+}

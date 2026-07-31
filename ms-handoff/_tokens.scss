@@ -1,0 +1,251 @@
+// =============================================================================
+// skins/fluent2/styles/_tokens.scss
+// Fluent 2 design tokens for the Roundcube "fluent2" skin.
+// Single source of truth. No hard-coded colors, sizes, radii or shadows
+// anywhere else in the skin — always reference a var() from this file.
+// =============================================================================
+
+// -- Admin-supplied accent -----------------------------------------------------
+// The admin sets ONE hex in skins/fluent2/branding.json ("accent").
+// header.html injects it as an inline style on <html>:  --f2-brand-primary: #XXXXXX
+// The derived steps below are computed at runtime with color-mix() so no Sass
+// rebuild is needed when the accent changes.
+$brand-default: #0F6CBD;
+
+:root {
+  // Brand ---------------------------------------------------------------------
+  --f2-brand-primary: #{$brand-default};
+  --f2-brand-hover:        color-mix(in srgb, var(--f2-brand-primary) 88%, black);
+  --f2-brand-pressed:      color-mix(in srgb, var(--f2-brand-primary) 76%, black);
+  --f2-brand-fg:           var(--f2-brand-primary);          // links, selected icon
+  --f2-brand-fg-strong:    color-mix(in srgb, var(--f2-brand-primary) 76%, black);
+  --f2-brand-tint-selected:color-mix(in srgb, var(--f2-brand-primary) 10%, white);
+  --f2-brand-tint-strong:  color-mix(in srgb, var(--f2-brand-primary) 18%, white);
+  --f2-brand-stroke:       color-mix(in srgb, var(--f2-brand-primary) 32%, white);
+  --f2-on-brand:           #FFFFFF;
+
+  // Neutrals (light) ----------------------------------------------------------
+  --f2-bg-1: #FFFFFF;   // surfaces: list, reading pane, dialogs
+  --f2-bg-2: #FAFAFA;   // sidebars, toolbars, table headers
+  --f2-bg-3: #F5F5F5;   // app rail, hover fill
+  --f2-bg-4: #F0F0F0;   // pressed fill, chips
+  --f2-bg-inverted: #292929;
+
+  --f2-fg-1: #242424;   // primary text
+  --f2-fg-2: #424242;   // icons, secondary text
+  --f2-fg-3: #616161;   // metadata, placeholders
+  --f2-fg-disabled: #BDBDBD;
+  --f2-fg-on-accent: #FFFFFF;
+
+  --f2-stroke-1: #D1D1D1;   // control borders
+  --f2-stroke-2: #E0E0E0;   // pane dividers
+  --f2-stroke-3: #F0F0F0;   // row dividers
+  --f2-stroke-accessible: #616161; // input rest border (3:1)
+
+  // Status --------------------------------------------------------------------
+  --f2-danger: #C50F1F;
+  --f2-danger-fg: #A80000;
+  --f2-danger-tint: #FDF3F4;
+  --f2-danger-stroke: #EEACB2;
+  --f2-success: #0E700E;
+  --f2-success-tint: #DFF6DD;
+  --f2-success-stroke: #9FD89F;
+  --f2-warning: #EAA300;
+  --f2-warning-fg: #7A4C00;
+  --f2-warning-tint: #FFF4CE;
+
+  // Message categories (map 1:1 to IMAP keywords, see BUILD.md §8) -------------
+  --f2-cat-important: #C50F1F;  --f2-cat-important-tint: #FDF3F4;  --f2-cat-important-fg: #A80000;
+  --f2-cat-infra:     #0F6CBD;  --f2-cat-infra-tint:     #EBF3FC;  --f2-cat-infra-fg:     #0F548C;
+  --f2-cat-finance:   #EAA300;  --f2-cat-finance-tint:   #FFF4CE;  --f2-cat-finance-fg:   #7A4C00;
+  --f2-cat-qa:        #0E700E;  --f2-cat-qa-tint:        #DFF6DD;  --f2-cat-qa-fg:        #0B5A0B;
+  --f2-cat-personal:  #5C2E91;  --f2-cat-personal-tint:  #E8DFF5;  --f2-cat-personal-fg:  #4A2377;
+  --f2-cat-waiting:   #616161;  --f2-cat-waiting-tint:   #F0F0F0;  --f2-cat-waiting-fg:   #424242;
+
+  // Avatar palette (initials fallback; pick by hash of email) ------------------
+  --f2-avatar-1-bg: #C7E0F4; --f2-avatar-1-fg: #0F548C;
+  --f2-avatar-2-bg: #E8DFF5; --f2-avatar-2-fg: #5C2E91;
+  --f2-avatar-3-bg: #DFF6DD; --f2-avatar-3-fg: #0E700E;
+  --f2-avatar-4-bg: #FDE7E9; --f2-avatar-4-fg: #A80000;
+  --f2-avatar-5-bg: #FFF4CE; --f2-avatar-5-fg: #7A4C00;
+  --f2-avatar-6-bg: #E0E0E0; --f2-avatar-6-fg: #424242;
+
+  // Typography ----------------------------------------------------------------
+  --f2-font-body: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI",
+                  system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --f2-font-display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI",
+                  system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --f2-font-mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, monospace;
+
+  --f2-size-caption1: 12px;  --f2-lh-caption1: 16px;
+  --f2-size-body1:    14px;  --f2-lh-body1:    20px;
+  --f2-size-body2:    15px;  --f2-lh-body2:    24px;   // reading pane copy
+  --f2-size-sub2:     16px;  --f2-lh-sub2:     22px;
+  --f2-size-sub1:     20px;  --f2-lh-sub1:     26px;   // message subject
+  --f2-size-title3:   24px;  --f2-lh-title3:   32px;   // screen titles
+
+  --f2-weight-regular: 400;
+  --f2-weight-semibold: 600;
+
+  // Spacing (only these steps) ------------------------------------------------
+  --f2-s-2: 2px;  --f2-s-4: 4px;  --f2-s-8: 8px;  --f2-s-12: 12px;
+  --f2-s-16: 16px; --f2-s-20: 20px; --f2-s-24: 24px; --f2-s-32: 32px; --f2-s-40: 40px;
+
+  // Radius --------------------------------------------------------------------
+  --f2-radius-s: 2px;
+  --f2-radius-m: 4px;    // controls
+  --f2-radius-l: 6px;    // cards, popovers
+  --f2-radius-xl: 8px;   // dialogs
+  --f2-radius-circular: 9999px;
+
+  // Elevation -----------------------------------------------------------------
+  --f2-shadow-2:  0 1px 2px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12);
+  --f2-shadow-4:  0 2px 4px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12);
+  --f2-shadow-8:  0 4px 8px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12);
+  --f2-shadow-16: 0 8px 16px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12);
+  --f2-shadow-28: 0 14px 28px rgba(0,0,0,.24), 0 0 8px rgba(0,0,0,.20);
+
+  // Motion --------------------------------------------------------------------
+  --f2-dur-fast: 100ms;
+  --f2-dur-normal: 200ms;
+  --f2-ease-accel: cubic-bezier(.9,.1,1,.2);
+  --f2-ease-decel: cubic-bezier(.1,.9,.2,1);
+  --f2-ease-max:   cubic-bezier(.33,0,.67,1);
+
+  // Layout metrics (redlines) -------------------------------------------------
+  --f2-header-h: 48px;
+  --f2-toolbar-h: 44px;
+  --f2-rail-w: 48px;
+  --f2-rail-btn: 36px;
+  --f2-folders-w: 236px;        // resizable 200–360, persisted
+  --f2-list-w: 400px;           // resizable 320–520, persisted
+  --f2-control-h: 32px;
+  --f2-control-h-compact: 28px;
+  --f2-row-h-compact: 28px;
+  --f2-row-pad-comfortable: 8px 12px;
+  --f2-avatar: 32px;
+  --f2-unread-bar-w: 3px;
+  --f2-read-pad: 20px 24px;
+  --f2-read-measure: 72ch;
+  --f2-touch-min: 44px;
+  --f2-focus-ring-w: 2px;
+  --f2-focus-ring-color: var(--f2-fg-1);
+}
+
+// -- Dark theme ---------------------------------------------------------------
+// Applied via [data-f2-theme="dark"] on <html> (user pref) or the media query
+// below when the pref is "system". Neutrals invert; brand lightens.
+@mixin f2-dark {
+  --f2-brand-primary: #479EF5;
+  --f2-brand-hover:   #62ABF5;
+  --f2-brand-pressed: #2886DE;
+  --f2-brand-tint-selected: #0C3B5E;
+  --f2-brand-tint-strong:   #0F548C;
+  --f2-brand-stroke: #0F6CBD;
+  --f2-on-brand: #000000;
+
+  --f2-bg-1: #292929;
+  --f2-bg-2: #1F1F1F;
+  --f2-bg-3: #141414;
+  --f2-bg-4: #383838;
+  --f2-bg-inverted: #FFFFFF;
+
+  --f2-fg-1: #FFFFFF;
+  --f2-fg-2: #D6D6D6;
+  --f2-fg-3: #ADADAD;
+  --f2-fg-disabled: #5C5C5C;
+
+  --f2-stroke-1: #666666;
+  --f2-stroke-2: #3D3D3D;
+  --f2-stroke-3: #333333;
+  --f2-stroke-accessible: #ADADAD;
+
+  --f2-danger: #DC626D;   --f2-danger-fg: #E37D87; --f2-danger-tint: #3B1B1F; --f2-danger-stroke: #6E2B32;
+  --f2-success: #54B054;  --f2-success-tint: #143A14; --f2-success-stroke: #237B23;
+  --f2-warning: #FDE300;  --f2-warning-fg: #FDE300;  --f2-warning-tint: #3D2F00;
+
+  --f2-cat-important-tint: #3B1B1F; --f2-cat-important-fg: #E37D87;
+  --f2-cat-infra-tint:     #0C3B5E; --f2-cat-infra-fg:     #77BDFA;
+  --f2-cat-finance-tint:   #3D2F00; --f2-cat-finance-fg:   #FDE300;
+  --f2-cat-qa-tint:        #143A14; --f2-cat-qa-fg:        #54B054;
+  --f2-cat-personal-tint:  #2B1638; --f2-cat-personal-fg:  #C4A0E8;
+  --f2-cat-waiting-tint:   #383838; --f2-cat-waiting-fg:   #D6D6D6;
+
+  --f2-focus-ring-color: #FFFFFF;
+  --f2-shadow-2:  0 1px 2px rgba(0,0,0,.28), 0 0 2px rgba(0,0,0,.22);
+  --f2-shadow-4:  0 2px 4px rgba(0,0,0,.28), 0 0 2px rgba(0,0,0,.22);
+  --f2-shadow-8:  0 4px 8px rgba(0,0,0,.28), 0 0 2px rgba(0,0,0,.22);
+  --f2-shadow-16: 0 8px 16px rgba(0,0,0,.28), 0 0 2px rgba(0,0,0,.22);
+}
+
+html[data-f2-theme="dark"] { @include f2-dark; }
+
+@media (prefers-color-scheme: dark) {
+  html[data-f2-theme="system"] { @include f2-dark; }
+}
+
+// -- High contrast -------------------------------------------------------------
+// Two paths: the user pref [data-f2-theme="hc"] and the OS forced-colors mode.
+// Rules: pure black/white, every surface separated by a 1px currentColor border,
+// no tint-only signals, focus = 2px #1AEBFF, selection = #FFFF00 on #000.
+@mixin f2-hc {
+  --f2-brand-primary: #1AEBFF;
+  --f2-brand-hover: #1AEBFF;
+  --f2-brand-pressed: #1AEBFF;
+  --f2-brand-fg: #1AEBFF;
+  --f2-brand-tint-selected: #FFFF00;
+  --f2-brand-tint-strong: #FFFF00;
+  --f2-on-brand: #000000;
+
+  --f2-bg-1: #000000; --f2-bg-2: #000000; --f2-bg-3: #000000; --f2-bg-4: #000000;
+  --f2-fg-1: #FFFFFF; --f2-fg-2: #FFFFFF; --f2-fg-3: #FFFFFF;
+  --f2-fg-disabled: #3FF23F;
+
+  --f2-stroke-1: #FFFFFF; --f2-stroke-2: #FFFFFF; --f2-stroke-3: #FFFFFF;
+  --f2-stroke-accessible: #FFFFFF;
+
+  --f2-danger: #FFFFFF; --f2-danger-tint: #000000; --f2-danger-fg: #FFFFFF;
+  --f2-success: #FFFFFF; --f2-success-tint: #000000;
+  --f2-warning: #FFFFFF; --f2-warning-tint: #000000;
+
+  --f2-focus-ring-color: #1AEBFF;
+  --f2-shadow-2: none; --f2-shadow-4: none; --f2-shadow-8: none;
+  --f2-shadow-16: none; --f2-shadow-28: none;
+}
+
+html[data-f2-theme="hc"] { @include f2-hc; }
+
+@media (forced-colors: active) {
+  :root { @include f2-hc; }
+  // Let the OS own colors; keep structure visible.
+  * { forced-color-adjust: auto; }
+  .f2-surface, .f2-popover, .f2-card { border: 1px solid CanvasText; }
+}
+
+// -- Reduced motion ------------------------------------------------------------
+@media (prefers-reduced-motion: reduce) {
+  :root { --f2-dur-fast: 0ms; --f2-dur-normal: 0ms; }
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+// -- Shared helpers ------------------------------------------------------------
+@mixin f2-focus-ring {
+  outline: var(--f2-focus-ring-w) solid var(--f2-focus-ring-color);
+  outline-offset: var(--f2-s-2);
+  box-shadow: 0 0 0 1px var(--f2-bg-1);   // Fluent dual ring
+}
+
+@mixin f2-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin f2-body1        { font: var(--f2-weight-regular) var(--f2-size-body1)/var(--f2-lh-body1) var(--f2-font-body); }
+@mixin f2-body1-strong { font: var(--f2-weight-semibold) var(--f2-size-body1)/var(--f2-lh-body1) var(--f2-font-body); }
+@mixin f2-caption1     { font: var(--f2-weight-regular) var(--f2-size-caption1)/var(--f2-lh-caption1) var(--f2-font-body); }
+@mixin f2-subtitle1    { font: var(--f2-weight-semibold) var(--f2-size-sub1)/var(--f2-lh-sub1) var(--f2-font-display); }
+@mixin f2-title3       { font: var(--f2-weight-semibold) var(--f2-size-title3)/var(--f2-lh-title3) var(--f2-font-display); }

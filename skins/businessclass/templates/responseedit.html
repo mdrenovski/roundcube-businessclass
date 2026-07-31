@@ -1,0 +1,24 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- One canned response (§4.4). Wider textarea than the identity signature:
+     this is the whole body of a reply, so it gets the room Elastic gives it. -->
+<div class="bc-formpage">
+	<div class="bc-formpage__head">
+		<h1 class="bc-formpage__title"><roundcube:object name="steptitle" /></h1>
+	</div>
+
+	<div class="bc-formpage__body bc-scroll">
+		<roundcube:object name="responseform" size="60" textareacols="60" textarearows="18" />
+	</div>
+
+	<roundcube:if condition="!env:readonly" />
+	<div class="bc-formpage__foot">
+		<roundcube:button command="save" type="input" class="bc-btn bc-btn--primary" label="save" />
+		<button type="button" id="bc-form-cancel" class="bc-btn bc-btn--secondary"><roundcube:label name="cancel" /></button>
+	</div>
+	<roundcube:endif />
+</div>
+
+<roundcube:add_label name="bc_changesdiscarded" />
+
+<roundcube:include file="/templates/includes/footer.html" />

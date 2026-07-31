@@ -1,0 +1,17 @@
+<!-- List paging. Restyled with the rest of the list chrome at step 13 (§6). -->
+<div class="bc-pagenav" role="toolbar" aria-label="<roundcube:label name='arialabellistnav' />">
+	<roundcube:button command="previouspage" type="link" class="bc-iconbtn" innerclass="voice"
+		title="previouspage" label="previous" data-bc-icon="chevron_up" />
+	<roundcube:if condition="template:name == 'mail'" />
+	<roundcube:object name="messageCountDisplay" class="bc-pagenav__text" aria-live="polite" />
+	<roundcube:elseif condition="template:name == 'addressbook'" />
+	<roundcube:object name="recordsCountDisplay" class="bc-pagenav__text" label="fromtoshort" aria-live="polite" />
+	<roundcube:elseif condition="template:name == 'enigma.keys'" />
+	<!-- enigma names its own counter object and registers the four paging
+	     commands itself (enigma.js:31). template:name carries the plugin
+	     prefix, which is how parse() was asked for the template. -->
+	<roundcube:object name="countdisplay" class="bc-pagenav__text" aria-live="polite" />
+	<roundcube:endif />
+	<roundcube:button command="nextpage" type="link" class="bc-iconbtn" innerclass="voice"
+		title="nextpage" label="next" data-bc-icon="chevron_down" />
+</div>

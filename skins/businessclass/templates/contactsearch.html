@@ -1,0 +1,17 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Advanced contact search (§4.5). Framed: app.js advanced_search() loads this
+     into a simple_dialog and supplies the dialog's own Search button, which
+     reads the form straight out of gui_objects.editform — so there is no footer
+     here, and adding one would give two ways to submit the same form. The title
+     is the dialog's, hence the voice-only heading. -->
+<div class="bc-formpage">
+	<h1 class="voice"><roundcube:label name="advsearch" /></h1>
+
+	<div class="bc-formpage__body bc-scroll">
+		<roundcube:object name="searchform" id="advsearchform" class="bc-contact__section"
+			short-legend-labels="true" size="30" />
+	</div>
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

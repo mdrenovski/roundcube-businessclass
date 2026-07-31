@@ -1,0 +1,35 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Printable contact (§4.5). The same three parts as contact.html over the same
+     core objects; what differs is that in the print action core renders each
+     field row's label as a div.contactfieldlabel rather than a <label>, and that
+     app.js opens the browser's print dialog as soon as the page loads.
+
+     The letterhead has two sources, in order: branding.json's logo.print, where
+     the rest of this skin's logos live, then core's own logo object, which reads
+     $config['skin_logo'] and so covers an install branded the Roundcube way.
+     Neither set means no letterhead. Same block as messageprint.html. -->
+<div class="bc-contact bc-print">
+	<div class="bc-print__brand">
+		<!-- No alt= on the object on purpose: core defaults it to the productname
+		     object, and a roundcube: tag nested inside an attribute is never
+		     resolved — parse_xml is a single non-recursive pass, so it would break
+		     this tag's match. -->
+		<roundcube:if condition="env:bc_logo_print" />
+		<img src="/<roundcube:var name='env:bc_logo_print' />" alt="">
+		<roundcube:else />
+		<roundcube:object name="logo" id="logo" logo-type="print" logo-match="template" />
+		<roundcube:endif />
+	</div>
+
+	<div class="bc-contact__head">
+		<roundcube:object name="contactphoto" id="contactpic" class="bc-avatar bc-avatar--xl bc-contact__photo" />
+		<roundcube:object name="contacthead" id="contacthead" class="bc-contact__ident" with-source="true" />
+	</div>
+
+	<div class="bc-contact__details">
+		<roundcube:object name="contactdetails" fieldset-class="bc-contact__section" short-legend-labels="true" />
+	</div>
+</div>
+
+<roundcube:include file="/templates/includes/footer.html" />

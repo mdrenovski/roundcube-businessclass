@@ -1,0 +1,114 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Filters (BUILD.md §4.4).
+
+     This file lives in skins/businessclass/plugins/managesieve/templates/ because
+     that is the second of the two places rcmail_output_html::parse() looks for
+     a plugin template (line 757) — the first being a businessclass folder inside
+     the plugin, which would put skin files in a vendor directory. Overriding
+     the template here is what §1.1 asks for: the plugin's own sources are
+     untouched. With "extends": null there is no Elastic to fall back on, so
+     all six of managesieve's templates have to exist here or the Filters
+     section 404s.
+
+     Includes with a leading slash resolve against the whole skin search path,
+     not just the plugin folder, so /templates/includes/header.html is the same
+     header every other screen uses. -->
+<div id="layout" class="bc-shell bc-shell--settings">
+	<roundcube:include file="/templates/includes/menu.html" />
+	<roundcube:include file="/templates/includes/settings-menu.html" />
+
+	<div id="layout-list" class="bc-list">
+		<div class="bc-pane__head">
+			<h1 class="bc-pane__title"><roundcube:label name="managesieve.filters" /></h1>
+
+			<roundcube:button command="plugin.managesieve-add" type="link"
+				label="create" title="managesieve.filteradd"
+				class="bc-iconbtn" innerclass="voice" data-bc-icon="add" />
+
+			<roundcube:button command="plugin.managesieve-del" type="link"
+				label="delete" title="delete"
+				class="bc-iconbtn bc-iconbtn--danger" innerclass="voice" data-bc-icon="delete" />
+
+			<!-- Filter-set actions. A group rather than a menu, matching the
+			     compose More panel: every item is a roundcube:button, so core
+			     owns whether it is available — managesieve_disabled_actions can
+			     switch any of them off server-side. -->
+			<roundcube:if condition="!env:managesieve_no_set_list" />
+			<div class="bc-popover__anchor">
+				<button type="button" id="bc-filterset-more" class="bc-iconbtn"
+					aria-haspopup="true" aria-expanded="false" aria-controls="bc-filterset-menu"
+					title="<roundcube:label name='managesieve.arialabelfiltersetactions' />">
+					<span class="voice"><roundcube:label name="managesieve.arialabelfiltersetactions" /></span>
+					<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_more_horizontal_20_regular" /></svg>
+				</button>
+
+				<div id="bc-filterset-menu" class="bc-popover bc-popover--form" role="group"
+					aria-labelledby="bc-filterset-more" hidden>
+					<roundcube:button command="plugin.managesieve-setadd" type="link"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="managesieve.filtersetadd" title="managesieve.filtersetadd" data-bc-icon="add" />
+					<roundcube:button command="plugin.managesieve-setact" type="link"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="managesieve.filtersetswitch" title="managesieve.filtersetswitch" data-bc-icon="checkmark_circle" />
+					<roundcube:if condition="env:raw_sieve_editor != false" />
+					<roundcube:button command="plugin.managesieve-seteditraw" type="link"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="managesieve.filterseteditraw" title="managesieve.filterseteditraw" data-bc-icon="code" />
+					<roundcube:endif />
+					<roundcube:button command="plugin.managesieve-setget" type="link"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="download" title="download" data-bc-icon="arrow_download" />
+					<div class="bc-popover__sep" role="separator"></div>
+					<roundcube:button command="plugin.managesieve-setdel" type="link"
+						class="bc-popover__action bc-popover__action--danger" innerclass="bc-btn__label"
+						label="managesieve.filtersetdel" title="managesieve.filtersetdel" data-bc-icon="delete" />
+					<roundcube:container name="filtersetoptions" id="bc-filterset-menu" />
+				</div>
+			</div>
+			<roundcube:endif />
+		</div>
+
+		<!-- Filter sets. Most accounts have exactly one, so this sits above the
+		     filters as a compact list rather than taking a pane of its own. It
+		     has to stay a list widget: managesieve.js reads the selected row out
+		     of it to decide which set the set-actions above apply to. -->
+		<roundcube:if condition="!env:managesieve_no_set_list" />
+		<div class="bc-filtersets">
+			<h2 id="bc-label-filtersets" class="bc-folders__section"><roundcube:label name="managesieve.filtersets" /></h2>
+			<div class="bc-filtersets__scroll bc-scroll">
+				<roundcube:object name="filtersetslist" id="filtersetslist" class="bc-recordlist bc-setlist"
+					summary="managesieve.ariasummaryfiltersetslist" type="list" noheader="true"
+					aria-labelledby="bc-label-filtersets" />
+			</div>
+		</div>
+		<roundcube:endif />
+
+		<h2 id="bc-label-filterslist" class="voice"><roundcube:label name="managesieve.filters" /></h2>
+		<div class="bc-list__scroll bc-scroll">
+			<!-- role="listbox" cannot be set here: html_table's whitelist
+			     (html.php:737) keeps only id/class/style/width/summary/cell*/
+			     border plus aria-* and data-*, and drops the rest. ui.js sets it
+			     at parse time, before managesieve.js builds the widget. -->
+			<roundcube:object name="filterslist" id="filterslist" class="bc-recordlist bc-filterlist"
+				noheader="true" aria-labelledby="bc-label-filterslist" />
+		</div>
+	</div>
+
+	<main id="layout-content" class="bc-reading bc-settings__detail"
+		aria-label="<roundcube:label name='managesieve.arialabelfilterform' />">
+		<roundcube:object name="contentframe" id="filter-box" class="bc-reading__frame"
+			src="env:blankpage" title="managesieve.arialabelfilterform" />
+
+		<div class="bc-empty bc-reading__empty">
+			<svg class="bc-empty__icon" aria-hidden="true"><use href="#ic_fluent_filter_20_regular" /></svg>
+			<p class="bc-empty__title"><roundcube:label name="bc_nofilterselected" /></p>
+			<p class="bc-empty__text"><roundcube:label name="bc_pickfilter" /></p>
+		</div>
+	</main>
+</div>
+
+<roundcube:add_label name="bc_filterenabled" />
+<roundcube:add_label name="bc_filterdisabled" />
+
+<roundcube:include file="/templates/includes/footer.html" />

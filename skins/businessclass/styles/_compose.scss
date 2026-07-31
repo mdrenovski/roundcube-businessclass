@@ -1,0 +1,677 @@
+// =============================================================================
+// skins/businessclass/styles/_compose.scss
+// Compose, incl. TinyMCE overrides — BUILD.md §4.1.
+//
+// The screen is four rows: 44px title bar, header fields, editor, 52px footer.
+// Everything core renders (the identity <select>, the To/Cc/Bcc textareas, the
+// attachment <ul>, TinyMCE's own chrome) is styled where it stands rather than
+// replaced (§1.3).
+//
+// Tokens only — no literal colors, sizes, radii or shadows.
+// =============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// The shell's [header, 1fr] grid does not fit this screen: in an extwin there
+// is no app header at all, and a two-row grid with one child would size that
+// child to its content. A flex column is right either way.
+body.task-mail.action-compose {
+  display: flex;
+  flex-direction: column;
+
+  > #bc-header { flex: none; }
+}
+
+// bar · headers · editor · attachments · footer, of which only the editor
+// grows. Flex rather than grid because composeFormHead and composeObjects add
+// boxes of their own that a fixed row template would mis-assign.
+.bc-compose {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bc-bg-1);
+  color: var(--bc-fg-1);
+}
+
+// The <form> is opened mid-document by composeFormHead and closed by hand after
+// the editor, so it wraps the header fields and the body and has to carry the
+// growth through to them.
+.bc-compose__form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+// -- 44px title bar -----------------------------------------------------------
+.bc-compose__bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--bc-s-8);
+  height: var(--bc-toolbar-h);
+  padding: 0 var(--bc-s-12);
+  border-bottom: 1px solid var(--bc-stroke-2);
+  background: var(--bc-bg-2);
+}
+
+.bc-compose__title {
+  margin: 0;
+  @include bc-body1-strong;
+}
+
+// -- Header fields ------------------------------------------------------------
+// Capped rather than free-growing: a reply-all with thirty recipients must not
+// push the editor off the screen.
+.bc-compose__headers {
+  flex: none;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+// Notices core puts above the form (a saved draft, an unsent copy, mailvelope).
+#compose-objects { flex: none; }
+
+// 70px label · field · trailing actions, as the design redlines it.
+.bc-compose__row {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--bc-s-12);
+  padding: var(--bc-s-8) 14px;
+  border-bottom: 1px solid var(--bc-stroke-3);
+
+  &[hidden] { display: none; }
+
+  > label {
+    @include bc-body1;
+    color: var(--bc-fg-3);
+    // The label track is a fixed 70px, which fits From/To/Cc/Bcc/Subject and
+    // nothing much longer. Grid does not clip a too-wide item, it overflows it,
+    // so a label that does not fit paints straight over the field beside it.
+    //
+    // Every label the compose screen and the bounce dialog actually use is
+    // several words, and a multi-word label wraps in 70px on its own — this
+    // guards the single-token case, which is what a language without spaces, or
+    // a very long compound word, produces. Measured at 57px of spill in the
+    // bounce fixture with this removed.
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  // Fields sit flush in the row and only draw a box once focused — the row
+  // dividers already carry the structure (§4.1).
+  input[type="text"],
+  textarea,
+  select {
+    width: 100%;
+    min-height: var(--bc-control-h);
+    padding: 0 var(--bc-s-8);
+    border: 1px solid transparent;
+    border-radius: var(--bc-radius-m);
+    background: transparent;
+    color: var(--bc-fg-1);
+    @include bc-body1;
+
+    &::placeholder { color: var(--bc-fg-3); }
+
+    &:focus {
+      border-color: var(--bc-stroke-accessible);
+      border-bottom-width: 2px;
+      border-bottom-color: var(--bc-brand-primary);
+      background: var(--bc-bg-1);
+    }
+  }
+
+  textarea {
+    padding-top: var(--bc-s-4);
+    resize: none;
+    overflow: hidden;
+  }
+}
+
+// The last field before the editor closes the block with the heavier rule.
+.bc-compose__row--subject {
+  border-bottom-color: var(--bc-stroke-2);
+}
+
+.bc-compose__trail {
+  display: flex;
+  align-items: center;
+  gap: var(--bc-s-8);
+}
+
+// The identity <select> keeps the native chevron the design draws.
+.bc-compose__select { appearance: auto; }
+
+// Cc / Bcc disclosure — text links in brand, not buttons (§4.1).
+.bc-link {
+  padding: var(--bc-s-2) var(--bc-s-4);
+  border-radius: var(--bc-radius-s);
+  color: var(--bc-brand-fg);
+  @include bc-caption2;
+  cursor: pointer;
+
+  &:hover { text-decoration: underline; }
+  &:focus-visible { @include bc-focus-ring; }
+
+  // Shown for a header that is already on screen: the link now hides it again.
+  &[aria-expanded="true"] { font-weight: var(--bc-weight-semibold); }
+}
+
+// -- Recipient pills ----------------------------------------------------------
+// The original textarea stays in the DOM and stays authoritative: ui.js writes
+// every change back into it, so the form posts exactly what core expects and a
+// JS failure degrades to a plain address field (§1.4).
+//
+// It is moved off screen rather than display:none'd, because core still focuses
+// it (compose_focus_elem, change_identity) and a display:none element cannot
+// take focus — the focus handler then hands over to the pill input.
+.bc-compose__row .bc-recipients__source {
+  position: absolute;
+  left: -10000px;
+  width: 10px;
+  min-height: 0;
+  opacity: 0;
+}
+
+.bc-recipients {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bc-s-4) var(--bc-s-8);
+  width: 100%;
+  min-height: var(--bc-control-h);
+  margin: 0;
+  padding: var(--bc-s-2) var(--bc-s-8);
+  border: 1px solid transparent;
+  border-radius: var(--bc-radius-m);
+  list-style: none;
+  cursor: text;
+
+  &.is-focused {
+    border-color: var(--bc-stroke-accessible);
+    border-bottom-width: 2px;
+    border-bottom-color: var(--bc-brand-primary);
+    background: var(--bc-bg-1);
+  }
+}
+
+.bc-recipients__entry {
+  flex: 1 0 8ch;
+  min-width: 8ch;
+
+  input {
+    width: 100%;
+    min-height: 26px;
+    border: 0;
+    background: transparent;
+    color: var(--bc-fg-1);
+    @include bc-body1;
+
+    &::placeholder { color: var(--bc-fg-3); }
+    &:focus { outline: none; }
+  }
+}
+
+// 20px avatar · name · remove, circular, on --bc-bg-4 (§4.1).
+.bc-recipient {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bc-s-4);
+  max-width: 100%;
+  padding: 3px var(--bc-s-8) 3px 3px;
+  border: 1px solid transparent;
+  border-radius: var(--bc-radius-circular);
+  background: var(--bc-bg-4);
+  @include bc-caption2;
+}
+
+.bc-recipient__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bc-recipient__remove {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--bc-s-16);
+  height: var(--bc-s-16);
+  border-radius: var(--bc-radius-circular);
+  color: var(--bc-fg-3);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bc-bg-1);
+    color: var(--bc-fg-1);
+  }
+
+  &:focus-visible { @include bc-focus-ring; }
+
+  .bc-icon { width: 12px; height: 12px; }
+}
+
+// An address that does not parse: danger tint + stroke, plus aria-invalid on
+// the pill so it is never colour alone (§9).
+.bc-recipient[aria-invalid="true"] {
+  border-color: var(--bc-danger);
+  background: var(--bc-danger-tint);
+  color: var(--bc-danger-fg);
+}
+
+// -- Autocomplete pane --------------------------------------------------------
+// Built by rcmail.ksearch_show() and appended to <body>, positioned inline; only
+// the surface and the rows are ours.
+#rcmKSearchpane {
+  @include bc-surface(var(--bc-radius-l), var(--bc-shadow-8));
+  min-width: 220px;
+  max-width: 420px;
+  padding: var(--bc-s-4);
+  background: var(--bc-bg-1);
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    overflow: hidden;
+    padding: var(--bc-s-4) var(--bc-s-8);
+    border-radius: var(--bc-radius-m);
+    @include bc-body1;
+    color: var(--bc-fg-1);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    cursor: pointer;
+
+    &:hover { background: var(--bc-bg-3); }
+  }
+
+  li.selected {
+    background: var(--bc-brand-tint-selected);
+    color: var(--bc-brand-fg-strong);
+  }
+}
+
+// -- Editor -------------------------------------------------------------------
+.bc-compose__editor {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+
+  // Plain-text mode: the raw textarea, in the design's 14/22 compose measure.
+  > textarea {
+    flex: 1;
+    min-height: 0;
+    padding: var(--bc-s-16);
+    border: 0;
+    background: transparent;
+    color: var(--bc-fg-1);
+    font: var(--bc-weight-regular) var(--bc-size-body1) / 22px var(--bc-font-body);
+    resize: none;
+
+    &:focus { outline: none; }
+  }
+}
+
+// Drop-to-attach (§4.1). Core adds .droptarget on init, .active while a drag is
+// anywhere in the window and .hover while it is over this element (app.js:9574).
+.bc-compose__editor.active::after,
+.bc-compose__editor.hover::after {
+  content: attr(data-bc-dropmsg);
+  position: absolute;
+  inset: var(--bc-s-8);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--bc-brand-primary);
+  border-radius: var(--bc-radius-l);
+  background: var(--bc-bg-1);
+  color: var(--bc-brand-fg-strong);
+  @include bc-body1-strong;
+  pointer-events: none;
+}
+
+.bc-compose__editor.hover::after {
+  background: var(--bc-brand-tint-selected);
+}
+
+// -- TinyMCE ------------------------------------------------------------------
+// Roundcube ships TinyMCE 5 with its "oxide" skin; BUILD.md §4.1 says override
+// that skin with token-based CSS rather than build a custom one. The editor
+// chrome is ordinary DOM in this document — only the content is an iframe — so
+// these are plain overrides: every selector below is a .tox rule Tiny already
+// emits, re-pointed at our tokens. The content inside the iframe is styled by
+// styles/embed.css instead, via meta.json's editor_css_location.
+.bc-compose__editor .tox-tinymce {
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--bc-bg-1);
+}
+
+.bc-compose__editor .tox .tox-editor-header {
+  border: 0;
+  box-shadow: none;
+}
+
+// Toolbar on --bc-bg-2 with a hairline under it (§4.1).
+.bc-compose__editor .tox .tox-toolbar,
+.bc-compose__editor .tox .tox-toolbar__primary,
+.bc-compose__editor .tox .tox-toolbar-overlord {
+  padding: var(--bc-s-4) var(--bc-s-8);
+  border-bottom: 1px solid var(--bc-stroke-3);
+  background: var(--bc-bg-2);
+  background-image: none;
+}
+
+.bc-compose__editor .tox .tox-toolbar__group {
+  padding: 0 var(--bc-s-4);
+  border: 0;
+}
+
+// 18px icons at 6px padding (§4.1).
+.bc-compose__editor .tox .tox-tbtn {
+  width: auto;
+  min-width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: var(--bc-s-4) 6px;
+  border-radius: var(--bc-radius-m);
+  color: var(--bc-fg-2);
+
+  svg { fill: currentColor; }
+
+  &:hover {
+    background: var(--bc-bg-4);
+    color: var(--bc-fg-1);
+  }
+
+  &:focus-visible { @include bc-focus-ring; }
+}
+
+.bc-compose__editor .tox .tox-tbtn--enabled,
+.bc-compose__editor .tox .tox-tbtn--enabled:hover {
+  background: var(--bc-brand-tint-selected);
+  color: var(--bc-brand-fg-strong);
+}
+
+.bc-compose__editor .tox .tox-tbtn--disabled {
+  color: var(--bc-fg-disabled);
+}
+
+.bc-compose__editor .tox .tox-tbtn__select-label {
+  @include bc-caption2;
+}
+
+.bc-compose__editor .tox .tox-split-button:hover {
+  box-shadow: none;
+}
+
+.bc-compose__editor .tox .tox-edit-area { border: 0; }
+
+.bc-compose__editor .tox .tox-edit-area__iframe {
+  background: var(--bc-bg-1);
+}
+
+// Tiny's own popups — the font list, the colour picker, the emoji dialog — get
+// the same surface as our popovers so the two do not read as different apps.
+.tox .tox-menu,
+.tox .tox-dialog,
+.tox .tox-collection--toolbar {
+  border: 1px solid var(--bc-stroke-2);
+  border-radius: var(--bc-radius-l);
+  background: var(--bc-bg-1);
+  box-shadow: var(--bc-shadow-8);
+}
+
+.tox .tox-collection__item {
+  border-radius: var(--bc-radius-m);
+  color: var(--bc-fg-1);
+}
+
+.tox .tox-collection__item--active,
+.tox .tox-collection__item--enabled {
+  background: var(--bc-bg-3);
+  color: var(--bc-fg-1);
+}
+
+.tox .tox-dialog__header,
+.tox .tox-dialog__footer {
+  border-color: var(--bc-stroke-2);
+  background: var(--bc-bg-1);
+  color: var(--bc-fg-1);
+}
+
+.tox .tox-button {
+  border-color: transparent;
+  border-radius: var(--bc-radius-m);
+  background: var(--bc-brand-primary);
+  color: var(--bc-on-brand);
+}
+
+.tox .tox-button--secondary {
+  border-color: var(--bc-stroke-accessible);
+  background: var(--bc-bg-1);
+  color: var(--bc-fg-1);
+}
+
+// -- Attachments --------------------------------------------------------------
+.bc-compose__attachments { flex: none; }
+
+.bc-attachments--compose {
+  max-height: 30vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+
+  &:not(:empty) {
+    padding: var(--bc-s-8) var(--bc-s-16);
+    border-top: 1px solid var(--bc-stroke-3);
+  }
+
+  > li {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--bc-s-20) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--bc-s-8);
+    min-height: var(--bc-s-32);
+    padding: var(--bc-s-4) var(--bc-s-8);
+    border-radius: var(--bc-radius-m);
+
+    &:hover { background: var(--bc-bg-3); }
+  }
+
+  .bc-icon { color: var(--bc-fg-3); }
+
+  a.filename {
+    display: flex;
+    align-items: baseline;
+    gap: var(--bc-s-8);
+    min-width: 0;
+    color: var(--bc-fg-1);
+    @include bc-body1;
+    text-decoration: none;
+  }
+
+  .attachment-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .attachment-size {
+    flex: none;
+    @include bc-caption1;
+    color: var(--bc-fg-3);
+  }
+
+  a.delete {
+    display: grid;
+    place-items: center;
+    width: var(--bc-s-24);
+    height: var(--bc-s-24);
+    border-radius: var(--bc-radius-m);
+    color: var(--bc-fg-3);
+
+    &:hover {
+      background: var(--bc-danger-tint);
+      color: var(--bc-danger-fg);
+    }
+
+    &:focus-visible { @include bc-focus-ring; }
+  }
+}
+
+// Upload in progress: core writes its own "45% of 2.1 MB" text into .uploading,
+// and ui.js drives the 2px determinate bar underneath it (§4.1).
+.bc-attachments--compose > li.uploading {
+  .uploading,
+  a.cancelupload {
+    @include bc-caption1;
+    color: var(--bc-fg-3);
+  }
+
+  a.cancelupload:hover { color: var(--bc-danger-fg); }
+}
+
+.bc-upload__track {
+  position: absolute;
+  right: var(--bc-s-8);
+  bottom: 0;
+  left: var(--bc-s-8);
+  height: 2px;
+  overflow: hidden;
+  border-radius: var(--bc-radius-s);
+  background: var(--bc-stroke-2);
+}
+
+.bc-upload__fill {
+  width: 0;
+  height: 100%;
+  background: var(--bc-brand-primary);
+  transition: width var(--bc-dur-fast) linear;
+}
+
+// The file input behind the Attach button is never seen; core clicks it for us
+// (upload_input). Off screen rather than display:none, because a hidden input
+// is not reliably clickable in every browser.
+#uploadform {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+// -- 52px footer --------------------------------------------------------------
+.bc-compose__footer {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  height: 52px;
+  gap: var(--bc-s-8);
+  padding: 0 var(--bc-s-12);
+  border-top: 1px solid var(--bc-stroke-2);
+  background: var(--bc-bg-2);
+}
+
+.bc-compose__draft {
+  @include bc-caption1;
+  color: var(--bc-fg-3);
+  white-space: nowrap;
+}
+
+// Plugin buttons dropped into the footer container get the subtle button shape,
+// so an un-themed plugin still looks like it belongs.
+#compose-toolbar {
+  display: contents;
+
+  > a,
+  > button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--bc-s-4);
+    height: var(--bc-s-32);
+    padding: 0 var(--bc-s-12);
+    border-radius: var(--bc-radius-m);
+    color: var(--bc-fg-1);
+    @include bc-body1;
+    text-decoration: none;
+
+    &:hover { background: var(--bc-bg-4); }
+    &:focus-visible { @include bc-focus-ring; }
+  }
+}
+
+// -- More panel ---------------------------------------------------------------
+// A form panel rather than a menu (see compose.html), so it gets its own width
+// and scrolling; the surface itself comes from .bc-popover.
+.bc-popover--form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bc-s-8);
+  width: 280px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: var(--bc-s-12);
+}
+
+// Anchored above the footer rather than below it.
+.bc-compose__footer .bc-popover {
+  top: auto;
+  bottom: calc(100% + var(--bc-s-4));
+}
+
+.bc-popover__action {
+  display: flex;
+  align-items: center;
+  gap: var(--bc-s-8);
+  width: 100%;
+  height: var(--bc-s-32);
+  padding: 0 var(--bc-s-8);
+  border-radius: var(--bc-radius-m);
+  color: var(--bc-fg-1);
+  @include bc-body1;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover { background: var(--bc-bg-3); }
+  &:focus-visible { @include bc-focus-ring; }
+
+  &[aria-disabled="true"] {
+    color: var(--bc-fg-disabled);
+    pointer-events: none;
+  }
+
+  .bc-icon { flex: none; color: var(--bc-fg-2); }
+}
+
+.bc-popover__sep {
+  height: 1px;
+  margin: var(--bc-s-2) 0;
+  background: var(--bc-stroke-2);
+}
+
+// .bc-field and .bc-check used to live here. They are form primitives shared by
+// the compose More panel, the refine panel and every settings form, so §2 puts
+// them in _controls.scss; this file only uses them.
+
+// Plugin option rows land in the same column flow as ours.
+#compose-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bc-s-8);
+}

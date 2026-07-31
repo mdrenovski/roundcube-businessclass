@@ -1,0 +1,30 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- One Preferences section, loaded into the detail pane's iframe (§4.4).
+
+     The form itself is core's userprefs object: a <fieldset><legend> per block
+     with a two-column table of label / control inside. Its shape changes with
+     the section and with whatever plugins add, so _settings.scss styles those
+     primitives rather than a layout of ours (§1.3).
+
+     No form= attribute: without one, get_form_tags() emits the closing </form>
+     itself, so the sticky footer sits outside a properly closed form. Save is
+     still bound to the form through the editform gui object. -->
+<div class="bc-formpage">
+	<div class="bc-formpage__head">
+		<h1 class="bc-formpage__title"><roundcube:object name="sectionname" /></h1>
+	</div>
+
+	<div class="bc-formpage__body bc-scroll">
+		<roundcube:object name="userprefs" />
+	</div>
+
+	<div class="bc-formpage__foot">
+		<roundcube:button command="save" type="input" class="bc-btn bc-btn--primary" label="save" />
+		<button type="button" id="bc-form-cancel" class="bc-btn bc-btn--secondary"><roundcube:label name="cancel" /></button>
+	</div>
+</div>
+
+<roundcube:add_label name="bc_changesdiscarded" />
+
+<roundcube:include file="/templates/includes/footer.html" />

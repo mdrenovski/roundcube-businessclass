@@ -1,0 +1,26 @@
+{
+	"_note": "JetHost.BG install. Identical to branding.jethost.json but for `vendor` — the Bulgarian and English brandbooks carry the same palette, the same logo kit and the same typography, and differ only in language and in photography guidance that a mail client never reaches. See docs/DECISIONS.md D-55. Still outstanding: support_url, mail_domain, login_background, and whether the six categories below should be JetHost's own. Copy over branding.json to activate.",
+	"product_name": "BusinessClass",
+	"vendor": "JetHost.BG",
+	"logo": {
+		"header": null,
+		"symbol": "images/symbol-jethost.svg",
+		"rail": "images/logo-jethost-rail.svg",
+		"login": "images/logo-jethost-login.svg",
+		"favicon": "images/favicon-jethost.svg",
+		"print": "images/logo-jethost-print.svg"
+	},
+	"accent": "#0F6CBD",
+	"login_background": null,
+	"brand_url": "https://jethost.bg",
+	"support_url": null,
+	"mail_domain": null,
+	"categories": [
+		{ "key": "$Important", "label": "Important", "token": "important" },
+		{ "key": "$Infra",     "label": "Infrastructure", "token": "infra" },
+		{ "key": "$Finance",   "label": "Finance", "token": "finance" },
+		{ "key": "$QA",        "label": "QA", "token": "qa" },
+		{ "key": "$Personal",  "label": "Personal", "token": "personal" },
+		{ "key": "$Waiting",   "label": "Waiting", "token": "waiting" }
+	]
+}

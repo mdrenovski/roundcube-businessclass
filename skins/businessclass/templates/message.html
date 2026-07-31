@@ -1,0 +1,109 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- One template for both the reading pane and a message's own window (§3.6).
+     Core picks it for the 'preview' action too, because template_exists()
+     falls back to 'message' when the skin ships no messagepreview.html
+     (show.php:161) — the two differ only by env:framed, which is cheaper to
+     express here than to duplicate in a second file.
+
+     Order follows §3.6: subject -> chips -> sender block -> attachments ->
+     notices -> body -> divider -> reply buttons. -->
+
+<roundcube:if condition="!env:framed" />
+<div class="bc-message__ribbon">
+	<roundcube:include file="/templates/includes/ribbon.html" />
+</div>
+<roundcube:endif />
+
+<article id="bc-message" class="bc-message">
+
+	<h1 class="bc-message__subject">
+		<span class="voice"><roundcube:label name="subject" />: </span>
+		<roundcube:object name="messageHeaders" valueof="subject" />
+	</h1>
+
+	<!-- Category chips (§8) are populated by ui.js at step 6, from the message's
+	     IMAP keywords. The container stays empty until then. -->
+	<div class="bc-message__chips" id="bc-message-chips"></div>
+
+	<div class="bc-message__sender">
+		<!-- The photo is the sender's address-book picture when there is one, and
+		     core's 1x1 transparent GIF when there is not. No placeholder= is
+		     passed, so no skin image has to exist for the fallback: ui.js wraps
+		     this img in the same initials avatar the list uses, and a transparent
+		     GIF simply lets the initials show through (§4.5, §7.10). -->
+		<roundcube:object name="contactphoto" id="bc-contactphoto" class="bc-message__photo" />
+
+		<div class="bc-message__who">
+			<div class="bc-message__from"><roundcube:object name="messageHeaders" valueof="from" /></div>
+			<!-- max=2 makes core emit its own "…and N more" toggle (a.morelink),
+			     which is the design's "· 3 more" disclosure. -->
+			<div class="bc-message__to">
+				<span class="bc-message__label"><roundcube:label name="to" />:</span>
+				<roundcube:object name="messageHeaders" valueof="to" max="2" />
+			</div>
+		</div>
+
+		<div class="bc-message__meta">
+			<span class="bc-message__date"><roundcube:object name="messageHeaders" valueof="date" /></span>
+			<div class="bc-message__marks">
+				<!-- A plain button, not roundcube:button: it has to alternate between
+				     mark/flagged and mark/unflagged, and the renderer bakes prop into
+				     a fixed onclick string. Core's own toggle_flag command would be
+				     the obvious choice but it is only enabled alongside a message
+				     list (app.js), which a message frame has none of; 'mark' is in
+				     env.message_commands and works from env.uid. ui.js reads the
+				     current state from env.message_flags. -->
+				<button type="button" id="bc-flag" class="bc-iconbtn bc-iconbtn--sm"
+					aria-pressed="false" title="<roundcube:label name='markflagged' />">
+					<span class="voice"><roundcube:label name="flag" /></span>
+					<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_flag_20_regular" /></svg>
+				</button>
+				<!-- Pin is a $Pinned IMAP keyword (§7.5) and arrives with step 6. -->
+			</div>
+		</div>
+	</div>
+
+	<!-- Cc, Bcc, Reply-To and the rest, behind a disclosure so the block above
+	     stays the three lines the design draws. -->
+	<details class="bc-message__details">
+		<summary><roundcube:label name="details" /></summary>
+		<roundcube:object name="messageHeaders" class="bc-message__headers" exclude="subject,from,to,date" max="10" />
+	</details>
+
+	<section class="bc-message__attachments" id="bc-attachments"
+		aria-labelledby="aria-label-messageattachments">
+		<h2 id="aria-label-messageattachments" class="voice"><roundcube:label name="attachments" /></h2>
+		<roundcube:object name="messageAttachments" id="attachment-list" class="bc-attachments" />
+	</section>
+
+	<!-- Draft notice, remote-content bar and the suspicious-address warning
+	     (show.php:258 onwards). Core keeps the remote bar hidden until the
+	     message actually blocked something. -->
+	<roundcube:object name="messageObjects" id="message-objects" class="bc-message__notices" />
+
+	<section class="bc-message__body" aria-labelledby="aria-label-messagebody">
+		<h2 id="aria-label-messagebody" class="voice"><roundcube:label name="arialabelmessagebody" /></h2>
+		<roundcube:object name="messageBody" id="messagebody" headertableclass="bc-message__partheaders" />
+	</section>
+
+	<div class="bc-message__actions">
+		<roundcube:button command="reply" type="link" title="replytomessage" label="reply"
+			class="bc-btn bc-btn--secondary" innerclass="bc-btn__label" data-bc-icon="arrow_reply" />
+		<roundcube:button command="reply-all" type="link" title="replytoallmessage" label="replyall"
+			class="bc-btn bc-btn--secondary" innerclass="bc-btn__label" data-bc-icon="arrow_reply_all" />
+		<roundcube:button command="forward" type="link" title="forwardmessage" label="forward"
+			class="bc-btn bc-btn--secondary" innerclass="bc-btn__label" data-bc-icon="arrow_forward" />
+	</div>
+</article>
+
+<roundcube:add_label name="andnmore" />
+<roundcube:add_label name="headers" />
+<roundcube:add_label name="details" />
+<roundcube:add_label name="attachments" />
+<roundcube:add_label name="flagged" />
+<roundcube:add_label name="unflagged" />
+<roundcube:add_label name="markflagged" />
+<roundcube:add_label name="markunflagged" />
+
+<roundcube:include file="/templates/includes/footer.html" />

@@ -1,0 +1,330 @@
+// =============================================================================
+// skins/businessclass/styles/_tokens.scss
+// Fluent 2 design tokens for the Roundcube "businessclass" skin (BusinessClass).
+// Single source of truth. No hard-coded colors, sizes, radii or shadows
+// anywhere else in the skin — always reference a var() from this file.
+// =============================================================================
+
+// -- Admin-supplied accent -----------------------------------------------------
+// The admin sets ONE hex in skins/businessclass/branding.json ("accent").
+// header.html injects it as an inline style on <html>:  --bc-brand-primary: #XXXXXX
+// The derived steps below are computed at runtime with color-mix() so no Sass
+// rebuild is needed when the accent changes.
+$brand-default: #0F6CBD;
+
+:root {
+  // Brand ---------------------------------------------------------------------
+  --bc-brand-primary: #{$brand-default};
+  --bc-brand-hover:        color-mix(in srgb, var(--bc-brand-primary) 88%, black);
+  --bc-brand-pressed:      color-mix(in srgb, var(--bc-brand-primary) 76%, black);
+  --bc-brand-fg:           var(--bc-brand-primary);          // links, selected icon
+  --bc-brand-fg-strong:    color-mix(in srgb, var(--bc-brand-primary) 76%, black);
+  --bc-brand-tint-selected:color-mix(in srgb, var(--bc-brand-primary) 10%, white);
+  --bc-brand-tint-strong:  color-mix(in srgb, var(--bc-brand-primary) 18%, white);
+  --bc-brand-stroke:       color-mix(in srgb, var(--bc-brand-primary) 32%, white);
+  --bc-on-brand:           #FFFFFF;
+
+  // Neutrals (light) ----------------------------------------------------------
+  --bc-bg-1: #FFFFFF;   // surfaces: list, reading pane, dialogs
+  --bc-bg-2: #FAFAFA;   // sidebars, toolbars, table headers
+  --bc-bg-3: #F5F5F5;   // app rail, hover fill
+  --bc-bg-4: #F0F0F0;   // pressed fill, chips
+  --bc-bg-inverted: #292929;
+
+  --bc-fg-1: #242424;   // primary text
+  --bc-fg-2: #424242;   // icons, secondary text
+  --bc-fg-3: #616161;   // metadata, placeholders
+  --bc-fg-disabled: #BDBDBD;
+  --bc-fg-on-accent: #FFFFFF;
+
+  --bc-stroke-1: #D1D1D1;   // control borders
+  --bc-stroke-2: #E0E0E0;   // pane dividers
+  --bc-stroke-3: #F0F0F0;   // row dividers
+  --bc-stroke-accessible: #616161; // input rest border (3:1)
+
+  // Status --------------------------------------------------------------------
+  --bc-danger: #C50F1F;
+  --bc-danger-fg: #A80000;
+  --bc-danger-tint: #FDF3F4;
+  --bc-danger-stroke: #EEACB2;
+  --bc-success: #0E700E;
+  --bc-success-tint: #DFF6DD;
+  --bc-success-stroke: #9FD89F;
+  --bc-warning: #EAA300;
+  --bc-warning-fg: #7A4C00;
+  --bc-warning-tint: #FFF4CE;
+
+  // Message categories (map 1:1 to IMAP keywords, see BUILD.md §8) -------------
+  --bc-cat-important: #C50F1F;  --bc-cat-important-tint: #FDF3F4;  --bc-cat-important-fg: #A80000;
+  --bc-cat-infra:     #0F6CBD;  --bc-cat-infra-tint:     #EBF3FC;  --bc-cat-infra-fg:     #0F548C;
+  --bc-cat-finance:   #EAA300;  --bc-cat-finance-tint:   #FFF4CE;  --bc-cat-finance-fg:   #7A4C00;
+  --bc-cat-qa:        #0E700E;  --bc-cat-qa-tint:        #DFF6DD;  --bc-cat-qa-fg:        #0B5A0B;
+  --bc-cat-personal:  #5C2E91;  --bc-cat-personal-tint:  #E8DFF5;  --bc-cat-personal-fg:  #4A2377;
+  --bc-cat-waiting:   #616161;  --bc-cat-waiting-tint:   #F0F0F0;  --bc-cat-waiting-fg:   #424242;
+
+  // Avatar palette (initials fallback; pick by hash of email) ------------------
+  --bc-avatar-1-bg: #C7E0F4; --bc-avatar-1-fg: #0F548C;
+  --bc-avatar-2-bg: #E8DFF5; --bc-avatar-2-fg: #5C2E91;
+  --bc-avatar-3-bg: #DFF6DD; --bc-avatar-3-fg: #0E700E;
+  --bc-avatar-4-bg: #FDE7E9; --bc-avatar-4-fg: #A80000;
+  --bc-avatar-5-bg: #FFF4CE; --bc-avatar-5-fg: #7A4C00;
+  --bc-avatar-6-bg: #E0E0E0; --bc-avatar-6-fg: #424242;
+
+  // Typography ----------------------------------------------------------------
+  --bc-font-body: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI",
+                  system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --bc-font-display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI",
+                  system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --bc-font-mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, monospace;
+
+  --bc-size-caption1: 12px;  --bc-lh-caption1: 16px;
+  --bc-size-body1:    14px;  --bc-lh-body1:    20px;
+  --bc-size-body2:    15px;  --bc-lh-body2:    24px;   // reading pane copy
+  --bc-size-sub2:     16px;  --bc-lh-sub2:     22px;
+  --bc-size-sub1:     20px;  --bc-lh-sub1:     26px;   // message subject
+  --bc-size-title3:   24px;  --bc-lh-title3:   32px;   // screen titles
+
+  --bc-weight-regular: 400;
+  --bc-weight-semibold: 600;
+
+  // Spacing (only these steps) ------------------------------------------------
+  --bc-s-2: 2px;  --bc-s-4: 4px;  --bc-s-8: 8px;  --bc-s-12: 12px;
+  --bc-s-16: 16px; --bc-s-20: 20px; --bc-s-24: 24px; --bc-s-32: 32px; --bc-s-40: 40px;
+
+  // Radius --------------------------------------------------------------------
+  --bc-radius-s: 2px;
+  --bc-radius-m: 4px;    // controls
+  --bc-radius-l: 6px;    // cards, popovers
+  --bc-radius-xl: 8px;   // dialogs
+  --bc-radius-circular: 9999px;
+
+  // Elevation -----------------------------------------------------------------
+  --bc-shadow-2:  0 1px 2px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12);
+  --bc-shadow-4:  0 2px 4px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12);
+  --bc-shadow-8:  0 4px 8px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12);
+  --bc-shadow-16: 0 8px 16px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12);
+  --bc-shadow-28: 0 14px 28px rgba(0,0,0,.24), 0 0 8px rgba(0,0,0,.20);
+
+  // Motion --------------------------------------------------------------------
+  --bc-dur-fast: 100ms;
+  --bc-dur-normal: 200ms;
+  --bc-ease-accel: cubic-bezier(.9,.1,1,.2);
+  --bc-ease-decel: cubic-bezier(.1,.9,.2,1);
+  --bc-ease-max:   cubic-bezier(.33,0,.67,1);
+
+  // Layout metrics (redlines) -------------------------------------------------
+  --bc-header-h: 48px;
+  --bc-toolbar-h: 44px;
+  --bc-rail-w: 48px;
+  --bc-rail-btn: 36px;
+  // The rail's brand slot, below logout. This is the *rotated* logo's height, so
+  // it is also the un-rotated image's width — the two swap under rotate(-90deg).
+  // 152px against the kit's 6.325:1 lockup gives a 24px-wide column inside a
+  // 48px rail: legible, and half the rail still clear on either side.
+  --bc-rail-brand-h: 152px;
+  --bc-folders-w: 236px;        // resizable 200–360, persisted
+  --bc-list-w: 400px;           // resizable 320–520, persisted
+  // Settings and Contacts run their own fixed pane widths (§4.4, §4.5): these
+  // screens have no splitters, so there is nothing to persist.
+  --bc-settings-nav-w: 220px;
+  --bc-settings-list-w: 300px;
+  // Contacts' address-book pane. Its contact list is the same 300px as Settings
+  // and reuses that token rather than declaring a second one with equal value.
+  --bc-books-w: 200px;
+  --bc-pane-head-h: 40px;       // pane title bar in the settings/contacts panes
+  --bc-control-h: 32px;
+  --bc-control-h-compact: 28px;
+  --bc-row-h-compact: 28px;
+  --bc-row-pad-comfortable: 8px 12px;
+  --bc-avatar: 32px;
+  --bc-unread-bar-w: 3px;
+  --bc-read-pad: 20px 24px;
+  --bc-read-measure: 72ch;
+  --bc-touch-min: 44px;
+  --bc-focus-ring-w: 2px;
+  --bc-focus-ring-color: var(--bc-fg-1);
+}
+
+// -- Dark theme ---------------------------------------------------------------
+// Applied via [data-bc-theme="dark"] on <html> (user pref) or the media query
+// below when the pref is "system". Neutrals invert; brand lightens.
+@mixin bc-dark {
+  --bc-brand-primary: #479EF5;
+  --bc-brand-hover:   #62ABF5;
+  --bc-brand-pressed: #2886DE;
+  --bc-brand-tint-selected: #0C3B5E;
+  --bc-brand-tint-strong:   #0F548C;
+  --bc-brand-stroke: #0F6CBD;
+  --bc-on-brand: #000000;
+
+  --bc-bg-1: #292929;
+  --bc-bg-2: #1F1F1F;
+  --bc-bg-3: #141414;
+  --bc-bg-4: #383838;
+  --bc-bg-inverted: #FFFFFF;
+
+  --bc-fg-1: #FFFFFF;
+  --bc-fg-2: #D6D6D6;
+  --bc-fg-3: #ADADAD;
+  --bc-fg-disabled: #5C5C5C;
+
+  --bc-stroke-1: #666666;
+  --bc-stroke-2: #3D3D3D;
+  --bc-stroke-3: #333333;
+  --bc-stroke-accessible: #ADADAD;
+
+  --bc-danger: #DC626D;   --bc-danger-fg: #E37D87; --bc-danger-tint: #3B1B1F; --bc-danger-stroke: #6E2B32;
+  --bc-success: #54B054;  --bc-success-tint: #143A14; --bc-success-stroke: #237B23;
+  --bc-warning: #FDE300;  --bc-warning-fg: #FDE300;  --bc-warning-tint: #3D2F00;
+
+  --bc-cat-important-tint: #3B1B1F; --bc-cat-important-fg: #E37D87;
+  --bc-cat-infra-tint:     #0C3B5E; --bc-cat-infra-fg:     #77BDFA;
+  --bc-cat-finance-tint:   #3D2F00; --bc-cat-finance-fg:   #FDE300;
+  --bc-cat-qa-tint:        #143A14; --bc-cat-qa-fg:        #54B054;
+  --bc-cat-personal-tint:  #2B1638; --bc-cat-personal-fg:  #C4A0E8;
+  --bc-cat-waiting-tint:   #383838; --bc-cat-waiting-fg:   #D6D6D6;
+
+  --bc-focus-ring-color: #FFFFFF;
+  --bc-shadow-2:  0 1px 2px rgba(0,0,0,.28), 0 0 2px rgba(0,0,0,.22);
+  --bc-shadow-4:  0 2px 4px rgba(0,0,0,.28), 0 0 2px rgba(0,0,0,.22);
+  --bc-shadow-8:  0 4px 8px rgba(0,0,0,.28), 0 0 2px rgba(0,0,0,.22);
+  --bc-shadow-16: 0 8px 16px rgba(0,0,0,.28), 0 0 2px rgba(0,0,0,.22);
+}
+
+html[data-bc-theme="dark"] { @include bc-dark; }
+
+@media (prefers-color-scheme: dark) {
+  html[data-bc-theme="system"] { @include bc-dark; }
+}
+
+// -- High contrast -------------------------------------------------------------
+// Two paths: the user pref [data-bc-theme="hc"] and the OS forced-colors mode.
+// Rules: pure black/white, every surface separated by a 1px currentColor border,
+// no tint-only signals, focus = 2px #1AEBFF, selection = #FFFF00 on #000.
+@mixin bc-hc {
+  --bc-brand-primary: #1AEBFF;
+  --bc-brand-hover: #1AEBFF;
+  --bc-brand-pressed: #1AEBFF;
+  --bc-brand-fg: #1AEBFF;
+  --bc-brand-tint-selected: #FFFF00;
+  --bc-brand-tint-strong: #FFFF00;
+  --bc-on-brand: #000000;
+
+  --bc-bg-1: #000000; --bc-bg-2: #000000; --bc-bg-3: #000000; --bc-bg-4: #000000;
+  --bc-fg-1: #FFFFFF; --bc-fg-2: #FFFFFF; --bc-fg-3: #FFFFFF;
+  --bc-fg-disabled: #3FF23F;
+
+  --bc-stroke-1: #FFFFFF; --bc-stroke-2: #FFFFFF; --bc-stroke-3: #FFFFFF;
+  --bc-stroke-accessible: #FFFFFF;
+
+  --bc-danger: #FFFFFF; --bc-danger-tint: #000000; --bc-danger-fg: #FFFFFF;
+  --bc-success: #FFFFFF; --bc-success-tint: #000000;
+  --bc-warning: #FFFFFF; --bc-warning-tint: #000000;
+
+  --bc-focus-ring-color: #1AEBFF;
+  --bc-shadow-2: none; --bc-shadow-4: none; --bc-shadow-8: none;
+  --bc-shadow-16: none; --bc-shadow-28: none;
+}
+
+html[data-bc-theme="hc"] { @include bc-hc; }
+
+@media (forced-colors: active) {
+  :root { @include bc-hc; }
+  // Let the OS own colors; keep structure visible.
+  * { forced-color-adjust: auto; }
+  .bc-surface, .bc-popover, .bc-card { border: 1px solid CanvasText; }
+}
+
+// -- Print ---------------------------------------------------------------------
+// Monochrome, with the accent surviving on links only, so a printed URL still
+// reads as one (decided 2026-07-30; see docs/DECISIONS.md D-42). Applied from
+// _print.scss inside @media print. Two jobs:
+//
+//   1. Undo the theme. Someone reading in dark mode must not print white text on
+//      a dark page, and the dark set is what would otherwise still be in force.
+//   2. Take the ink out of every fill. Category tints, avatar fills, selection
+//      tints and status tints all become paper, and what they encoded becomes
+//      plain text — which is what §9 requires of them on screen anyway, so
+//      nothing is lost by dropping the colour.
+//
+// --bc-brand-primary is deliberately NOT overridden: header.html writes it as an
+// inline style on <html>, which no stylesheet can beat, and it is what keeps
+// --bc-brand-fg — the link colour — accented.
+$print-margin: 14mm;    // @page cannot read a custom property, so this is Sass
+
+@mixin bc-print {
+  --bc-bg-1: #FFFFFF;
+  --bc-bg-2: #FFFFFF;
+  --bc-bg-3: #FFFFFF;
+  --bc-bg-4: #FFFFFF;
+  --bc-bg-inverted: #FFFFFF;
+
+  --bc-fg-1: #000000;
+  --bc-fg-2: #1A1A1A;
+  --bc-fg-3: #3D3D3D;      // metadata: grey on paper, still 11:1 on white
+  --bc-fg-disabled: #616161;
+  --bc-fg-on-accent: #000000;
+
+  // Hairlines rather than the screen's tinted dividers: at 600dpi a #F0F0F0 rule
+  // is invisible, and a table of headers with no rules is hard to read.
+  --bc-stroke-1: #7A7A7A;
+  --bc-stroke-2: #A6A6A6;
+  --bc-stroke-3: #C7C7C7;
+  --bc-stroke-accessible: #000000;
+
+  --bc-brand-tint-selected: #FFFFFF;
+  --bc-brand-tint-strong: #FFFFFF;
+  --bc-brand-stroke: #A6A6A6;
+  --bc-on-brand: #000000;
+
+  --bc-danger: #000000;  --bc-danger-fg: #000000;  --bc-danger-tint: #FFFFFF;  --bc-danger-stroke: #7A7A7A;
+  --bc-success: #000000; --bc-success-tint: #FFFFFF; --bc-success-stroke: #7A7A7A;
+  --bc-warning: #000000; --bc-warning-fg: #000000; --bc-warning-tint: #FFFFFF;
+
+  // The dot keeps its black square so a chip still reads as a category, but the
+  // fill behind the label goes.
+  --bc-cat-important: #000000; --bc-cat-important-tint: #FFFFFF; --bc-cat-important-fg: #000000;
+  --bc-cat-infra:     #000000; --bc-cat-infra-tint:     #FFFFFF; --bc-cat-infra-fg:     #000000;
+  --bc-cat-finance:   #000000; --bc-cat-finance-tint:   #FFFFFF; --bc-cat-finance-fg:   #000000;
+  --bc-cat-qa:        #000000; --bc-cat-qa-tint:        #FFFFFF; --bc-cat-qa-fg:        #000000;
+  --bc-cat-personal:  #000000; --bc-cat-personal-tint:  #FFFFFF; --bc-cat-personal-fg:  #000000;
+  --bc-cat-waiting:   #000000; --bc-cat-waiting-tint:   #FFFFFF; --bc-cat-waiting-fg:   #000000;
+
+  --bc-avatar-1-bg: #FFFFFF; --bc-avatar-1-fg: #000000;
+  --bc-avatar-2-bg: #FFFFFF; --bc-avatar-2-fg: #000000;
+  --bc-avatar-3-bg: #FFFFFF; --bc-avatar-3-fg: #000000;
+  --bc-avatar-4-bg: #FFFFFF; --bc-avatar-4-fg: #000000;
+  --bc-avatar-5-bg: #FFFFFF; --bc-avatar-5-fg: #000000;
+  --bc-avatar-6-bg: #FFFFFF; --bc-avatar-6-fg: #000000;
+
+  --bc-shadow-2: none; --bc-shadow-4: none; --bc-shadow-8: none;
+  --bc-shadow-16: none; --bc-shadow-28: none;
+}
+
+// -- Reduced motion ------------------------------------------------------------
+@media (prefers-reduced-motion: reduce) {
+  :root { --bc-dur-fast: 0ms; --bc-dur-normal: 0ms; }
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+// -- Shared helpers ------------------------------------------------------------
+@mixin bc-focus-ring {
+  outline: var(--bc-focus-ring-w) solid var(--bc-focus-ring-color);
+  outline-offset: var(--bc-s-2);
+  box-shadow: 0 0 0 1px var(--bc-bg-1);   // Fluent dual ring
+}
+
+@mixin bc-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin bc-body1        { font: var(--bc-weight-regular) var(--bc-size-body1)/var(--bc-lh-body1) var(--bc-font-body); }
+@mixin bc-body1-strong { font: var(--bc-weight-semibold) var(--bc-size-body1)/var(--bc-lh-body1) var(--bc-font-body); }
+@mixin bc-caption1     { font: var(--bc-weight-regular) var(--bc-size-caption1)/var(--bc-lh-caption1) var(--bc-font-body); }
+@mixin bc-subtitle1    { font: var(--bc-weight-semibold) var(--bc-size-sub1)/var(--bc-lh-sub1) var(--bc-font-display); }
+@mixin bc-title3       { font: var(--bc-weight-semibold) var(--bc-size-title3)/var(--bc-lh-title3) var(--bc-font-display); }

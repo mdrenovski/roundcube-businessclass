@@ -1,0 +1,30 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Out-of-office (§4.4). Its own settings section, not a filter, so this is a
+     whole page with the nav rather than a detail pane: managesieve turns the
+     answers into a Sieve vacation rule behind the scenes. -->
+<div id="layout" class="bc-shell bc-shell--settings-plain">
+	<roundcube:include file="/templates/includes/menu.html" />
+	<roundcube:include file="/templates/includes/settings-menu.html" />
+
+	<main id="layout-content" class="bc-reading bc-settings__detail">
+		<div class="bc-formpage">
+			<div class="bc-formpage__head">
+				<h1 class="bc-formpage__title"><roundcube:label name="managesieve.vacation" /></h1>
+			</div>
+
+			<div class="bc-formpage__body bc-scroll">
+				<roundcube:object name="vacationform" id="vacationform" />
+			</div>
+
+			<div class="bc-formpage__foot">
+				<roundcube:button command="plugin.managesieve-save" type="input" class="bc-btn bc-btn--primary" label="save" />
+				<button type="button" id="bc-form-cancel" class="bc-btn bc-btn--secondary"><roundcube:label name="cancel" /></button>
+			</div>
+		</div>
+	</main>
+</div>
+
+<roundcube:add_label name="bc_changesdiscarded" />
+
+<roundcube:include file="/templates/includes/footer.html" />

@@ -1,0 +1,68 @@
+<!-- App rail (BUILD.md §3.3). Rendered from #taskmenu so plugin-injected tasks
+     (calendar, tasks, …) appear automatically via the taskbar container. -->
+<nav id="layout-menu" class="bc-rail" aria-label="<roundcube:label name='arialabeltasknav' />">
+	<h2 id="aria-label-tasknav" class="voice"><roundcube:label name="arialabeltasknav" /></h2>
+
+	<!-- Id kept for plugins that target it (§1.2), but no role= here: the <nav>
+	     above is already the landmark and nesting two would double-announce it. -->
+	<div id="taskmenu" class="bc-rail__tasks">
+		<roundcube:button command="mail" type="link" label="mail" title="mail"
+			class="bc-rail__btn" classsel="bc-rail__btn selected"
+			content="&lt;svg class=&quot;bc-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;use href=&quot;#ic_fluent_mail_20_regular&quot; class=&quot;bc-icon__rest&quot; /&gt;&lt;use href=&quot;#ic_fluent_mail_20_filled&quot; class=&quot;bc-icon__sel&quot; /&gt;&lt;/svg&gt;" />
+
+		<roundcube:button command="addressbook" type="link" label="contacts" title="contacts"
+			class="bc-rail__btn" classsel="bc-rail__btn selected"
+			content="&lt;svg class=&quot;bc-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;use href=&quot;#ic_fluent_people_20_regular&quot; class=&quot;bc-icon__rest&quot; /&gt;&lt;use href=&quot;#ic_fluent_people_20_filled&quot; class=&quot;bc-icon__sel&quot; /&gt;&lt;/svg&gt;" />
+
+		<!-- Plugin tasks (calendar, tasks, …) inject here and inherit .bc-rail__btn
+		     sizing from the container, so they are styled even without a rule of
+		     their own. -->
+		<roundcube:container name="taskbar" id="taskmenu" />
+
+		<div class="bc-rail__spacer"></div>
+
+		<roundcube:if condition="env:task == 'settings'" />
+		<roundcube:button command="settings" type="link" label="settings" title="settings"
+			class="bc-rail__btn selected"
+			content="&lt;svg class=&quot;bc-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;use href=&quot;#ic_fluent_settings_20_filled&quot; /&gt;&lt;/svg&gt;" />
+		<roundcube:else />
+		<roundcube:button command="settings" type="link" label="settings" title="settings"
+			class="bc-rail__btn"
+			content="&lt;svg class=&quot;bc-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;use href=&quot;#ic_fluent_settings_20_regular&quot; /&gt;&lt;/svg&gt;" />
+		<roundcube:endif />
+
+		<roundcube:button command="logout" type="link" label="logout" title="logout"
+			class="bc-rail__btn bc-rail__btn--logout"
+			content="&lt;svg class=&quot;bc-icon&quot; aria-hidden=&quot;true&quot;&gt;&lt;use href=&quot;#ic_fluent_power_20_regular&quot; /&gt;&lt;/svg&gt;" />
+	</div>
+
+	<!-- The brand at the foot of the rail, below logout. Outside #taskmenu on
+	     purpose: everything inside that container is a task button, and the
+	     `.bc-rail__tasks > a` rule would size this one to 36x36 like one.
+
+	     Two shapes. With brand_url set it is a real link to the vendor's site, and
+	     therefore needs an accessible name: the image stays decorative (alt="",
+	     aria-hidden) and the name comes from the .voice text, which reads
+	     "<vendor> website" rather than the bare logo — a link announced as just
+	     "JetHost.com" gives no clue that it leaves the app. target="_blank" with
+	     rel="noopener noreferrer" so a webmail session is never the opener of a
+	     marketing page.
+
+	     Without brand_url it is a plain decorative image and not focusable, which
+	     is what it should be: an unlabelled logo in the tab order is a stop that
+	     does nothing. -->
+	<roundcube:if condition="env:bc_logo_rail" />
+	<div class="bc-rail__brand">
+		<roundcube:if condition="env:bc_brand_url" />
+		<a class="bc-rail__brandlink" href="<roundcube:var name='env:bc_brand_url' />"
+			target="_blank" rel="noopener noreferrer"
+			title="<roundcube:var name='env:bc_vendor' />">
+			<img class="bc-rail__logo" src="/<roundcube:var name='env:bc_logo_rail' />" alt="" aria-hidden="true">
+			<span class="voice"><roundcube:var name="env:bc_vendor" /> <roundcube:label name="bc_website" /></span>
+		</a>
+		<roundcube:else />
+		<img class="bc-rail__logo" src="/<roundcube:var name='env:bc_logo_rail' />" alt="" aria-hidden="true">
+		<roundcube:endif />
+	</div>
+	<roundcube:endif />
+</nav>

@@ -1,0 +1,52 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Folder manager (BUILD.md §4.4). The tree is core's foldersubscription
+     object: nested <ul>/<li class="mailbox …"> with an <a> and a subscribe
+     checkbox per row, the same shape as the mail folder pane, plus the
+     drag-and-drop reparenting rcmail.subscription_list gives it. It is styled,
+     never rebuilt (§1.3), so subscribe and drag keep working.
+
+     §4.4 also draws message-count and size columns. Roundcube's folder list
+     carries neither — a count is one IMAP STATUS per folder and a size is a
+     full fetch per folder — so counts and size stay in the detail pane on the
+     right, where core fetches them for the one folder you have open. -->
+<div id="layout" class="bc-shell bc-shell--settings">
+	<roundcube:include file="/templates/includes/menu.html" />
+	<roundcube:include file="/templates/includes/settings-menu.html" />
+
+	<div id="layout-list" class="bc-list">
+		<div class="bc-pane__head">
+			<h1 class="bc-pane__title"><roundcube:label name="folders" /></h1>
+			<roundcube:button command="create-folder" type="link" title="createfolder" label="createfolder"
+				class="bc-iconbtn" innerclass="voice" data-bc-icon="folder_add" />
+		</div>
+
+		<!-- All / subscribed / unsubscribed / special. Core's own select; it
+		     registers itself as the folder filter and needs no wiring here. -->
+		<div class="bc-pane__filter">
+			<label class="voice" for="folderlist-filter"><roundcube:label name="filter" /></label>
+			<roundcube:object name="folderfilter" id="folderlist-filter" class="bc-input" noheader="true" noevent="true" />
+		</div>
+
+		<div class="bc-list__scroll bc-scroll">
+			<roundcube:object name="foldersubscription" id="subscription-table" class="bc-folderlist bc-foldertree" />
+		</div>
+	</div>
+
+	<main id="layout-content" class="bc-reading bc-settings__detail"
+		aria-label="<roundcube:label name='folders' />">
+		<roundcube:object name="contentframe" id="preferences-frame" class="bc-reading__frame"
+			src="env:blankpage" title="arialabelfolderdetails" />
+
+		<div class="bc-empty bc-reading__empty">
+			<svg class="bc-empty__icon" aria-hidden="true"><use href="#ic_fluent_folder_20_regular" /></svg>
+			<p class="bc-empty__title"><roundcube:label name="bc_nofolderselected" /></p>
+			<p class="bc-empty__text"><roundcube:label name="bc_pickfolder" /></p>
+		</div>
+	</main>
+</div>
+
+<roundcube:add_label name="bc_dragfolder" />
+<roundcube:add_label name="bc_subscribed" />
+
+<roundcube:include file="/templates/includes/footer.html" />

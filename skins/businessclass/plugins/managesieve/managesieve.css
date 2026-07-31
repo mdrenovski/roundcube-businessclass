@@ -1,0 +1,17 @@
+/* managesieve looks for <skin>/plugins/managesieve/managesieve.css and links it
+   on every Filters / Vacation / Forward page (managesieve.php:102).
+
+   The file is NOT required: rcube_plugin_api::include_stylesheet() checks
+   is_file() and returns quietly when the path does not exist
+   (rcube_plugin_api.php:728), so an absent per-plugin stylesheet is skipped
+   rather than requested and 404'd. (An earlier version of this comment claimed
+   otherwise; corrected at step 11 — see DECISIONS.md D-47.) It is kept because
+   this directory has to exist for the template overrides beside it, and because
+   an admin looking for the skin's managesieve overrides should find the pointer
+   below rather than nothing.
+
+   Nothing is styled here on purpose: the skin ships one stylesheet, built from
+   styles/*.scss and loaded by templates/includes/header.html on every page,
+   and the Sieve UI is styled in styles/_settings.scss along with the rest of
+   Settings (BUILD.md §2). Rules kept here would sit outside the token linter
+   and outside the theme switch. */

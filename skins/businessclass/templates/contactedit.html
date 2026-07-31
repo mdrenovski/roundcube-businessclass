@@ -1,0 +1,54 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Add and edit a contact (§4.5), framed in the detail pane. Core reuses this
+     template for the 'add' action too — template_exists('contactadd') decides,
+     and shipping no contactadd.html is what keeps the two the same page
+     (edit.php:92).
+
+     The form is opened here rather than by the objects, so one <form> covers
+     both the name block and the field groups; form="editform" is what tells
+     each object to write into it instead of starting its own. The sticky footer
+     then sits outside a properly closed form, exactly as on the Settings pages,
+     and command('save') still submits it through the editform gui object. -->
+<div class="bc-formpage bc-contact bc-contact--edit">
+	<div class="bc-formpage__head">
+		<h1 class="bc-formpage__title"><roundcube:object name="steptitle" /></h1>
+	</div>
+
+	<div class="bc-formpage__body bc-scroll">
+		<roundcube:form name="editform" method="post" id="contact-details">
+			<div class="bc-contact__head">
+				<fieldset id="contactphoto" class="bc-contact__photoedit">
+					<legend class="voice"><roundcube:label name="contactphoto" /></legend>
+					<roundcube:object name="contactphoto" id="contactpic" class="bc-avatar bc-avatar--xl bc-contact__photo" />
+					<!-- Drop target and the Replace/Delete actions core wires to it.
+					     Only when the backend actually stores photos. -->
+					<roundcube:if condition="env:photocol" />
+					<roundcube:object name="fileDropArea" id="contactpic" />
+					<roundcube:endif />
+				</fieldset>
+
+				<roundcube:object name="contactedithead" id="contacthead" form="editform"
+					class="bc-contact__identedit" size="24" use-labels="true" with-source="true" />
+			</div>
+
+			<div class="bc-contact__details">
+				<roundcube:object name="contacteditform" form="editform"
+					fieldset-class="bc-contact__section" compact-form="true" short-legend-labels="true"
+					size="36" textarearows="6" textareacols="48" />
+			</div>
+		</form>
+	</div>
+
+	<div class="bc-formpage__foot">
+		<roundcube:button command="save" type="input" class="bc-btn bc-btn--primary" label="save" />
+		<button type="button" id="bc-form-cancel" class="bc-btn bc-btn--secondary"><roundcube:label name="cancel" /></button>
+	</div>
+</div>
+
+<!-- Outside the edit form: it is a form of its own and cannot be nested. -->
+<roundcube:object name="photoUploadForm" id="upload-form" mode="smart" />
+
+<roundcube:add_label name="bc_changesdiscarded" />
+
+<roundcube:include file="/templates/includes/footer.html" />

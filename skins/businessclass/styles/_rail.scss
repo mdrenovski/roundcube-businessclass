@@ -1,0 +1,148 @@
+// =============================================================================
+// skins/businessclass/styles/_rail.scss
+// App switcher rail — 48px, --bc-bg-3, right border --bc-stroke-2 (§3.3).
+// Tokens only — no literal colors, sizes, radii or shadows.
+// =============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+.bc-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--bc-s-4);
+  width: var(--bc-rail-w);
+  padding: var(--bc-s-8) 0;
+  border-right: 1px solid var(--bc-stroke-2);
+  background: var(--bc-bg-3);
+  overflow: hidden;
+}
+
+.bc-rail__tasks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--bc-s-4);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.bc-rail__spacer {
+  flex: 1;
+}
+
+// -- Brand at the foot of the rail --------------------------------------------
+// The horizontal lockup turned to run up the rail. Two elements, because a
+// transform does not change the layout box: rotating the image alone would leave
+// a 152px-wide box in a 48px rail, and .bc-rail sets overflow: hidden, so the
+// logo would simply be clipped away.
+//
+// So the wrapper owns the space the *rotated* image occupies — rail-wide, and
+// --bc-rail-brand-h tall — while the image is taken out of flow inside it and
+// spun about the wrapper's centre.
+//
+// Out of flow, and not a centred grid item, because centring does not survive
+// the overflow: the image is 152px wide in a 47px track, and Chrome falls back
+// to start alignment for a grid item bigger than its cell rather than letting it
+// spill both ways. Measured with `place-items: center`: the rotated logo landed
+// at x 77-101 while the rail spanned 13-61 — entirely outside it, and clipped to
+// nothing by the overflow: hidden above.
+.bc-rail__brand {
+  position: relative;
+  flex: none;
+  width: 100%;
+  height: var(--bc-rail-brand-h);
+  margin-top: var(--bc-s-8);
+}
+
+// -90deg, so it reads bottom-to-top. width is the pre-rotation width, which
+// becomes the height on screen: at the kit's 6.325:1 this puts a 24px column in
+// a 48px rail.
+//
+// The translate runs before the rotate in the transform list, so it is applied
+// last: the image is pinned by its own centre to the wrapper's centre, and then
+// turned about that point. Order matters — rotate first and the translate would
+// be along the rotated axes.
+//
+// max-width: none because _reset.scss caps every image at 100% of its container,
+// and this one is deliberately wider than the 48px box it sits in.
+.bc-rail__logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--bc-rail-brand-h);
+  max-width: none;
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+
+// When branding.json sets brand_url the logo is a link to the vendor's site.
+//
+// inset: 0 rather than letting the anchor size to its content, because its only
+// in-flow child is the visually hidden .voice text — the image is out of flow, so
+// the link would collapse to a few pixels of nothing and be unclickable. This
+// also makes the anchor the positioned ancestor the image centres against, which
+// is the same box .bc-rail__brand was, so the geometry is unchanged.
+.bc-rail__brandlink {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: var(--bc-radius-m);
+  transition: opacity var(--bc-dur-fast) var(--bc-ease-decel);
+
+  &:hover { opacity: 0.75; }
+
+  &:focus-visible { @include bc-focus-ring; }
+}
+
+// 36×36, radius m, 20px icon (§3.3). Plugin-injected tasks land inside
+// #taskmenu and inherit this via the descendant selector below, so a calendar
+// or tasks plugin is styled without a rule of its own.
+.bc-rail__btn,
+.bc-rail__tasks > a {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--bc-rail-btn);
+  height: var(--bc-rail-btn);
+  border-radius: var(--bc-radius-m);
+  color: var(--bc-fg-2);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--bc-dur-fast) var(--bc-ease-decel);
+
+  &:hover {
+    background: var(--bc-bg-4);
+    text-decoration: none;
+  }
+
+  &:active { background: var(--bc-bg-4); }
+
+  // Selected: brand tint fill, brand icon, and a 3px brand bar at the LEFT EDGE
+  // OF THE RAIL — the button is centred in the 48px rail, so the bar sits
+  // (48 - 36) / 2 = 6px outside the button box.
+  &.selected {
+    background: var(--bc-brand-tint-selected);
+    color: var(--bc-brand-fg-strong);
+
+    &::before {
+      @include bc-brand-bar(var(--bc-s-8), calc(var(--bc-s-8) * -0.75));
+    }
+  }
+
+  &:focus-visible { @include bc-focus-ring; }
+}
+
+// Roundcube's button object emits the label as text when no content= is given
+// (plugin tasks do this). Keep the rail icon-sized by hiding overflow text
+// rather than letting it blow the 36px box out.
+.bc-rail__tasks > a {
+  overflow: hidden;
+  font-size: 0;
+}
+
+.bc-rail__btn--logout {
+  color: var(--bc-fg-3);
+}

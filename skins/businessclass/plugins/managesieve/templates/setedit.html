@@ -1,0 +1,22 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- New filter set — a name, and optionally a Sieve file to import. Loaded
+     into the detail pane's iframe by plugin.managesieve-setadd (§4.4). -->
+<div class="bc-formpage">
+	<div class="bc-formpage__head">
+		<h1 class="bc-formpage__title"><roundcube:label name="managesieve.newfilterset" /></h1>
+	</div>
+
+	<div class="bc-formpage__body bc-scroll">
+		<roundcube:object name="filtersetform" />
+	</div>
+
+	<div class="bc-formpage__foot">
+		<roundcube:button command="plugin.managesieve-save" type="input" class="bc-btn bc-btn--primary" label="save" />
+		<button type="button" id="bc-form-cancel" class="bc-btn bc-btn--secondary"><roundcube:label name="cancel" /></button>
+	</div>
+</div>
+
+<roundcube:add_label name="bc_changesdiscarded" />
+
+<roundcube:include file="/templates/includes/footer.html" />

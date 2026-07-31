@@ -1,0 +1,28 @@
+{
+  "name": "jethost-roundcube-businessclass",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BusinessClass \u2014 a Fluent 2 skin for Roundcube 1.6.x",
+  "license": "GPL-3.0",
+  "type": "commonjs",
+  "scripts": {
+    "build": "sass --no-source-map --style=expanded --load-path=skins/businessclass/styles skins/businessclass/styles/styles.scss:skins/businessclass/styles/styles.css skins/businessclass/styles/embed.scss:skins/businessclass/styles/embed.css",
+    "watch": "sass --watch --no-source-map --style=expanded --load-path=skins/businessclass/styles skins/businessclass/styles/styles.scss:skins/businessclass/styles/styles.css skins/businessclass/styles/embed.scss:skins/businessclass/styles/embed.css",
+    "sprite": "node tools/build-sprite.mjs",
+    "brand:assets": "node tools/build-brand-assets.mjs",
+    "lint:tokens": "! grep -rnE '#[0-9a-fA-F]{6}' skins/businessclass/styles/ --include='*.scss' | grep -v '_tokens.scss'",
+    "lint:labels": "node tools/lint-labels.mjs",
+    "lint": "npm run lint:tokens && npm run lint:labels",
+    "verify:templates": "php tools/verify/parsecheck.php .",
+    "verify:refs": "node tools/verify/refcheck.mjs .",
+    "verify:prefs": "php tools/verify/prefscheck.php .",
+    "verify:branding": "php tools/verify/brandingcheck.php .",
+    "verify:idphoto": "php tools/verify/idphotocheck.php .",
+    "verify:print": "node tools/verify/printcheck.mjs . .verify-out",
+    "verify:plugins": "node tools/verify/plugincheck.mjs . .verify-out",
+    "verify": "npm run build && npm run lint && npm run verify:templates && npm run verify:refs && npm run verify:prefs && npm run verify:branding && npm run verify:idphoto && npm run verify:print && npm run verify:plugins && node --check skins/businessclass/ui.js && php -l plugins/businessclass_prefs/businessclass_prefs.php"
+  },
+  "devDependencies": {
+    "sass": "^1.102.0"
+  }
+}

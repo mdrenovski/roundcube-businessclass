@@ -1,0 +1,25 @@
+{
+	"product_name": "BusinessClass",
+	"vendor": "JetHost.com",
+	"logo": {
+		"header": "images/logo-default.svg",
+		"symbol": null,
+		"rail": null,
+		"login": "images/logo-default.svg",
+		"favicon": null,
+		"print": null
+	},
+	"accent": "#0F6CBD",
+	"login_background": null,
+	"brand_url": null,
+	"support_url": null,
+	"mail_domain": null,
+	"categories": [
+		{ "key": "$Important", "label": "Important", "token": "important" },
+		{ "key": "$Infra",     "label": "Infrastructure", "token": "infra" },
+		{ "key": "$Finance",   "label": "Finance", "token": "finance" },
+		{ "key": "$QA",        "label": "QA", "token": "qa" },
+		{ "key": "$Personal",  "label": "Personal", "token": "personal" },
+		{ "key": "$Waiting",   "label": "Waiting", "token": "waiting" }
+	]
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!--
+	The blank page every content iframe starts on.
+
+	Not a template: config/defaults.inc.php sets blankpage_url to
+	'/watermark.html', a leading slash meaning "the current skin folder", and
+	rcmail_output_html::frame() resolves it through get_skin_file(). A skin that
+	does not ship one leaves every contentframe pointing at a URL that does not
+	exist, so the Settings, Folders, Identities, Responses and Filters screens
+	all open on the web server's 404 page.
+
+	Deliberately empty. The skin draws its own "nothing selected" panel in the
+	parent document, over the pane this frame sits in; a watermark logo here
+	would show through underneath it. Elastic paints its logo because it has no
+	such panel.
+
+	Loading the skin's stylesheet is what keeps the frame the same colour as the
+	pane around it in all four themes — body already carries --bc-bg-1 from
+	_reset.scss — and it costs no request, since the parent document has the
+	file cached.
+-->
+<html lang="en" class="iframe" data-bc-theme="system">
+<head>
+<meta charset="utf-8">
+<title></title>
+<link rel="stylesheet" href="styles/styles.css">
+<script>
+	// The theme lives in a user preference, not a cookie, so it reaches this
+	// document only from the page that framed it. Same-origin by construction:
+	// x_frame_options is sameorigin and this file is served from the skin.
+	// "system" stays as the fallback when there is no parent to ask.
+	try {
+		var theme = window.parent.document.documentElement.getAttribute('data-bc-theme');
+		if (theme) document.documentElement.setAttribute('data-bc-theme', theme);
+	} catch (e) {}
+</script>
+</head>
+<body></body>
+</html>

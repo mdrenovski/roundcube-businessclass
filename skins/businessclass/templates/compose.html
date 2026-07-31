@@ -1,0 +1,267 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Compose (BUILD.md §4.1).
+
+     The design's four rows: a 44px title bar, the header fields, the editor,
+     and a 52px footer. composeFormHead emits the opening <form> tag and nothing
+     else, so this template closes it by hand after the editor; the attachment
+     list, the footer and the options panel sit outside the form on purpose —
+     core collects the noform="true" objects at submit time
+     (rcmail_sendmail::form_tags), exactly as Elastic's sidebar does. -->
+<div class="bc-compose">
+
+	<!-- 44px title bar. "Open in new window" is the extwin command, which posts
+	     the form into a fresh window, so it disappears once we already are one.
+	     Close is the 'list' command: in a normal window it returns to the
+	     mailbox, in an extwin it closes the window (app.js case 'list'), and in
+	     both it goes through core's unsaved-changes prompt first. -->
+	<div class="bc-compose__bar">
+		<h1 class="bc-compose__title"><roundcube:label name="compose" /></h1>
+		<div class="bc-toolbar__spacer"></div>
+		<roundcube:if condition="!env:extwin" />
+		<roundcube:button command="extwin" type="link" class="bc-iconbtn" innerclass="voice"
+			label="openinextwin" title="openinextwin" data-bc-icon="arrow_expand" tabindex="2" />
+		<roundcube:endif />
+		<roundcube:button command="list" type="link" class="bc-iconbtn" innerclass="voice"
+			label="close" title="close" data-bc-icon="dismiss" tabindex="2" />
+	</div>
+
+	<roundcube:object name="composeFormHead" class="bc-compose__form" />
+
+	<roundcube:object name="composeObjects" id="compose-objects" class="bc-message__notices" />
+
+	<div id="compose-headers" class="bc-compose__headers" role="region"
+		aria-labelledby="aria-label-composeheaders">
+		<h2 id="aria-label-composeheaders" class="voice"><roundcube:label name="arialabelmessageheaders" /></h2>
+
+		<div class="bc-compose__row" id="compose_from">
+			<label for="_from"><roundcube:label name="from" /></label>
+			<roundcube:object name="composeHeaders" part="from" id="_from" form="form" tabindex="1"
+				class="bc-compose__select" />
+			<div class="bc-compose__trail">
+				<a href="#identities" class="bc-iconbtn" tabindex="1"
+					title="<roundcube:label name='editidents' />"
+					onclick="return rcmail.command('switch-task', 'settings/identities')">
+					<span class="voice"><roundcube:label name="editidents" /></span>
+					<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_edit_20_regular" /></svg>
+				</a>
+			</div>
+		</div>
+
+		<!-- To/Cc/Bcc render as textareas (rcmail_sendmail::headers_output). ui.js
+		     hides each one behind a pill list and keeps the textarea in sync, so
+		     with JS off they stay ordinary comma-separated address fields (§1.4). -->
+		<div class="bc-compose__row" id="compose_to">
+			<label for="_to"><roundcube:label name="to" /></label>
+			<roundcube:object name="composeHeaders" part="to" id="_to" form="form" tabindex="1"
+				aria-required="true" data-bc-recipients="to" />
+			<div class="bc-compose__trail bc-compose__addheaders">
+				<button type="button" class="bc-link" data-bc-header="cc" aria-expanded="false" tabindex="1"><roundcube:label name="cc" /></button>
+				<button type="button" class="bc-link" data-bc-header="bcc" aria-expanded="false" tabindex="1"><roundcube:label name="bcc" /></button>
+			</div>
+		</div>
+
+		<div class="bc-compose__row" id="compose_cc" hidden>
+			<label for="_cc"><roundcube:label name="cc" /></label>
+			<roundcube:object name="composeHeaders" part="cc" id="_cc" form="form" tabindex="1"
+				data-bc-recipients="cc" />
+		</div>
+
+		<div class="bc-compose__row" id="compose_bcc" hidden>
+			<label for="_bcc"><roundcube:label name="bcc" /></label>
+			<roundcube:object name="composeHeaders" part="bcc" id="_bcc" form="form" tabindex="1"
+				data-bc-recipients="bcc" />
+		</div>
+
+		<!-- §4.1 lists From/To/Cc/Bcc/Subject only, but dropping these two would
+		     take away headers Roundcube can otherwise edit. They stay hidden
+		     until asked for from the More panel, which is where Elastic keeps
+		     them too. -->
+		<div class="bc-compose__row" id="compose_replyto" hidden>
+			<label for="_replyto"><roundcube:label name="replyto" /></label>
+			<roundcube:object name="composeHeaders" part="replyto" id="_replyto" form="form" tabindex="1"
+				data-bc-recipients="replyto" />
+		</div>
+
+		<div class="bc-compose__row" id="compose_followupto" hidden>
+			<label for="_followupto"><roundcube:label name="followupto" /></label>
+			<roundcube:object name="composeHeaders" part="followupto" id="_followupto" form="form" tabindex="1"
+				data-bc-recipients="followupto" />
+		</div>
+
+		<div class="bc-compose__row bc-compose__row--subject" id="compose_subject">
+			<label for="compose-subject"><roundcube:label name="subject" /></label>
+			<roundcube:object name="composeSubject" id="compose-subject" form="form" tabindex="1" />
+		</div>
+	</div>
+
+	<!-- Drop target (§4.1). fileDropArea only registers the id as a gui object;
+	     the element is ours, so the dashed outline and the "Drop files to
+	     attach" message are CSS on the classes core toggles on it —
+	     droptarget, then active while a drag is anywhere in the window and
+	     hover while it is over this element (app.js:9574). -->
+	<div id="compose-dropzone" class="bc-compose__editor"
+		data-bc-dropmsg="<roundcube:label name='bc_dropfiles' />">
+		<label for="composebody" class="voice"><roundcube:label name="arialabelmessagebody" /></label>
+		<roundcube:object name="composeBody" id="composebody" form="form" cols="70" rows="20" tabindex="1" />
+	</div>
+
+	</form>
+
+	<section class="bc-compose__attachments" aria-labelledby="aria-label-compose-attachments">
+		<h2 id="aria-label-compose-attachments" class="voice"><roundcube:label name="attachments" /></h2>
+		<!-- textbuttons gives the delete link real text instead of an empty <a>;
+		     ui.js wraps that text in a .voice span and puts an icon in front of
+		     it, and the upload response builds its rows the same way
+		     (attachment_upload.php:201), so both paths end up identical. -->
+		<roundcube:object name="composeAttachmentList" id="attachment-list"
+			class="bc-attachments bc-attachments--compose" textbuttons="true" tabindex="2" />
+	</section>
+
+	<!-- 52px footer. -->
+	<div class="bc-compose__footer">
+		<roundcube:button command="send" type="link" class="bc-btn bc-btn--primary"
+			innerclass="bc-btn__label" label="send" title="sendmessage" tabindex="1" data-bc-icon="send" />
+
+		<button type="button" id="bc-attach" class="bc-btn bc-btn--secondary" tabindex="1"
+			onclick="rcmail.upload_input('uploadform')" title="<roundcube:label name='addattachment' />">
+			<span class="bc-btn__label"><roundcube:label name="addattachment" /></span>
+		</button>
+
+		<!-- Emoji. Roundcube already ships TinyMCE's emoticons plugin and its
+		     emoji database, so this drives that rather than adding a picker of
+		     our own. It has no meaning in plain-text mode, where ui.js hides it;
+		     it starts hidden and is only shown once an HTML editor exists. -->
+		<button type="button" id="bc-emoji" class="bc-iconbtn" tabindex="1" hidden
+			title="<roundcube:label name='bc_emoji' />">
+			<span class="voice"><roundcube:label name="bc_emoji" /></span>
+			<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_emoji_20_regular" /></svg>
+		</button>
+
+		<!-- Where a plugin's own compose buttons land — a send-later plugin, for
+		     instance. Empty and invisible until one is installed. -->
+		<roundcube:container name="toolbar" id="compose-toolbar" />
+
+		<div class="bc-popover__anchor">
+			<button type="button" id="bc-compose-more" class="bc-iconbtn" tabindex="1"
+				aria-haspopup="true" aria-expanded="false" aria-controls="bc-compose-menu"
+				title="<roundcube:label name='optionsandattachments' />">
+				<span class="voice"><roundcube:label name="optionsandattachments" /></span>
+				<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_more_horizontal_20_regular" /></svg>
+			</button>
+
+			<!-- A panel of form controls, not a role="menu": a menu whose items
+			     are selects and checkboxes is the wrong pattern and would take
+			     the arrow keys away from them. It is labelled, and dismissed on
+			     Escape or an outside click, like every other popover. -->
+			<div id="bc-compose-menu" class="bc-popover bc-popover--form" role="group"
+				aria-labelledby="bc-compose-more" hidden>
+
+				<!-- Both go through roundcube:button so core owns their enabled
+				     state: savedraft only exists where a Drafts folder is
+				     configured, insert-sig only once the chosen identity has a
+				     signature (app.js:3886). -->
+				<roundcube:button command="savedraft" type="link" class="bc-popover__action"
+					innerclass="bc-btn__label" label="savemessage" title="savemessage"
+					tabindex="1" data-bc-icon="drafts" />
+
+				<roundcube:button command="insert-sig" type="link" class="bc-popover__action"
+					innerclass="bc-btn__label" label="insertsignature" title="insertsignature"
+					tabindex="1" data-bc-icon="signature" />
+
+				<div class="bc-popover__sep" role="separator"></div>
+
+				<div class="bc-field">
+					<label for="editor-selector"><roundcube:label name="editortype" /></label>
+					<roundcube:object name="editorSelector" id="editor-selector" editorid="composebody"
+						noform="true" tabindex="1" class="bc-input" />
+				</div>
+
+				<div class="bc-field">
+					<label for="compose-priority"><roundcube:label name="priority" /></label>
+					<roundcube:object name="prioritySelector" id="compose-priority" noform="true"
+						tabindex="1" class="bc-input" />
+				</div>
+
+				<roundcube:if condition="!config:no_save_sent_messages" />
+				<div class="bc-field">
+					<label for="compose-store-target"><roundcube:label name="savesentmessagein" /></label>
+					<roundcube:object name="storetarget" id="compose-store-target" noform="true"
+						tabindex="1" class="bc-input" />
+				</div>
+				<roundcube:endif />
+
+				<div class="bc-popover__sep" role="separator"></div>
+
+				<roundcube:if condition="!in_array('mdn_default', (array)config:dont_override)" />
+				<div class="bc-check">
+					<roundcube:object name="mdnCheckBox" id="compose-mdn" noform="true" tabindex="1" />
+					<label for="compose-mdn"><roundcube:label name="returnreceipt" /></label>
+				</div>
+				<roundcube:endif />
+
+				<roundcube:if condition="!in_array('dsn_default', (array)config:dont_override)" />
+				<div class="bc-check">
+					<roundcube:object name="dsnCheckBox" id="compose-dsn" noform="true" tabindex="1" />
+					<label for="compose-dsn"><roundcube:label name="dsn" /></label>
+				</div>
+				<roundcube:endif />
+
+				<div class="bc-check">
+					<roundcube:object name="keepFormattingCheckBox" id="compose-keep-formatting" noform="true" tabindex="1" />
+					<label for="compose-keep-formatting"><roundcube:label name="keepformatting" /></label>
+				</div>
+
+				<div class="bc-popover__sep" role="separator"></div>
+
+				<div class="bc-check">
+					<input type="checkbox" id="bc-show-replyto" data-bc-header="replyto" tabindex="1">
+					<label for="bc-show-replyto"><roundcube:label name="replyto" /></label>
+				</div>
+
+				<div class="bc-check">
+					<input type="checkbox" id="bc-show-followupto" data-bc-header="followupto" tabindex="1">
+					<label for="bc-show-followupto"><roundcube:label name="followupto" /></label>
+				</div>
+
+				<!-- Plugin-supplied option rows (rcmail_sendmail's own container). -->
+				<roundcube:container name="composeoptions" id="compose-options" />
+			</div>
+		</div>
+
+		<div class="bc-toolbar__spacer"></div>
+
+		<!-- Filled in by ui.js from set_draft_id, which core calls after every
+		     successful draft save, automatic or manual. -->
+		<span id="bc-draftsaved" class="bc-compose__draft" aria-live="polite"></span>
+
+		<button type="button" id="bc-discard" class="bc-iconbtn bc-iconbtn--danger" tabindex="1"
+			title="<roundcube:label name='discard' />">
+			<span class="voice"><roundcube:label name="discard" /></span>
+			<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_delete_20_regular" /></svg>
+		</button>
+	</div>
+</div>
+
+<!-- The hidden multi-file input behind the Attach button, and the
+     drag-and-drop registration for the editor area above. -->
+<roundcube:object name="composeAttachmentForm" id="uploadform" mode="smart" />
+<roundcube:object name="fileDropArea" id="compose-dropzone" />
+
+<roundcube:add_label name="recipientsadded" />
+<roundcube:add_label name="nocontactselected" />
+<roundcube:add_label name="recipient" />
+<roundcube:add_label name="insert" />
+<roundcube:add_label name="insertcontact" />
+<roundcube:add_label name="recipientedit" />
+<roundcube:add_label name="uploadprogress" />
+<roundcube:add_label name="uploading" />
+<roundcube:add_label name="delete" />
+<roundcube:add_label name="close" />
+<roundcube:add_label name="discard" />
+<roundcube:add_label name="bc_draftsaved" />
+<roundcube:add_label name="bc_discardconfirm" />
+<roundcube:add_label name="bc_addrecipients" />
+<roundcube:add_label name="bc_removerecipient" />
+
+<roundcube:include file="/templates/includes/footer.html" />

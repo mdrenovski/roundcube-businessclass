@@ -1,0 +1,33 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- One filter (BUILD.md §4.4). Two hosts: the detail pane's iframe in
+     Settings, and a dialog in the mail task ("Create filter" from a message).
+     In the dialog the surrounding jQuery UI chrome supplies the title and the
+     buttons, so both are rendered only outside it — the same condition Elastic
+     uses.
+
+     compact-form="true" is what makes the plugin emit the shape the design
+     draws: one "If all / any / all messages" select over rows of
+     condition-selects, rather than the wide three-radio layout. -->
+<div class="bc-formpage bc-filteredit">
+	<roundcube:if condition="env:task != 'mail'" />
+	<div class="bc-formpage__head">
+		<h1 class="bc-formpage__title"><roundcube:label name="managesieve.filterdef" /></h1>
+	</div>
+	<roundcube:endif />
+
+	<div class="bc-formpage__body bc-scroll">
+		<roundcube:object name="filterform" id="filter-form" compact-form="true" />
+	</div>
+
+	<roundcube:if condition="env:task != 'mail'" />
+	<div class="bc-formpage__foot">
+		<roundcube:button command="plugin.managesieve-save" type="input" class="bc-btn bc-btn--primary" label="save" />
+		<button type="button" id="bc-form-cancel" class="bc-btn bc-btn--secondary"><roundcube:label name="cancel" /></button>
+	</div>
+	<roundcube:endif />
+</div>
+
+<roundcube:add_label name="bc_changesdiscarded" />
+
+<roundcube:include file="/templates/includes/footer.html" />

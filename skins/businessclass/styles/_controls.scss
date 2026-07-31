@@ -1,0 +1,599 @@
+// =============================================================================
+// skins/businessclass/styles/_controls.scss
+// Buttons, icons, avatars, inputs, chips (BUILD.md §2, component inventory).
+// Popover / toast / dialog primitives arrive with step 4.
+// Tokens only — no literal colors, sizes, radii or shadows.
+// =============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// -- Icons --------------------------------------------------------------------
+// 20px sprite symbols, currentColor, decorative by default (§10).
+.bc-icon {
+  display: block;
+  flex: none;
+  width: var(--bc-s-20);
+  height: var(--bc-s-20);
+  fill: currentColor;
+  pointer-events: none;
+}
+
+// Trailing affordances (sort chevron, disclosure) sit a step smaller.
+.bc-icon--16 {
+  width: var(--bc-s-16);
+  height: var(--bc-s-16);
+}
+
+// Regular for rest, Filled for selected/active (§10). Both <use> elements ship
+// in the markup; only one is shown, so the swap needs no JS.
+.bc-icon__sel { display: none; }
+
+.selected > .bc-icon,
+[aria-current="page"] > .bc-icon {
+  .bc-icon__rest { display: none; }
+  .bc-icon__sel { display: inline; }
+}
+
+// -- Buttons ------------------------------------------------------------------
+.bc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bc-s-8);
+  height: var(--bc-control-h);
+  padding: 0 var(--bc-s-12);
+  border: 1px solid transparent;
+  border-radius: var(--bc-radius-m);
+  @include bc-body1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--bc-dur-fast) var(--bc-ease-decel),
+    border-color var(--bc-dur-fast) var(--bc-ease-decel);
+
+  &:hover { text-decoration: none; }
+
+  &.disabled,
+  &[aria-disabled="true"],
+  &:disabled {
+    background: var(--bc-bg-4);
+    border-color: transparent;
+    color: var(--bc-fg-disabled);
+    cursor: default;
+    pointer-events: none;
+  }
+}
+
+.bc-btn--block {
+  display: flex;
+  width: 100%;
+}
+
+// Primary: brand fill, semibold, elevation 2 (§3.4 compose button).
+.bc-btn--primary {
+  background: var(--bc-brand-primary);
+  color: var(--bc-on-brand);
+  font-weight: var(--bc-weight-semibold);
+  box-shadow: var(--bc-shadow-2);
+
+  &:hover { background: var(--bc-brand-hover); }
+  &:active { background: var(--bc-brand-pressed); }
+}
+
+// Secondary: 1px stroke on the surface. The design's darker hover/pressed
+// strokes are derived from --bc-stroke-1 so no literal hex is introduced.
+.bc-btn--secondary {
+  background: var(--bc-bg-1);
+  border-color: var(--bc-stroke-1);
+  color: var(--bc-fg-1);
+
+  &:hover {
+    background: var(--bc-bg-3);
+    border-color: color-mix(in srgb, var(--bc-stroke-1) 84%, black);
+  }
+
+  &:active {
+    background: var(--bc-bg-4);
+    border-color: color-mix(in srgb, var(--bc-stroke-1) 70%, black);
+  }
+}
+
+// Subtle: no fill until hover. Brand text, darkened on the tint (§9).
+.bc-btn--subtle {
+  background: transparent;
+  color: var(--bc-brand-fg);
+
+  &:hover {
+    background: var(--bc-bg-4);
+    color: var(--bc-brand-fg-strong);
+  }
+
+  &:active { background: var(--bc-bg-4); }
+}
+
+// Destructive, but still a secondary button: it sits in a row beside Add and
+// Edit and must not out-shout them, so the danger colour is in the text and the
+// hover fill rather than in a red block. Same reasoning as
+// .bc-popover__action--danger in _settings.scss. Added for the acl plugin's
+// "Delete" in the folder-sharing row (§12 step 11).
+.bc-btn--danger {
+  background: var(--bc-bg-1);
+  border-color: var(--bc-stroke-1);
+  color: var(--bc-danger-fg);
+
+  .bc-icon { color: inherit; }
+
+  &:hover {
+    background: var(--bc-danger-tint);
+    border-color: var(--bc-danger-stroke);
+    color: var(--bc-danger-fg);
+  }
+
+  &:active { background: var(--bc-danger-tint); }
+}
+
+.bc-btn__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// -- Icon buttons -------------------------------------------------------------
+.bc-iconbtn {
+  @include bc-icon-btn(var(--bc-control-h));
+
+  &:focus-visible { @include bc-focus-ring; }
+}
+
+// Destructive actions turn danger-coloured on hover, never at rest — at rest a
+// red icon in a row of grey ones reads as an error state (§3.5).
+.bc-iconbtn--danger:hover:not([aria-disabled="true"]) {
+  color: var(--bc-danger);
+}
+
+// -- Avatars ------------------------------------------------------------------
+// Initials fallback; ui.js sets .bc-avatar--N from a stable hash of the address
+// (§7.10). The palette lives in _tokens.scss.
+.bc-avatar {
+  // Relative so the reading pane's contact photo can be laid over the initials
+  // (§3.6); a transparent GIF from core then simply shows them through.
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--bc-avatar);
+  height: var(--bc-avatar);
+  border-radius: var(--bc-radius-circular);
+  background: var(--bc-avatar-6-bg);
+  color: var(--bc-avatar-6-fg);
+  font: var(--bc-weight-semibold) var(--bc-size-caption1) / 1 var(--bc-font-body);
+  text-transform: uppercase;
+  user-select: none;
+
+  // A real picture, from the address book or from Gravatar, laid over the
+  // initials rather than replacing them (§7.10) — so nothing moves when it
+  // arrives, and nothing is left behind if it fails to.
+  > img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+  }
+}
+
+// 20px, sized for a recipient pill (§4.1).
+.bc-avatar--xs {
+  width: var(--bc-s-20);
+  height: var(--bc-s-20);
+  font-size: 10px;
+}
+
+.bc-avatar--sm { width: 28px; height: 28px; }
+
+.bc-avatar--lg {
+  width: var(--bc-s-40);
+  height: var(--bc-s-40);
+  font-size: var(--bc-size-body1);
+}
+
+// 64px, the contact detail header (§4.5). Core's contactphoto object wraps its
+// <img> in this same element, so a contact with a picture covers the initials
+// and one without shows them through a transparent GIF.
+.bc-avatar--xl {
+  width: 64px;
+  height: 64px;
+  font-size: 22px;
+}
+
+@for $i from 1 through 6 {
+  .bc-avatar--#{$i} {
+    background: var(--bc-avatar-#{$i}-bg);
+    color: var(--bc-avatar-#{$i}-fg);
+  }
+}
+
+// -- Text inputs --------------------------------------------------------------
+// Fluent field: 1px accessible stroke all round, thicker brand underline on
+// focus (design "Inputs" inventory).
+.bc-input {
+  height: var(--bc-control-h);
+  padding: 0 var(--bc-s-8);
+  border: 1px solid var(--bc-stroke-accessible);
+  border-radius: var(--bc-radius-m);
+  background: var(--bc-bg-1);
+  color: var(--bc-fg-1);
+  @include bc-body1;
+
+  &:focus {
+    border-bottom-width: 2px;
+    border-bottom-color: var(--bc-brand-primary);
+  }
+
+  &[aria-invalid="true"] {
+    border-color: var(--bc-danger);
+    border-bottom-width: 2px;
+  }
+
+  &:disabled {
+    border-color: var(--bc-stroke-2);
+    background: var(--bc-bg-3);
+    color: var(--bc-fg-disabled);
+  }
+}
+
+// -- Labelled field -----------------------------------------------------------
+// One control with its caption above it. Used by the compose More panel, the
+// refine panel and the settings forms, so it takes whatever core emits inside
+// rather than a fixed element.
+.bc-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bc-s-4);
+
+  > label {
+    @include bc-caption1;
+    color: var(--bc-fg-3);
+  }
+
+  select,
+  input[type="text"] {
+    width: 100%;
+    height: var(--bc-control-h);
+    padding: 0 var(--bc-s-8);
+    border: 1px solid var(--bc-stroke-accessible);
+    border-radius: var(--bc-radius-m);
+    background: var(--bc-bg-1);
+    color: var(--bc-fg-1);
+    @include bc-body1;
+  }
+}
+
+// -- Checkbox / radio ---------------------------------------------------------
+// accent-color rather than a rebuilt control: it keeps the native element, so
+// the checkbox stays keyboard- and screen-reader-correct and still draws
+// sensibly under forced colors (§9).
+.bc-check {
+  display: flex;
+  align-items: center;
+  gap: var(--bc-s-8);
+  min-height: var(--bc-s-24);
+  @include bc-body1;
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    flex: none;
+    width: var(--bc-s-16);
+    height: var(--bc-s-16);
+    accent-color: var(--bc-brand-primary);
+  }
+}
+
+// -- Switch (§4.4) ------------------------------------------------------------
+// 32x18, brand when on. A real button with role="switch", built by ui.js where
+// the underlying state is a Roundcube command rather than a form field — the
+// per-filter enable in the Filters list is the one case.
+.bc-switch {
+  position: relative;
+  flex: none;
+  width: var(--bc-s-32);
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--bc-stroke-accessible);
+  border-radius: var(--bc-radius-circular);
+  background: var(--bc-bg-1);
+  cursor: pointer;
+  transition:
+    background-color var(--bc-dur-fast) var(--bc-ease-decel),
+    border-color var(--bc-dur-fast) var(--bc-ease-decel);
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: var(--bc-s-2);
+    width: 10px;
+    height: 10px;
+    border-radius: var(--bc-radius-circular);
+    background: var(--bc-stroke-accessible);
+    translate: 0 -50%;
+    transition:
+      left var(--bc-dur-fast) var(--bc-ease-decel),
+      background-color var(--bc-dur-fast) var(--bc-ease-decel);
+  }
+
+  &[aria-checked="true"] {
+    border-color: var(--bc-brand-primary);
+    background: var(--bc-brand-primary);
+
+    &::after {
+      left: calc(100% - 12px);
+      background: var(--bc-on-brand);
+    }
+  }
+
+  &:focus-visible { @include bc-focus-ring; }
+
+  &[aria-disabled="true"] {
+    border-color: var(--bc-stroke-2);
+    background: var(--bc-bg-3);
+    pointer-events: none;
+
+    &::after { background: var(--bc-fg-disabled); }
+  }
+}
+
+// -- Category chips (§8) ------------------------------------------------------
+// Always carries its text label — a dot alone is never the only signal (§8/§9).
+.bc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bc-s-4);
+  padding: var(--bc-s-2) var(--bc-s-8);
+  border-radius: var(--bc-radius-m);
+  @include bc-badge;
+  white-space: nowrap;
+}
+
+.bc-dot {
+  flex: none;
+  width: var(--bc-s-8);
+  height: var(--bc-s-8);
+  border-radius: var(--bc-radius-s);
+}
+
+@each $cat in important, infra, finance, qa, personal, waiting {
+  .bc-chip--#{$cat} {
+    background: var(--bc-cat-#{$cat}-tint);
+    color: var(--bc-cat-#{$cat}-fg);
+  }
+
+  .bc-dot--#{$cat} { background: var(--bc-cat-#{$cat}); }
+}
+
+// -- Dialogs (§2) -------------------------------------------------------------
+// Roundcube force-loads the jqueryui plugin (rcmail.php:114) and its dialogs are
+// jQuery UI ones. That plugin has no theme for this skin, so it falls back to
+// Elastic's stylesheet; these rules are loaded after it — styles.css is linked
+// below <roundcube:object name="links" /> — and restate the surface in Fluent.
+// Structure and behaviour stay jQuery UI's; only the appearance is ours.
+//
+// Compose is the first screen that raises one (discard, the missing-subject
+// prompt, the unsaved-changes prompt), which is why they land in this step.
+.ui-widget-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bc-bg-inverted);
+  opacity: 0.4;
+}
+
+.ui-dialog {
+  position: absolute;
+  max-width: calc(100vw - var(--bc-s-32));
+  padding: 0;
+  border: 1px solid var(--bc-stroke-2);
+  border-radius: var(--bc-radius-xl);
+  background: var(--bc-bg-1);
+  color: var(--bc-fg-1);
+  box-shadow: var(--bc-shadow-28);
+  @include bc-body1;
+}
+
+.ui-dialog .ui-dialog-titlebar {
+  display: flex;
+  align-items: center;
+  gap: var(--bc-s-8);
+  padding: var(--bc-s-16) var(--bc-s-24) var(--bc-s-8);
+  border: 0;
+  background: none;
+}
+
+.ui-dialog .ui-dialog-title {
+  flex: 1;
+  min-width: 0;
+  @include bc-subtitle1;
+}
+
+.ui-dialog .ui-dialog-titlebar-close {
+  @include bc-icon-btn(var(--bc-s-32));
+  flex: none;
+  color: var(--bc-fg-2);
+  // jQuery UI puts the accessible name in a nested span it also hides; the
+  // glyph itself comes from the theme's sprite, which is replaced here.
+  font-size: 0;
+
+  &::before {
+    content: "\00d7";
+    font: var(--bc-weight-regular) var(--bc-size-sub1) / 1 var(--bc-font-body);
+  }
+
+  &:hover { background: var(--bc-bg-4); }
+  &:focus-visible { @include bc-focus-ring; }
+
+  .ui-icon,
+  .ui-button-icon-space { display: none; }
+}
+
+.ui-dialog .ui-dialog-content {
+  padding: 0 var(--bc-s-24) var(--bc-s-16);
+  background: none;
+  color: inherit;
+  @include bc-body1;
+
+  &.iframe { padding: 0; }
+}
+
+.ui-dialog .ui-dialog-buttonpane {
+  margin: 0;
+  padding: var(--bc-s-8) var(--bc-s-24) var(--bc-s-16);
+  border: 0;
+  background: none;
+}
+
+.ui-dialog .ui-dialog-buttonset {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--bc-s-8);
+
+  // Reverse so the primary reads last, as Fluent dialogs do; simple_dialog
+  // emits it first (app.js:8309).
+  flex-direction: row-reverse;
+}
+
+.ui-dialog .ui-dialog-buttonset button {
+  @extend .bc-btn;
+  @extend .bc-btn--secondary;
+}
+
+// simple_dialog marks the affirmative button .mainaction, whatever its label.
+.ui-dialog .ui-dialog-buttonset button.mainaction {
+  @extend .bc-btn--primary;
+}
+
+// ... except where that action destroys something.
+.ui-dialog .ui-dialog-buttonset button.mainaction.delete,
+.ui-dialog .ui-dialog-buttonset button.mainaction.discard {
+  background: var(--bc-danger);
+
+  &:hover { background: var(--bc-danger-fg); }
+}
+
+// -- Empty states (§12 step 8) ------------------------------------------------
+// One shape for every "there is nothing here": the empty list, a search with no
+// matches, the reading pane before a message is chosen, and the error page.
+// Icon, title, one line of guidance, optional action — no illustration, so
+// nothing to redraw for dark or high contrast.
+.bc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--bc-s-8);
+  max-width: 40ch;
+  margin: auto;
+  padding: var(--bc-s-40) var(--bc-s-24);
+  text-align: center;
+}
+
+.bc-empty__icon {
+  width: var(--bc-s-32);
+  height: var(--bc-s-32);
+  margin-bottom: var(--bc-s-4);
+  fill: currentColor;
+  color: var(--bc-fg-3);
+}
+
+.bc-empty__title {
+  margin: 0;
+  @include bc-body1-strong;
+  color: var(--bc-fg-1);
+}
+
+.bc-empty__text {
+  margin: 0;
+  @include bc-body1;
+  color: var(--bc-fg-3);
+
+  &:empty { display: none; }
+}
+
+.bc-empty > .bc-btn { margin-top: var(--bc-s-8); }
+
+// The error page is a whole screen rather than a pane, so it gets the display
+// face and the room to go with it.
+.bc-empty--page {
+  gap: var(--bc-s-12);
+
+  .bc-empty__icon {
+    width: var(--bc-s-40);
+    height: var(--bc-s-40);
+    color: var(--bc-danger);
+  }
+
+  .bc-empty__title { @include bc-subtitle1; }
+}
+
+.bc-errorpage {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: var(--bc-s-24);
+}
+
+// -- Toasts (§2) --------------------------------------------------------------
+// display_message() appends <div class="<type> content"> into the "message" gui
+// object; the container is ours, each notice inside it is core's.
+.bc-toasts {
+  position: fixed;
+  right: var(--bc-s-16);
+  bottom: var(--bc-s-16);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bc-s-8);
+  width: min(360px, calc(100vw - var(--bc-s-32)));
+  pointer-events: none;
+}
+
+.bc-toasts > div {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--bc-s-8);
+  padding: var(--bc-s-12) 14px;
+  border: 1px solid var(--bc-stroke-2);
+  border-radius: var(--bc-radius-l);
+  background: var(--bc-bg-1);
+  color: var(--bc-fg-1);
+  box-shadow: var(--bc-shadow-16);
+  @include bc-body1;
+  cursor: pointer;
+  pointer-events: auto;
+
+  // Left bar in the status colour — the icon ui.js adds carries the same
+  // meaning, so colour is never the only signal (§9).
+  border-left: 3px solid var(--bc-stroke-1);
+
+  .bc-icon { flex: none; }
+}
+
+.bc-toasts > div.error,
+.bc-toasts > div.warning {
+  border-left-color: var(--bc-danger);
+
+  .bc-icon { color: var(--bc-danger); }
+}
+
+.bc-toasts > div.confirmation {
+  border-left-color: var(--bc-success);
+
+  .bc-icon { color: var(--bc-success); }
+}
+
+.bc-toasts > div.loading,
+.bc-toasts > div.uploading {
+  border-left-color: var(--bc-brand-primary);
+  cursor: default;
+
+  .bc-icon { color: var(--bc-brand-primary); }
+}

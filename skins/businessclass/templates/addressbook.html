@@ -1,0 +1,195 @@
+<roundcube:include file="/templates/includes/header.html" />
+
+<!-- Contacts (BUILD.md §4.5): address books 200 · contact list 300 · detail.
+
+     The detail pane is core's contentframe, as on the Settings screens, so the
+     contact itself is contact.html loaded into an iframe. That is why §4.5's
+     Edit / Compose / Export / Delete toolbar lives out here rather than in the
+     frame: all four act on the parent's list selection, and app.js enables and
+     disables them from contactlist_select(). A copy inside the frame would have
+     no list to read. -->
+<div id="layout" class="bc-shell bc-shell--contacts">
+	<roundcube:include file="/templates/includes/menu.html" />
+
+	<!-- Address books, their groups, and saved searches. One treelist widget over
+	     ul > li.addressbook[.selected][.readonly] > a, with ul.groups >
+	     li.contactgroup nested under a book and div.treetoggle for the twisty —
+	     the same shape as the mail folder tree, so it reuses .bc-folderlist. -->
+	<nav id="layout-sidebar" class="bc-folders bc-directory"
+		aria-label="<roundcube:label name='addressbook' />">
+
+		<div class="bc-folders__compose">
+			<roundcube:button command="add" type="link" label="newcontact" title="newcontact"
+				class="bc-btn bc-btn--primary bc-btn--block" innerclass="bc-btn__label"
+				data-bc-icon="person_add" />
+		</div>
+
+		<div class="bc-directory__head">
+			<h2 id="bc-label-directory" class="bc-folders__section"><roundcube:label name="bc_addressbooks" /></h2>
+
+			<!-- Group and saved-search actions. §4.5 gives them no home and nothing
+			     else can reach them, so they sit behind one overflow button beside
+			     the section label. Each item is a roundcube:button, which leaves
+			     core owning when it is available: group-rename and group-delete
+			     only light up with a group selected, search-delete with a saved
+			     search, search-create with a search running. -->
+			<div class="bc-popover__anchor">
+				<button type="button" id="bc-group-more" class="bc-iconbtn bc-iconbtn--sm"
+					aria-haspopup="true" aria-expanded="false" aria-controls="bc-group-menu"
+					title="<roundcube:label name='arialabelabookgroupoptions' />">
+					<span class="voice"><roundcube:label name="arialabelabookgroupoptions" /></span>
+					<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_more_horizontal_20_regular" /></svg>
+				</button>
+
+				<div id="bc-group-menu" class="bc-popover bc-popover--form" role="group"
+					aria-labelledby="bc-group-more" hidden>
+					<roundcube:button command="group-create" type="link"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="addgroup" title="newgroup" data-bc-icon="people_add" />
+					<roundcube:button command="group-rename" type="link"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="grouprename" title="grouprename" data-bc-icon="edit" />
+					<roundcube:button command="search-create" type="link"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="searchsave" title="searchsave" data-bc-icon="search" />
+					<div class="bc-popover__sep" role="separator"></div>
+					<roundcube:button command="group-delete" type="link"
+						class="bc-popover__action bc-popover__action--danger" innerclass="bc-btn__label"
+						label="groupdelete" title="groupdelete" data-bc-icon="delete" />
+					<roundcube:button command="search-delete" type="link"
+						class="bc-popover__action bc-popover__action--danger" innerclass="bc-btn__label"
+						label="searchdelete" title="searchdelete" data-bc-icon="delete" />
+					<roundcube:container name="groupoptions" id="bc-group-menu" />
+				</div>
+			</div>
+		</div>
+
+		<div class="bc-folders__scroll bc-scroll">
+			<roundcube:object name="directorylist" id="directorylist" class="bc-folderlist bc-directory__books"
+				aria-labelledby="bc-label-directory" />
+
+			<!-- Hidden until there is something under it: savedsearchlist always
+			     emits its <ul>, empty or not, and a heading over nothing reads as a
+			     bug. ui.js unhides this when the list has rows; without JS the
+			     searches are simply listed unlabelled. -->
+			<div id="bc-savedsearches" hidden>
+				<div class="bc-folders__divider" role="separator"></div>
+				<h2 id="bc-label-savedsearches" class="bc-folders__section"><roundcube:label name="savedsearches" /></h2>
+			</div>
+			<roundcube:object name="savedsearchlist" id="savedsearchlist" class="bc-folderlist bc-directory__searches"
+				aria-labelledby="bc-label-savedsearches" />
+		</div>
+	</nav>
+
+	<div id="layout-list" class="bc-list">
+		<div class="bc-pane__head">
+			<!-- Core rewrites this as you move between books and into a group, and
+			     puts the "up one level" affordance in it, so it is the pane title
+			     rather than a static label. -->
+			<roundcube:object name="addresslisttitle" tag="h1" id="rcmabooklisttitle"
+				class="bc-pane__title" label="contacts" />
+
+			<roundcube:button command="import" type="link" label="import" title="importcontacts"
+				class="bc-iconbtn" innerclass="voice" data-bc-icon="arrow_upload" />
+			<roundcube:button command="advanced-search" type="link" label="search" title="advsearch"
+				class="bc-iconbtn" innerclass="voice" data-bc-icon="search" />
+		</div>
+
+		<h2 id="bc-label-contactslist" class="voice"><roundcube:label name="contacts" /></h2>
+		<div id="contacts-content" class="bc-list__scroll bc-scroll">
+			<!-- Rows are <tr><td class="name"> plus an empty td.action; the 32px
+			     avatar and the email line under the name are added by ui.js from
+			     the row data core sends with add_contact_row. role="listbox" cannot
+			     ride on the object attributes — html_table drops it (html.php:737) —
+			     so ui.js sets it before the widget initialises. -->
+			<roundcube:object name="addresslist" id="contacts-table" class="bc-recordlist bc-contactlist"
+				noheader="true" aria-labelledby="bc-label-contactslist" />
+		</div>
+
+		<roundcube:include file="/templates/includes/pagenav.html" />
+	</div>
+
+	<main id="layout-content" class="bc-reading"
+		aria-label="<roundcube:label name='contactproperties' />">
+
+		<div class="bc-pane__head" role="toolbar" aria-label="<roundcube:label name='arialabeltoolbar' />">
+			<roundcube:button command="edit" type="link" label="edit" title="editcontact"
+				class="bc-btn bc-btn--secondary" innerclass="bc-btn__label" data-bc-icon="edit" />
+			<!-- id, because ui.js has to find this one: compose is enabled for every
+			     task, so core never dims it, yet here it needs a selection to
+			     compose to. -->
+			<roundcube:button command="compose" type="link" id="bc-contact-compose"
+				label="compose" title="composeto"
+				class="bc-btn bc-btn--secondary" innerclass="bc-btn__label" data-bc-icon="mail" />
+
+			<span class="bc-pane__spacer"></span>
+
+			<roundcube:button command="export-selected" type="link" label="export" title="exportvcards"
+				class="bc-iconbtn" innerclass="voice" data-bc-icon="arrow_download" />
+			<roundcube:button command="delete" type="link" label="delete" title="deletecontact"
+				class="bc-iconbtn bc-iconbtn--danger" innerclass="voice" data-bc-icon="delete" />
+
+			<!-- The rest of what core registers for a contact. Without this they
+			     would be unreachable, since §4.5 names only four. -->
+			<div class="bc-popover__anchor">
+				<button type="button" id="bc-contact-more" class="bc-iconbtn"
+					aria-haspopup="true" aria-expanded="false" aria-controls="bc-contact-menu"
+					title="<roundcube:label name='arialabelmorecontactactions' />">
+					<span class="voice"><roundcube:label name="arialabelmorecontactactions" /></span>
+					<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_more_horizontal_20_regular" /></svg>
+				</button>
+
+				<div id="bc-contact-menu" class="bc-popover bc-popover--form" role="group"
+					aria-labelledby="bc-contact-more" hidden>
+					<roundcube:button command="print" type="link"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="print" title="printcontact" data-bc-icon="print" />
+					<roundcube:if condition="env:qrcode" />
+					<roundcube:button command="qrcode" type="link"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="qrcode" title="qrcode" data-bc-icon="qr_code" />
+					<roundcube:endif />
+					<roundcube:button command="export" type="link"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="exportall" title="exportvcards" data-bc-icon="arrow_download" />
+					<div class="bc-popover__sep" role="separator"></div>
+					<roundcube:button command="group-assign-selected" type="link"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="groupassign" title="groupassign" data-bc-icon="people_add" />
+					<roundcube:button command="group-remove-selected" type="link"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="groupremove" title="groupremove" data-bc-icon="people_prohibited" />
+					<roundcube:if condition="env:contact_move_enabled" />
+					<roundcube:button command="move" type="link"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="moveto" title="moveto" data-bc-icon="folder_arrow_right" />
+					<roundcube:endif />
+					<roundcube:if condition="env:contact_copy_enabled" />
+					<roundcube:button command="copy" type="link"
+						class="bc-popover__action" innerclass="bc-btn__label"
+						label="copyto" title="copyto" data-bc-icon="copy" />
+					<roundcube:endif />
+					<roundcube:container name="contactmenu" id="bc-contact-menu" />
+				</div>
+			</div>
+		</div>
+
+		<roundcube:object name="contentframe" id="contact-frame" class="bc-reading__frame"
+			src="env:blankpage" title="contactproperties" />
+
+		<div class="bc-empty bc-reading__empty">
+			<svg class="bc-empty__icon" aria-hidden="true"><use href="#ic_fluent_contact_card_20_regular" /></svg>
+			<p class="bc-empty__title"><roundcube:label name="bc_nocontactselected" /></p>
+			<p class="bc-empty__text"><roundcube:label name="bc_pickcontact" /></p>
+		</div>
+	</main>
+</div>
+
+<!-- ui.js needs these client-side: the second line of a group row, and the two
+     empty-list states. -->
+<roundcube:add_label name="group" />
+<roundcube:add_label name="nocontactsfound" />
+<roundcube:add_label name="bc_nocontacts" />
+<roundcube:add_label name="bc_noresults" />
+
+<roundcube:include file="/templates/includes/footer.html" />
