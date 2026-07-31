@@ -16,6 +16,22 @@
 // not carry over: the brand accent is applied as an inline style on <html> by
 // includes/header.html, and this document has no such element — so links here
 // use the default accent rather than the admin's.
+//
+// THIS DOCUMENT IS ALWAYS PAPER, and that is a decision, not an oversight
+// (§12 step 12, D-69). It is the compose editor's surface, and composing is
+// WYSIWYG: what the sender types is what the recipient reads, on white. A dark
+// editor means writing light text into a message that will be delivered dark on
+// white — and a sender who sets a text colour to suit the editor has made the
+// mail worse for everyone who receives it. The chrome around the editor still
+// follows the theme; only the sheet the message is drawn on does not.
+//
+// It holds structurally rather than by convention: every theme block in
+// _tokens.scss is keyed on an attribute of <html> — [data-bc-theme="dark"], or
+// [data-bc-theme="system"] inside a media query — and rcmail_html_page::write()
+// emits a bare <html> with no attributes at all. There is nothing for those
+// selectors to match. tools/verify/themecheck.mjs asserts that, so a future
+// theme block written against a bare :root fails the build instead of quietly
+// darkening every compose window.
 // =============================================================================
 
 @use "tokens" as *;

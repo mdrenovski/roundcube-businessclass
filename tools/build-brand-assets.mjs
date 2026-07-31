@@ -96,7 +96,12 @@ function source(name) {
  * carry coordinates, so there is no way to hit one by accident.
  */
 function trim(svg) {
-  const out = svg.replace(/<rect class="[^"]*"\s+width="2500"\s+height="1500"\s*\/>/, '');
+  // The class is optional: the "on BLUE" file carries class="cls-2" and takes its
+  // navy from the stylesheet, while the "on BLACK" one is `<rect width="2500"
+  // height="1500"/>` with no class at all and falls back to SVG's default black
+  // fill. Requiring the class made the guard reject the second file — which is
+  // the guard working, and the regex being too narrow.
+  const out = svg.replace(/<rect(?:\s+class="[^"]*")?\s+width="2500"\s+height="1500"\s*\/>/, '');
   if (out === svg && /width="2500"/.test(svg)) {
     throw new Error('a 2500-wide rect is present but did not match the backdrop shape');
   }
@@ -164,14 +169,32 @@ const assets = [
   // login lockup and a separate file on purpose: the two slots are independent,
   // and an install re-pointing one should not silently move the other.
   //
-  // The positive lockup, not the reversed one — .bc-rail is --bc-bg-3, a light
-  // neutral, not the accent. (See docs/STATUS.md for the dark-theme caveat: this
-  // asset cannot follow data-bc-theme, because an SVG loaded through <img> cannot
-  // see the host document.)
+  // The positive lockup, not the reversed one — the rail is a light neutral, not
+  // the accent. In DARK the rail is near-black and this artwork measures 1.50:1
+  // against it, which is why the two reversed files below exist.
   ['JH_logo_HORIZONTAL_BLUE_ORANGE.svg', 'logo-jethost-rail.svg',
     'Positive lockup for the foot of the app rail, which _rail.scss rotates 90deg\n' +
     '     to run bottom to top. The rail is a light neutral, not the accent, so this\n' +
     '     is the same artwork as the login card rather than the reversed lockup.'],
+
+  // The dark pair (step 12, D-67). An SVG loaded through <img> cannot see the
+  // host document, so it cannot follow data-bc-theme itself — ui.js swaps the
+  // src instead, driven by logo.rail_dark / logo.login_dark in branding.json.
+  //
+  // The kit's own "on BLACK" variant is the right source rather than a recolour
+  // of the positive one: it is the reversed lockup as the brandbook draws it,
+  // white wordmark with the orange bars kept, and the backdrop comes off for the
+  // same reason it does on the header asset — the surface is already there.
+  ['JH_logo_HORIZONTAL_WHITE_ORANGE on_BLACK.svg', 'logo-jethost-rail-dark.svg',
+    'Reversed lockup for the app rail in the dark and high-contrast themes, where\n' +
+    '     the positive one measures 1.50:1 on the rail and is effectively invisible.\n' +
+    '     White on that surface measures 15.3:1.'],
+
+  ['JH_logo_HORIZONTAL_WHITE_ORANGE on_BLACK.svg', 'logo-jethost-login-dark.svg',
+    'Reversed lockup for the login card in dark, where the positive one measures\n' +
+    '     1.13:1 against the card and is gone. A separate file from the rail asset\n' +
+    '     even though the artwork is identical, because the two slots are\n' +
+    '     independent and re-pointing one must not silently move the other.'],
 ];
 
 for (const [src, dest, note] of assets) {

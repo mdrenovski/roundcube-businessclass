@@ -7,22 +7,109 @@
 
 // -- Admin-supplied accent -----------------------------------------------------
 // The admin sets ONE hex in skins/businessclass/branding.json ("accent").
-// header.html injects it as an inline style on <html>:  --bc-brand-primary: #XXXXXX
-// The derived steps below are computed at runtime with color-mix() so no Sass
-// rebuild is needed when the accent changes.
+// header.html injects it as inline properties on <html>:
+//
+//     --bc-accent            the brand hex, untouched
+//     --bc-accent-fill       the same, nudged only if neither black nor white
+//                            reaches AA on it (a mid-grey brand is the only case)
+//     --bc-on-accent         black or white, whichever reads on that fill
+//     --bc-accent-text       the accent made readable as TEXT on #FFFFFF
+//     --bc-accent-text-dark  ... and on #292929
+//
+// All four derivations are computed server-side (businessclass_prefs), because
+// every one of them is a contrast measurement and CSS cannot measure. That is
+// also what lets an admin pick #FFD966 without shipping a 1.37:1 link: the hue
+// is kept and the lightness walks toward the far end until AA is met.
+//
+// Two brand tokens, and the difference matters when the accent is pale:
+//
+//   --bc-brand-primary  a FILL that --bc-on-brand text sits on: the header band,
+//                       the primary button, a checked checkbox.
+//   --bc-brand-fg       anything that has to be SEEN rather than sat on: links,
+//                       the unread bar, tab underlines, accent-color, the
+//                       selected-task indicator, drop outlines.
+//
+// A pale accent is a perfectly good fill with black on it, and an unreadable
+// link. Reaching for --bc-brand-primary where --bc-brand-fg is meant is the one
+// mistake this split exists to prevent, and themecheck.mjs measures both.
+//
+// **The inline properties are raw input, never used directly.** Everything the
+// skin paints with goes through --bc-brand-* below, which the dark and
+// high-contrast themes then restate. This indirection is the whole point: an
+// inline style on <html> outranks every stylesheet rule, so while
+// --bc-brand-primary *was* the inline property, no theme could override it.
+// Dark kept the admin's bright band and flipped its text to black (3.90:1 on the
+// default accent, 1.82:1 on a navy one), and high contrast never got its black
+// band at all. See docs/DECISIONS.md D-66, which closes D-58.
+//
+// The derived steps are computed at runtime with color-mix() so no Sass rebuild
+// is needed when the accent changes.
 $brand-default: #0F6CBD;
+$brand-default-dark: #479EF5;
+
+// The five inline properties are REGISTERED, and that is a robustness fix rather
+// than a style choice.
+//
+// businessclass_prefs is required, but a skin should degrade rather than fall
+// apart when it is missing — and when it is, header.html renders
+// `style="--bc-accent: ; ..."`. An *empty* custom property is perfectly valid
+// CSS: it holds the empty token stream, so `var(--bc-accent, #0F6CBD)` does not
+// take its fallback, it substitutes nothing, and every declaration downstream
+// becomes invalid at computed-value time. Measured: the header band came out
+// `rgba(0, 0, 0, 0)`. That was already true of the single inline property this
+// replaces; it is worth fixing rather than spreading across five.
+//
+// Registering them with a syntax and an initial value changes the failure: a
+// value that does not parse as a <color> — including the empty one — falls back
+// to initial-value instead of poisoning everything that reads it. A browser
+// without @property support simply ignores these blocks and behaves as before.
+@property --bc-accent {
+  syntax: "<color>"; inherits: true; initial-value: #0F6CBD;
+}
+@property --bc-accent-fill {
+  syntax: "<color>"; inherits: true; initial-value: #0F6CBD;
+}
+@property --bc-on-accent {
+  syntax: "<color>"; inherits: true; initial-value: #FFFFFF;
+}
+@property --bc-accent-text {
+  syntax: "<color>"; inherits: true; initial-value: #0F6CBD;
+}
+// The dark ramp's own default, not the light one: this is the accent already
+// walked toward white to clear AA on #292929, and #0F6CBD there is 3.09:1.
+@property --bc-accent-text-dark {
+  syntax: "<color>"; inherits: true; initial-value: #479EF5;
+}
 
 :root {
+  color-scheme: light;
+
   // Brand ---------------------------------------------------------------------
-  --bc-brand-primary: #{$brand-default};
+  --bc-brand-primary: var(--bc-accent-fill, #{$brand-default});
   --bc-brand-hover:        color-mix(in srgb, var(--bc-brand-primary) 88%, black);
   --bc-brand-pressed:      color-mix(in srgb, var(--bc-brand-primary) 76%, black);
-  --bc-brand-fg:           var(--bc-brand-primary);          // links, selected icon
-  --bc-brand-fg-strong:    color-mix(in srgb, var(--bc-brand-primary) 76%, black);
-  --bc-brand-tint-selected:color-mix(in srgb, var(--bc-brand-primary) 10%, white);
-  --bc-brand-tint-strong:  color-mix(in srgb, var(--bc-brand-primary) 18%, white);
-  --bc-brand-stroke:       color-mix(in srgb, var(--bc-brand-primary) 32%, white);
-  --bc-on-brand:           #FFFFFF;
+  --bc-brand-fg:           var(--bc-accent-text, #{$brand-default});   // links, indicators
+  --bc-brand-fg-strong:    color-mix(in srgb, var(--bc-brand-fg) 76%, black);
+  // The tints stay derived from the raw accent: they are 10–32% washes and the
+  // brand's own hue is what they are for. What sits ON them is --bc-brand-fg-strong.
+  --bc-brand-tint-selected:color-mix(in srgb, var(--bc-accent, #{$brand-default}) 10%, white);
+  --bc-brand-tint-strong:  color-mix(in srgb, var(--bc-accent, #{$brand-default}) 18%, white);
+  --bc-brand-stroke:       color-mix(in srgb, var(--bc-accent, #{$brand-default}) 32%, white);
+  --bc-on-brand:           var(--bc-on-accent, #FFFFFF);
+  // Text sitting ON a brand tint — a selected row, an active chip, a pressed
+  // toggle. §9 already treats this as its own case ("never use brand for body
+  // text on tinted rows; use fg-strong there"); it just never had a token, so
+  // the tint and the text on it could be themed apart. High contrast is where
+  // that bit: it paints the selected row #FFFF00 and left the text --bc-fg-1,
+  // which is white — 1.07:1, and the row a keyboard user is standing on.
+  --bc-fg-on-tint:         var(--bc-brand-fg-strong);
+
+  // Header band (§3.2) --------------------------------------------------------
+  // Its own three tokens rather than reaching for the brand ones directly,
+  // because dark does not paint this band with the accent at all — see bc-dark.
+  --bc-header-bg:   var(--bc-brand-primary);
+  --bc-header-fg:   var(--bc-on-brand);
+  --bc-header-rule: transparent;   // light needs no rule: the band is the edge
 
   // Neutrals (light) ----------------------------------------------------------
   --bc-bg-1: #FFFFFF;   // surfaces: list, reading pane, dialogs
@@ -41,6 +128,16 @@ $brand-default: #0F6CBD;
   --bc-stroke-2: #E0E0E0;   // pane dividers
   --bc-stroke-3: #F0F0F0;   // row dividers
   --bc-stroke-accessible: #616161; // input rest border (3:1)
+
+  // The message-body sheet (§3.6) ---------------------------------------------
+  // The surface a *sender's* HTML is painted on, which is not the same decision
+  // as the surface the app is painted on. In light they coincide. In dark they
+  // need not: the body follows the theme by default (Outlook's behaviour, chosen
+  // 2026-07-31), and the reading pane's sheet toggle flips this one pair of
+  // tokens to paper for people whose mail does not survive it — see D-68.
+  --bc-sheet-bg: var(--bc-bg-1);
+  --bc-sheet-fg: var(--bc-fg-1);
+  --bc-sheet-stroke: var(--bc-stroke-2);
 
   // Status --------------------------------------------------------------------
   --bc-danger: #C50F1F;
@@ -149,13 +246,49 @@ $brand-default: #0F6CBD;
 // Applied via [data-bc-theme="dark"] on <html> (user pref) or the media query
 // below when the pref is "system". Neutrals invert; brand lightens.
 @mixin bc-dark {
-  --bc-brand-primary: #479EF5;
-  --bc-brand-hover:   #62ABF5;
-  --bc-brand-pressed: #2886DE;
-  --bc-brand-tint-selected: #0C3B5E;
-  --bc-brand-tint-strong:   #0F548C;
-  --bc-brand-stroke: #0F6CBD;
+  // Tells the browser this page is dark, which is not something a stylesheet can
+  // otherwise say. Without it the scrollbars, <select> drop-downs, date pickers
+  // and the default canvas behind an iframe all stay light-on-white inside a
+  // dark app — none of which the skin can reach with CSS.
+  color-scheme: dark;
+
+  // Fluent's dark ramp lightens the brand. It is DERIVED from the admin's accent
+  // rather than hard-coded: this block used to pin Microsoft's #479EF5, so any
+  // client who set their own accent lost their brand entirely the moment a user
+  // switched to dark.
+  //
+  // --bc-accent-text-dark is the accent walked toward white until it reaches AA
+  // on #292929 — computed per accent by the server, so this is not a magic
+  // percentage that happens to work for blue.
+  --bc-brand-primary: var(--bc-accent-text-dark, #479EF5);
+  --bc-brand-fg:      var(--bc-accent-text-dark, #479EF5);
+  --bc-brand-hover:   color-mix(in srgb, var(--bc-brand-primary) 80%, white);
+  --bc-brand-pressed: color-mix(in srgb, var(--bc-brand-primary) 80%, black);
+  // On dark, "strong" means lighter, not darker. The :root rule mixes toward
+  // black, which in dark mode drove this *down* into the background — the token
+  // meant for text on a tinted row was the least readable thing on it.
+  --bc-brand-fg-strong:     color-mix(in srgb, var(--bc-brand-fg) 70%, white);
+  // Mixed from --bc-brand-primary rather than the raw accent, and that is the
+  // whole trick: brand-primary has already been normalised by the server to a
+  // known lightness on this surface, so 25% and 40% of it land in the same place
+  // whatever hue the admin picked. Mixing the raw accent instead made the tints
+  // track the brand's lightness — a pale yellow gave a tint-strong so light that
+  // white row text fell to 3.74:1.
+  --bc-brand-tint-selected: color-mix(in srgb, var(--bc-brand-primary) 25%, black);
+  --bc-brand-tint-strong:   color-mix(in srgb, var(--bc-brand-primary) 40%, black);
+  --bc-brand-stroke:        color-mix(in srgb, var(--bc-accent, #{$brand-default}) 80%, white);
+  // Black on the dark brand, which is a light colour by construction here.
   --bc-on-brand: #000000;
+
+  // The header band is a neutral surface here, not the accent (D-66). Fluent 2
+  // and Outlook both drop the coloured band in dark, and it is the only shape
+  // that is readable for every accent an admin might set: a band painted with an
+  // arbitrary hex has no text colour that is guaranteed to reach 4.5:1 on it.
+  // The brand does not disappear — it becomes the 2px rule under the band, plus
+  // every accented control in the app below.
+  --bc-header-bg:   var(--bc-bg-2);
+  --bc-header-fg:   var(--bc-fg-1);
+  --bc-header-rule: var(--bc-brand-primary);
 
   --bc-bg-1: #292929;
   --bc-bg-2: #1F1F1F;
@@ -184,6 +317,22 @@ $brand-default: #0F6CBD;
   --bc-cat-personal-tint:  #2B1638; --bc-cat-personal-fg:  #C4A0E8;
   --bc-cat-waiting-tint:   #383838; --bc-cat-waiting-fg:   #D6D6D6;
 
+  // The category *dots* keep their light-theme hue deliberately — the hue is the
+  // signal, and a person's "finance" stays amber in both themes. On this surface
+  // none of the six reaches 3:1 on its own (1.56:1 for personal), so what makes
+  // them visible is the 1px -fg ring in _controls.scss, not the fill.
+
+  // Avatars. The light ramp is a pale fill with dark ink; unchanged, that fill
+  // is the brightest thing in a dark message list and one of them appears on
+  // every row. Inverted to a dark fill with light ink, each pair keeping its hue
+  // so a person's colour is still the same colour across themes (§3.5).
+  --bc-avatar-1-bg: #0C3B5E; --bc-avatar-1-fg: #A9D3F2;
+  --bc-avatar-2-bg: #2B1638; --bc-avatar-2-fg: #C4A0E8;
+  --bc-avatar-3-bg: #143A14; --bc-avatar-3-fg: #9FD89F;
+  --bc-avatar-4-bg: #3B1B1F; --bc-avatar-4-fg: #E9A2A9;
+  --bc-avatar-5-bg: #3D2F00; --bc-avatar-5-fg: #EBD07A;
+  --bc-avatar-6-bg: #383838; --bc-avatar-6-fg: #D6D6D6;
+
   --bc-focus-ring-color: #FFFFFF;
   --bc-shadow-2:  0 1px 2px rgba(0,0,0,.28), 0 0 2px rgba(0,0,0,.22);
   --bc-shadow-4:  0 2px 4px rgba(0,0,0,.28), 0 0 2px rgba(0,0,0,.22);
@@ -193,33 +342,102 @@ $brand-default: #0F6CBD;
 
 html[data-bc-theme="dark"] { @include bc-dark; }
 
+// "System" must advertise BOTH schemes, or the browser paints its own widgets
+// for one of them and gets it wrong half the time. This is outside the media
+// query on purpose: color-scheme: light dark is the standing declaration, and
+// the media query below only supplies the token values.
+html[data-bc-theme="system"] { color-scheme: light dark; }
+
 @media (prefers-color-scheme: dark) {
   html[data-bc-theme="system"] { @include bc-dark; }
+}
+
+// -- The message-body sheet ----------------------------------------------------
+// Set by the reading pane's sheet toggle and persisted as a user preference
+// (businessclass_msgsheet). The default is "theme" — a sender's HTML follows the
+// dark theme like everything else, which is what Outlook does.
+//
+// Outlook can afford that default because it rewrites the sender's CSS
+// server-side, inverting their colours before the mail is ever painted. Nothing
+// here can: the body is untrusted and stays inside Roundcube's sanitiser (§3.6),
+// so all a skin can do is set the surface behind it. Mail that names a text
+// colour but no background — common in newsletters — therefore comes out dark on
+// dark, and this is the one click that fixes it. See D-68.
+html[data-bc-sheet="light"] {
+  --bc-sheet-bg: #FFFFFF;
+  --bc-sheet-fg: #242424;
+  --bc-sheet-stroke: #E0E0E0;
 }
 
 // -- High contrast -------------------------------------------------------------
 // Two paths: the user pref [data-bc-theme="hc"] and the OS forced-colors mode.
 // Rules: pure black/white, every surface separated by a 1px currentColor border,
 // no tint-only signals, focus = 2px #1AEBFF, selection = #FFFF00 on #000.
+//
+// The accent is DROPPED here, deliberately and completely. High contrast exists
+// for people who need contrast; an admin's brand hex is exactly the thing that
+// cannot be trusted to provide it. Until step 12 this theme could not enforce
+// that — --bc-brand-primary was an inline style on <html> and outranked this
+// block, so an hc user got the admin's band with black text on it: 3.90:1 on the
+// default accent, 1.82:1 on a navy one. The accent is now --bc-accent, raw input
+// that this mixin simply declines to read.
 @mixin bc-hc {
+  color-scheme: dark;
+
   --bc-brand-primary: #1AEBFF;
   --bc-brand-hover: #1AEBFF;
   --bc-brand-pressed: #1AEBFF;
   --bc-brand-fg: #1AEBFF;
+  --bc-brand-fg-strong: #1AEBFF;
+  // Yellow-on-black is the high-contrast convention for selection, and the text
+  // on it is black — not --bc-fg-1, which is white here.
   --bc-brand-tint-selected: #FFFF00;
   --bc-brand-tint-strong: #FFFF00;
+  --bc-fg-on-tint: #000000;
+  --bc-brand-stroke: #FFFFFF;
   --bc-on-brand: #000000;
 
+  --bc-header-bg: #000000;
+  --bc-header-fg: #FFFFFF;
+  --bc-header-rule: #FFFFFF;
+
   --bc-bg-1: #000000; --bc-bg-2: #000000; --bc-bg-3: #000000; --bc-bg-4: #000000;
+  --bc-bg-inverted: #FFFFFF;
   --bc-fg-1: #FFFFFF; --bc-fg-2: #FFFFFF; --bc-fg-3: #FFFFFF;
   --bc-fg-disabled: #3FF23F;
+  --bc-fg-on-accent: #000000;
 
   --bc-stroke-1: #FFFFFF; --bc-stroke-2: #FFFFFF; --bc-stroke-3: #FFFFFF;
   --bc-stroke-accessible: #FFFFFF;
 
   --bc-danger: #FFFFFF; --bc-danger-tint: #000000; --bc-danger-fg: #FFFFFF;
-  --bc-success: #FFFFFF; --bc-success-tint: #000000;
-  --bc-warning: #FFFFFF; --bc-warning-tint: #000000;
+  --bc-danger-stroke: #FFFFFF;
+  --bc-success: #FFFFFF; --bc-success-tint: #000000; --bc-success-stroke: #FFFFFF;
+  --bc-warning: #FFFFFF; --bc-warning-tint: #000000; --bc-warning-fg: #FFFFFF;
+
+  // Category and avatar colour both stop carrying meaning here. Every chip
+  // already carries its label as text and every avatar its initials (§9), so
+  // flattening them to white-on-black loses nothing that was not also available
+  // to a screen reader. The dot survives as a white square: it still says "this
+  // row is categorised", the chip beside it still says which.
+  --bc-cat-important: #FFFFFF; --bc-cat-important-tint: #000000; --bc-cat-important-fg: #FFFFFF;
+  --bc-cat-infra:     #FFFFFF; --bc-cat-infra-tint:     #000000; --bc-cat-infra-fg:     #FFFFFF;
+  --bc-cat-finance:   #FFFFFF; --bc-cat-finance-tint:   #000000; --bc-cat-finance-fg:   #FFFFFF;
+  --bc-cat-qa:        #FFFFFF; --bc-cat-qa-tint:        #000000; --bc-cat-qa-fg:        #FFFFFF;
+  --bc-cat-personal:  #FFFFFF; --bc-cat-personal-tint:  #000000; --bc-cat-personal-fg:  #FFFFFF;
+  --bc-cat-waiting:   #FFFFFF; --bc-cat-waiting-tint:   #000000; --bc-cat-waiting-fg:   #FFFFFF;
+
+  --bc-avatar-1-bg: #000000; --bc-avatar-1-fg: #FFFFFF;
+  --bc-avatar-2-bg: #000000; --bc-avatar-2-fg: #FFFFFF;
+  --bc-avatar-3-bg: #000000; --bc-avatar-3-fg: #FFFFFF;
+  --bc-avatar-4-bg: #000000; --bc-avatar-4-fg: #FFFFFF;
+  --bc-avatar-5-bg: #000000; --bc-avatar-5-fg: #FFFFFF;
+  --bc-avatar-6-bg: #000000; --bc-avatar-6-fg: #FFFFFF;
+
+  // A sender's HTML is the one surface that is not ours to flatten, so the sheet
+  // stays black and the toggle still works. Sender colours that fail here are a
+  // sender problem; hc users who hit one have the same one click as everyone else.
+  --bc-sheet-bg: #000000; --bc-sheet-fg: #FFFFFF; --bc-sheet-stroke: #FFFFFF;
 
   --bc-focus-ring-color: #1AEBFF;
   --bc-shadow-2: none; --bc-shadow-4: none; --bc-shadow-8: none;
@@ -227,13 +445,6 @@ html[data-bc-theme="dark"] { @include bc-dark; }
 }
 
 html[data-bc-theme="hc"] { @include bc-hc; }
-
-@media (forced-colors: active) {
-  :root { @include bc-hc; }
-  // Let the OS own colors; keep structure visible.
-  * { forced-color-adjust: auto; }
-  .bc-surface, .bc-popover, .bc-card { border: 1px solid CanvasText; }
-}
 
 // -- Print ---------------------------------------------------------------------
 // Monochrome, with the accent surviving on links only, so a printed URL still
@@ -247,12 +458,24 @@ html[data-bc-theme="hc"] { @include bc-hc; }
 //      plain text — which is what §9 requires of them on screen anyway, so
 //      nothing is lost by dropping the colour.
 //
-// --bc-brand-primary is deliberately NOT overridden: header.html writes it as an
-// inline style on <html>, which no stylesheet can beat, and it is what keeps
-// --bc-brand-fg — the link colour — accented.
+// --bc-brand-primary is deliberately NOT overridden, so --bc-brand-fg — the link
+// colour — stays accented on paper. Until step 12 it *could* not be overridden:
+// it was itself the inline style on <html>. That is no longer true (D-66), so
+// this is now a choice rather than a constraint, and it is the same choice.
+//
+// It does mean the accent survives print in whatever form the *theme* left it,
+// and dark leaves it lightened — a pale link on white paper. bc-print therefore
+// restates the light derivation below.
 $print-margin: 14mm;    // @page cannot read a custom property, so this is Sass
 
 @mixin bc-print {
+  color-scheme: light;
+
+  // Undo dark's lightened brand ramp: a link mixed 55% toward white is fine on
+  // #292929 and nearly gone on paper.
+  --bc-brand-primary: var(--bc-accent, #{$brand-default});
+  --bc-brand-fg-strong: color-mix(in srgb, var(--bc-brand-primary) 76%, black);
+
   --bc-bg-1: #FFFFFF;
   --bc-bg-2: #FFFFFF;
   --bc-bg-3: #FFFFFF;
@@ -296,6 +519,10 @@ $print-margin: 14mm;    // @page cannot read a custom property, so this is Sass
   --bc-avatar-4-bg: #FFFFFF; --bc-avatar-4-fg: #000000;
   --bc-avatar-5-bg: #FFFFFF; --bc-avatar-5-fg: #000000;
   --bc-avatar-6-bg: #FFFFFF; --bc-avatar-6-fg: #000000;
+
+  // Paper is the sheet, whatever the reader had on screen and whichever way they
+  // had the toggle set.
+  --bc-sheet-bg: #FFFFFF; --bc-sheet-fg: #000000; --bc-sheet-stroke: #C7C7C7;
 
   --bc-shadow-2: none; --bc-shadow-4: none; --bc-shadow-8: none;
   --bc-shadow-16: none; --bc-shadow-28: none;

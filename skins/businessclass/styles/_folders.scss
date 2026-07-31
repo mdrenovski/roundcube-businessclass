@@ -90,12 +90,12 @@
 // text. brand-fg-strong (not brand) because brand on a tinted row fails 4.5:1 (§9).
 .bc-folderlist li.selected > a {
   background: var(--bc-brand-tint-selected);
-  color: var(--bc-brand-fg-strong);
+  color: var(--bc-fg-on-tint);
   font-weight: var(--bc-weight-semibold);
 
   &::before { @include bc-brand-bar(calc(var(--bc-s-4) + var(--bc-s-2))); }
 
-  .bc-icon { color: var(--bc-brand-primary); }
+  .bc-icon { color: var(--bc-brand-fg); }
   .unreadcount { color: inherit; }
 }
 
@@ -110,7 +110,7 @@
 
 // Drag-over when a message is dropped onto a folder (§3.4).
 .bc-folderlist li.droptarget > a {
-  outline: 2px dashed var(--bc-brand-primary);
+  outline: 2px dashed var(--bc-brand-fg);
   outline-offset: -2px;
 }
 
@@ -183,7 +183,7 @@
   // behaving as (§8).
   &[aria-pressed="true"] {
     background: var(--bc-brand-tint-selected);
-    color: var(--bc-brand-fg-strong);
+    color: var(--bc-fg-on-tint);
     font-weight: var(--bc-weight-semibold);
   }
 }

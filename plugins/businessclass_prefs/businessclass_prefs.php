@@ -31,6 +31,7 @@ class businessclass_prefs extends rcube_plugin
     public $allowed_prefs = [
         'businessclass_theme',        // light | dark | system | hc
         'businessclass_density',      // comfortable | compact
+        'businessclass_sheet',        // theme | light — the message-body surface
         'businessclass_focused',      // Focused/Other tabs on/off
         'businessclass_folders_w',    // folder pane width, px
         'businessclass_list_w',       // message list width, px
@@ -41,6 +42,10 @@ class businessclass_prefs extends rcube_plugin
     private const DEFAULTS = [
         'theme' => 'system',
         'density' => 'comfortable',
+        // "theme": a sender's HTML sits on whatever surface the theme is using,
+        // which in dark means a dark one. Outlook's default, and chosen over the
+        // safer paper default on 2026-07-31. See docs/DECISIONS.md D-68.
+        'sheet' => 'theme',
         'accent' => '#0F6CBD',
         'product_name' => 'BusinessClass',
         'vendor' => 'JetHost.com',
@@ -850,7 +855,37 @@ class businessclass_prefs extends rcube_plugin
             $output->set_env('bc_mail_domain', $this->mail_domain($rcmail, $branding));
         }
 
-        $output->set_env('bc_accent', $this->sanitize_accent($branding['accent'] ?? null));
+        // The accent, and the only two colours that can legibly sit on it.
+        //
+        // header.html writes both as inline custom properties on <html>. The
+        // second cannot be derived in CSS — there is no way to ask a stylesheet
+        // "is this colour light or dark", and that question decides whether text
+        // drawn on the band is readable at all. So it is answered here, once,
+        // beside the validation the hex already goes through.
+        // Four properties, not one, because "the brand colour" answers four
+        // different questions and only the first has the same answer every time:
+        //
+        //   bc_accent          the brand hex, untouched. The header band in light.
+        //   bc_accent_fill     the same, nudged only if neither black nor white
+        //                      reaches AA on it. What a primary button is filled
+        //                      with, and what its label is guaranteed against.
+        //   bc_on_accent       black or white — whichever reads on that fill.
+        //   bc_accent_text     the accent as READABLE TEXT: links, the unread bar,
+        //   bc_accent_text_dark  every indicator that has to be seen rather than
+        //                      sat on. One per surface, because "readable" means
+        //                      something different on #FFFFFF and on #292929.
+        //
+        // None of it can be done in CSS: every one of these is a contrast
+        // measurement, and a stylesheet cannot measure. Doing it here also means
+        // it is done once per request rather than per element, and beside the
+        // validation the hex already goes through.
+        $accent = $this->sanitize_accent($branding['accent'] ?? null);
+        $fill = $this->accent_fill($accent);
+        $output->set_env('bc_accent', $accent);
+        $output->set_env('bc_accent_fill', $fill);
+        $output->set_env('bc_on_accent', $this->on_accent($fill));
+        $output->set_env('bc_accent_text', $this->accent_text($accent, self::SURFACE_LIGHT));
+        $output->set_env('bc_accent_text_dark', $this->accent_text($accent, self::SURFACE_DARK));
         $output->set_env('bc_product_name', (string) ($branding['product_name'] ?? self::DEFAULTS['product_name']));
         // Who this build is attributed to on the About page: "BusinessClass by
         // JetHost.com" for the free distribution, "…by JetHost.BG" where the
@@ -879,6 +914,20 @@ class businessclass_prefs extends rcube_plugin
         // header: an install can carry a mark up top and the full logo down there,
         // which is what the JetHost presets do.
         $output->set_env('bc_logo_rail', $this->sanitize_asset($logo['rail'] ?? null));
+        // The reversed pair, for dark and high contrast (§12 step 12, D-67).
+        //
+        // A logo drawn in dark ink is chosen against a light surface — D-59 picked
+        // the *positive* JetHost lockup precisely because the rail is a light
+        // neutral. In dark that rail is #141414 and the same artwork measures
+        // 1.50:1 against it; the login card is worse, at 1.13:1. Neither is
+        // "hard to see", they are gone.
+        //
+        // Optional, and absent it falls back to the light asset — so an install
+        // that never touches branding.json keeps exactly today's behaviour, and
+        // one that supplies a reversed lockup gets it. The fallback happens in
+        // ui.js, which is where the theme is actually known: "system" is a media
+        // query, not a value the server can resolve.
+        $output->set_env('bc_logo_rail_dark', $this->sanitize_asset($logo['rail_dark'] ?? null));
         // Where that logo goes when clicked — the vendor's own site. Absent, the
         // logo is a plain image and not a link at all.
         //
@@ -887,6 +936,7 @@ class businessclass_prefs extends rcube_plugin
         // an admin edits by hand.
         $output->set_env('bc_brand_url', $this->sanitize_url($branding['brand_url'] ?? null));
         $output->set_env('bc_logo_login', $this->sanitize_asset($logo['login'] ?? null));
+        $output->set_env('bc_logo_login_dark', $this->sanitize_asset($logo['login_dark'] ?? null));
         $output->set_env('bc_favicon', $this->sanitize_asset($logo['favicon'] ?? null));
         // The letterhead on the two print views. Its own entry rather than the
         // header logo reused: a letterhead is usually a different asset — often the
@@ -944,6 +994,7 @@ class businessclass_prefs extends rcube_plugin
 
         $output->set_env('bc_theme', $this->sanitize_theme($rcmail->config->get('businessclass_theme')));
         $output->set_env('bc_density', $this->sanitize_density($rcmail->config->get('businessclass_density')));
+        $output->set_env('bc_sheet', $this->sanitize_sheet($rcmail->config->get('businessclass_sheet')));
         $output->set_env('bc_focused', (bool) $rcmail->config->get('businessclass_focused', false));
         $output->set_env('bc_folders_w', $this->clamp_int(
             $rcmail->config->get('businessclass_folders_w'),
@@ -1096,6 +1147,180 @@ class businessclass_prefs extends rcube_plugin
             : self::DEFAULTS['accent'];
     }
 
+    /** The two app surfaces an accent has to be legible against (_tokens.scss). */
+    private const SURFACE_LIGHT = '#FFFFFF';
+    private const SURFACE_DARK = '#292929';
+
+    /** WCAG AA for text. §9 makes it the gate, not the goal. */
+    private const AA_TEXT = 4.5;
+
+    /** #RRGGBB -> [r, g, b]. Assumes a value that passed sanitize_accent. */
+    private static function rgb($hex)
+    {
+        return [
+            hexdec(substr($hex, 1, 2)),
+            hexdec(substr($hex, 3, 2)),
+            hexdec(substr($hex, 5, 2)),
+        ];
+    }
+
+    private static function hex(array $rgb)
+    {
+        return sprintf('#%02X%02X%02X', ...array_map(
+            static function ($v) { return max(0, min(255, (int) round($v))); },
+            $rgb
+        ));
+    }
+
+    /** WCAG 2.1 relative luminance. */
+    private static function luminance(array $rgb)
+    {
+        $f = static function ($v) {
+            $v /= 255;
+            return $v <= 0.03928 ? $v / 12.92 : pow(($v + 0.055) / 1.055, 2.4);
+        };
+
+        return 0.2126 * $f($rgb[0]) + 0.7152 * $f($rgb[1]) + 0.0722 * $f($rgb[2]);
+    }
+
+    private static function ratio(array $a, array $b)
+    {
+        $la = self::luminance($a);
+        $lb = self::luminance($b);
+
+        return ($la > $lb ? ($la + 0.05) / ($lb + 0.05) : ($lb + 0.05) / ($la + 0.05));
+    }
+
+    /** Mix $pct percent of $b into $a, in sRGB, exactly as CSS color-mix does. */
+    private static function mix(array $a, array $b, $pct)
+    {
+        $t = $pct / 100;
+
+        return [
+            $a[0] + ($b[0] - $a[0]) * $t,
+            $a[1] + ($b[1] - $a[1]) * $t,
+            $a[2] + ($b[2] - $a[2]) * $t,
+        ];
+    }
+
+    /**
+     * The accent, moved just far enough to be readable AS TEXT on $surface.
+     *
+     * An accent is a brand decision; whether it can be read at 14px on white is
+     * not. A pale brand — #FFD966, say — gives a 1.37:1 link, and a link nobody
+     * can read is not a branding choice, it is a defect. So the hue is kept and
+     * the lightness is walked toward the far end until AA is met: away from the
+     * surface, so a light surface darkens the accent and a dark one lightens it.
+     *
+     * Walks in 2% steps rather than solving directly, because the sRGB transfer
+     * curve makes the closed form ugly and 50 iterations of integer arithmetic
+     * happen once per request. The FIRST step that passes is returned, so the
+     * result is the smallest departure from the brand that satisfies §9 — not a
+     * safe-and-ugly black.
+     *
+     * @param string $hex     the accent, already through sanitize_accent
+     * @param string $surface #RRGGBB the text will sit on
+     * @return string #RRGGBB
+     */
+    private function accent_text($hex, $surface)
+    {
+        $accent = self::rgb($hex);
+        $bg = self::rgb($surface);
+
+        if (self::ratio($accent, $bg) >= self::AA_TEXT) {
+            return strtoupper($hex);
+        }
+
+        $target = self::luminance($bg) > 0.179 ? [0, 0, 0] : [255, 255, 255];
+
+        for ($pct = 2; $pct <= 100; $pct += 2) {
+            $candidate = self::mix($accent, $target, $pct);
+            if (self::ratio($candidate, $bg) >= self::AA_TEXT) {
+                return self::hex($candidate);
+            }
+        }
+
+        return self::hex($target);
+    }
+
+    /**
+     * The accent as a FILL that white or black text will sit on — the header
+     * band in light, the primary button everywhere.
+     *
+     * Same idea as accent_text and a different question: there, the accent is the
+     * text; here it is the background and the text is whichever of black or white
+     * reads better on it. Most accents need no adjustment at all and are returned
+     * untouched, which is the point — a mid-luminance grey is the only real case,
+     * and it is exactly the one where neither black nor white reaches AA (white
+     * on #808080 is 3.95:1). Nudged away from the middle, it does.
+     *
+     * @return string #RRGGBB
+     */
+    private function accent_fill($hex)
+    {
+        $accent = self::rgb($hex);
+
+        $best = static function (array $c) {
+            return max(self::ratio($c, [255, 255, 255]), self::ratio($c, [0, 0, 0]));
+        };
+
+        if ($best($accent) >= self::AA_TEXT) {
+            return strtoupper($hex);
+        }
+
+        // Move the way it already leans, so a darkish brand goes darker rather
+        // than flipping to a pale version of itself.
+        $target = self::luminance($accent) > 0.179 ? [255, 255, 255] : [0, 0, 0];
+
+        for ($pct = 2; $pct <= 100; $pct += 2) {
+            $candidate = self::mix($accent, $target, $pct);
+            if ($best($candidate) >= self::AA_TEXT) {
+                return self::hex($candidate);
+            }
+        }
+
+        return self::hex($target);
+    }
+
+    /**
+     * Black or white — whichever reads on the given accent.
+     *
+     * WCAG relative luminance (WCAG 2.1, "relative luminance"), then the standard
+     * pivot: a colour whose luminance is above 0.179 has better contrast with
+     * black than with white, and below it the other way round. That threshold is
+     * where the two contrast ratios cross, so this always picks the higher of the
+     * two — never merely an acceptable one.
+     *
+     * This is why it is not a Sass constant or a CSS trick. The accent is admin
+     * input, read from branding.json at runtime, and until step 12 the answer was
+     * hard-coded to white in light and black in dark — which is how a navy accent
+     * ended up with black icons on it at 1.82:1 (D-58/D-66).
+     *
+     * Takes a value that has already been through sanitize_accent, so the format
+     * is known good; it still guards, because a caller that forgets would
+     * otherwise get a silently wrong colour rather than a fault.
+     *
+     * @param string $hex #RRGGBB
+     * @return string #FFFFFF or #000000
+     */
+    private function on_accent($hex)
+    {
+        if (!is_string($hex) || !preg_match('/^#[0-9a-f]{6}$/i', $hex)) {
+            return '#FFFFFF';
+        }
+
+        $channel = static function ($v) {
+            $v /= 255;
+            return $v <= 0.03928 ? $v / 12.92 : pow(($v + 0.055) / 1.055, 2.4);
+        };
+
+        $r = $channel(hexdec(substr($hex, 1, 2)));
+        $g = $channel(hexdec(substr($hex, 3, 2)));
+        $b = $channel(hexdec(substr($hex, 5, 2)));
+
+        return (0.2126 * $r + 0.7152 * $g + 0.0722 * $b) > 0.179 ? '#000000' : '#FFFFFF';
+    }
+
     /**
      * Asset paths are skin-relative and admin-supplied. Reject anything that
      * could escape the skin folder or inject a scheme (javascript:, data:).
@@ -1133,6 +1358,19 @@ class businessclass_prefs extends rcube_plugin
         return in_array($value, ['comfortable', 'compact'], true)
             ? $value
             : self::DEFAULTS['density'];
+    }
+
+    /**
+     * The message-body surface. Reaches <html data-bc-sheet="…">, so it is
+     * whitelisted rather than escaped — the same treatment as theme and density,
+     * and for the same reason: it is written by rcmail.save_pref() from the
+     * browser and arrives as whatever the client sent.
+     */
+    private function sanitize_sheet($value)
+    {
+        return in_array($value, ['theme', 'light'], true)
+            ? $value
+            : self::DEFAULTS['sheet'];
     }
 
     private function clamp_int($value, $min, $max, $default)

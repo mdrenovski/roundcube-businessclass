@@ -50,18 +50,26 @@
 
 	     Without brand_url it is a plain decorative image and not focusable, which
 	     is what it should be: an unlabelled logo in the tab order is a stop that
-	     does nothing. -->
+	     does nothing.
+
+	     A dark-ink lockup is chosen against a light surface, and the rail's
+	     surface is a near-black one in dark, where the JetHost lockup measures
+	     1.50:1 against it and is simply gone. data-bc-src-dark carries the reversed asset
+	     when branding.json supplies logo.rail_dark, and ui.js swaps src into it.
+	     It is done in the browser and not here because "system" is a media query:
+	     the server cannot know which way it resolved. Empty when no reversed
+	     asset is configured, and ui.js then leaves the light one alone (D-67). -->
 	<roundcube:if condition="env:bc_logo_rail" />
 	<div class="bc-rail__brand">
 		<roundcube:if condition="env:bc_brand_url" />
 		<a class="bc-rail__brandlink" href="<roundcube:var name='env:bc_brand_url' />"
 			target="_blank" rel="noopener noreferrer"
 			title="<roundcube:var name='env:bc_vendor' />">
-			<img class="bc-rail__logo" src="/<roundcube:var name='env:bc_logo_rail' />" alt="" aria-hidden="true">
+			<img class="bc-rail__logo" src="/<roundcube:var name='env:bc_logo_rail' />" data-bc-src-dark="<roundcube:var name='env:bc_logo_rail_dark' />" alt="" aria-hidden="true">
 			<span class="voice"><roundcube:var name="env:bc_vendor" /> <roundcube:label name="bc_website" /></span>
 		</a>
 		<roundcube:else />
-		<img class="bc-rail__logo" src="/<roundcube:var name='env:bc_logo_rail' />" alt="" aria-hidden="true">
+		<img class="bc-rail__logo" src="/<roundcube:var name='env:bc_logo_rail' />" data-bc-src-dark="<roundcube:var name='env:bc_logo_rail_dark' />" alt="" aria-hidden="true">
 		<roundcube:endif />
 	</div>
 	<roundcube:endif />

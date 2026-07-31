@@ -360,9 +360,9 @@
   // is carried by the border weight and the checkbox state as well as by colour
   // (§9). The tick stays in the accessibility tree either way.
   label.is-member {
-    border-color: var(--bc-brand-primary);
+    border-color: var(--bc-brand-fg);
     background: var(--bc-brand-tint-selected);
-    color: var(--bc-brand-fg-strong);
+    color: var(--bc-fg-on-tint);
   }
 
   // Read-only books disable the boxes; ui.js marks those chips so they can look

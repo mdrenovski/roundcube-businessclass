@@ -148,3 +148,9 @@ $labels['bc_photoconfirmremove'] = 'Да се премахне ли снимка
 // Plugin screens (§12 step 11)
 $labels['bc_nokeyselected'] = 'Няма избран ключ';
 $labels['bc_pickkey'] = 'Изберете ключ, за да видите данните му.';
+
+// The message-body sheet toggle in the reading pane (§12 step 12, D-68). Two
+// keys because the button names the ACTION it will perform, not the state it is
+// in — a toggle titled with its current state is the classic ambiguity.
+$labels['bc_sheetlight'] = 'Показване на съобщението на светъл фон';
+$labels['bc_sheetdark'] = 'Показване на съобщението на тъмен фон';

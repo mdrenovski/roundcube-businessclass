@@ -65,6 +65,11 @@ const ICONS = {
   // Filled: also the Settings nav's "Forward" section (managesieve), where the
   // selected row is drawn filled (§10).
   arrow_forward: ["Arrow Forward", ["regular", "filled"]],
+  // The message-body sheet toggle (§12 step 12, D-68). Sun = "put this message
+  // on paper", moon = "put it back on the theme's surface"; the button shows the
+  // action it will perform, not the state it is in, which is why both are here.
+  weather_sunny: ["Weather Sunny", ["regular"]],
+  weather_moon: ["Weather Moon", ["regular"]],
   // Reading pane ribbon + message body (§3.6)
   arrow_reply_all: ["Arrow Reply All", ["regular"]],
   print: ["Print", ["regular"]],

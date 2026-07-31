@@ -229,7 +229,7 @@
 
   &:focus {
     border-bottom-width: 2px;
-    border-bottom-color: var(--bc-brand-primary);
+    border-bottom-color: var(--bc-brand-fg);
   }
 
   &[aria-invalid="true"] {
@@ -287,7 +287,7 @@
     flex: none;
     width: var(--bc-s-16);
     height: var(--bc-s-16);
-    accent-color: var(--bc-brand-primary);
+    accent-color: var(--bc-brand-fg);
   }
 }
 
@@ -357,6 +357,20 @@
   white-space: nowrap;
 }
 
+// The 8px category square. Its fill is the category's own hue, and two of those
+// hues do not reach 3:1 on the surface they sit on — amber is 2.16:1 on white,
+// and every one of them was under 3:1 on the dark surface before step 12, the
+// worst at 1.56:1.
+//
+// The fill is not changed to fix that: the hue IS the signal, and a "finance"
+// dot that is not amber has stopped saying finance. The ring is added instead —
+// the category's own -fg step, which is chosen to be readable text on that same
+// surface and therefore clears 3:1 by construction. Inset, so an 8px dot stays
+// an 8px dot and the message row does not reflow.
+//
+// (§9 does not strictly require this: a dot never carries meaning alone, the chip
+// beside it is always labelled. It is here because a signal you cannot see is
+// not a signal, whatever the exemption says.)
 .bc-dot {
   flex: none;
   width: var(--bc-s-8);
@@ -370,7 +384,10 @@
     color: var(--bc-cat-#{$cat}-fg);
   }
 
-  .bc-dot--#{$cat} { background: var(--bc-cat-#{$cat}); }
+  .bc-dot--#{$cat} {
+    background: var(--bc-cat-#{$cat});
+    box-shadow: inset 0 0 0 1px var(--bc-cat-#{$cat}-fg);
+  }
 }
 
 // -- Dialogs (§2) -------------------------------------------------------------
@@ -592,8 +609,8 @@
 
 .bc-toasts > div.loading,
 .bc-toasts > div.uploading {
-  border-left-color: var(--bc-brand-primary);
+  border-left-color: var(--bc-brand-fg);
   cursor: default;
 
-  .bc-icon { color: var(--bc-brand-primary); }
+  .bc-icon { color: var(--bc-brand-fg); }
 }
