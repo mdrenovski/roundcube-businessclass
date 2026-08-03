@@ -97,11 +97,12 @@ mobile, the accessibility audit, and the calendar.
 
 | Area | State |
 | --- | --- |
-| App header, icon rail, folder pane, quota | Designed |
-| Message list — rows, states, date groups, preview text | Designed |
+| App header, icon rail, folder pane, Favorites, quota | Designed |
+| The ribbon — Home / View / Help, on all three tasks | Designed |
+| Message list — rows, states, collapsible date groups, preview text | Designed |
 | Both densities, pane resize, reading-pane position | Designed |
 | Threading, category chips, hover quick actions, Focused/Other | Designed |
-| Reading pane, ribbon toolbar, overflow menu, attachments | Designed |
+| Reading pane, overflow menu, attachments | Designed |
 | Compose — recipient pills, TinyMCE, attachments, drag-to-attach | Designed |
 | Search — filter tokens, refine panel, cross-folder results | Designed |
 | Sign-in, error page, empty states, toasts | Designed |
@@ -125,7 +126,7 @@ at all. These are:
 | Plugin | What it gets |
 | --- | --- |
 | `managesieve` | Filters, vacation, forward — its own template overrides |
-| `archive`, `markasjunk` | Toolbar buttons in the reading pane, with icons |
+| `archive`, `markasjunk` | Buttons in the ribbon's Home tab, with icons |
 | `zipdownload` | The "Download all" link under attachments, and the download-format menu |
 | `newmail_notifier` | Its preference rows and Test links |
 | `password` | The whole Change Password page |
@@ -157,19 +158,21 @@ the data:
   unsupported. The count for the book you are in shows under the contact list,
   from Roundcube's own counter.
 
-Three smaller things are absent because the design's toolbars have no room the
-brief allots them:
+Four smaller things are absent:
 
-- **No "download selected messages"** in the message-list toolbar. zipdownload's
-  `.eml` / `.mbox` / `.maildir` menu is styled and works, but the command that
-  raises it is not one of the toolbar actions the design specifies, and adding it
-  would leave a permanently disabled item for every install without the plugin.
-  The "Download all" link under a message's attachments is unaffected.
-- **No "show source / raw headers"** button in the reading pane, for the same
-  reason. The dialog it would open is built and styled.
+- **No "Move to folder"** on the ribbon. Roundcube has the command, but raising
+  it needs a folder-picker popover this skin does not have, and half-building one
+  was worse than leaving it out. Dragging a message onto a folder still works.
+- **No "download selected messages"**. zipdownload's `.eml` / `.mbox` /
+  `.maildir` menu is styled and works, but the command that raises it is not one
+  of the actions the design specifies, and adding it would leave a permanently
+  disabled item for every install without the plugin. The "Download all" link
+  under a message's attachments is unaffected.
+- **No "show source / raw headers"** button, for the same reason. The dialog it
+  would open is built and styled.
 - **markasjunk's alternative "Mark menu" placement has no home**, because the
   design draws no Mark menu. Leave `markasjunk_toolbar` at its default (`true`)
-  and its buttons appear in the reading-pane toolbar as intended.
+  and its buttons appear in the ribbon as intended.
 
 The contact detail pane keeps Roundcube's section headings — Properties,
 Personal information, Notes, Groups — where the design draws one continuous
@@ -181,6 +184,38 @@ Select menus keep the browser's own drop-down arrow rather than a Fluent
 chevron. Replacing it means `appearance: none` and a wrapper element, and
 managesieve shows and hides its selects with inline styles that the wrapper
 would not follow — a cosmetic gain for a functional break.
+
+---
+
+## The ribbon
+
+Commands live in a **ribbon** across the top of the window rather than in a
+toolbar per pane — a tab strip, then one command row for the selected tab. It is
+It is the Fluent 2 command-bar pattern, built to the client's brief, and it
+replaced three separate toolbars on Mail and three more on Contacts.
+
+| Tab | What is on it |
+| --- | --- |
+| **Home** | New Email, Delete, the plugin buttons (archive, junk, download), Reply / Reply all / Forward, mark read and unread, flag, print |
+| **View** | View settings, Messages (conversation grouping and preview lines), Expand conversation, Sync, Layout, Folder pane, Density |
+| **Help** | Your `support_url`, if `branding.json` sets one, and About |
+
+Contacts has the same three; **Settings has Home and Help only**, because there
+is nothing there for a View tab to configure and an empty band would be worse
+than an absent one.
+
+**Nothing on the ribbon is decoration.** Commands the reference design has that
+Roundcube has no equivalent for are simply not drawn, rather than shown greyed
+out — a permanently disabled control offers a user a feature their mail server
+does not have. Two of them, **Sync** and **Expand conversation**, are bound to
+commands whose
+presence depends on your Roundcube version and which plugins you load: the skin
+checks at runtime and hides either one if your install does not have it. So if a
+button is missing from your ribbon that appears in these docs, that is why, and
+it is deliberate.
+
+The hamburger at the left of the tab strip collapses the folder pane. On a narrow
+window the row overflows into a `⋯` menu, most-important-last.
 
 ---
 
@@ -297,7 +332,7 @@ almost always.
 Two places deliberately do **not** take your accent. The header band in dark is a
 neutral surface with your accent as a 2px rule beneath it — a band painted with
 an arbitrary hex has no text colour guaranteed to be readable on it, and this is
-what Fluent 2 and Outlook do. And the high-contrast theme ignores the accent
+what Fluent 2 does. And the high-contrast theme ignores the accent
 entirely: it exists for people who need contrast, and an arbitrary brand colour
 is the one thing that cannot promise it.
 
@@ -446,6 +481,8 @@ else on screen is core's or a plugin's and is already translated by them.
 | `businessclass_density` | `comfortable`, `compact` |
 | `businessclass_sheet` | `theme`, `light` — the surface a message body is drawn on |
 | `businessclass_focused` | on / off |
+| `businessclass_preview` | `off`, `1`, `2` — lines of preview text under a message row |
+| `businessclass_favorites` | pinned folders, newline-separated; every name is checked against your subscribed folders server-side before it is used |
 | `businessclass_folders_w` | 200–360 px, clamped server-side |
 | `businessclass_list_w` | 320–520 px, clamped server-side |
 | `businessclass_list_h` | 200–640 px, clamped server-side — used only where the reading pane sits below the list |
@@ -461,6 +498,10 @@ always agree on load.
 the reading pane, and it appears only in the dark and high-contrast themes,
 where there is something to choose. See "Reading mail in dark mode" below.
 
+`businessclass_preview` is the ribbon's **View -> Messages -> Message preview**.
+`businessclass_favorites` has no control either — it is the star that appears on
+a folder row when you hover it.
+
 These were called `fluent2_*` before the skin was named. An install that ran the
 earlier build keeps those rows in the database, unread; theme, density and pane
 widths fall back to their defaults once and are saved under the new names as
@@ -469,14 +510,14 @@ soon as they are changed.
 ### Reading mail in dark mode
 
 In the dark theme a message body is drawn on the dark surface, like the rest of
-the app. That is what Outlook does, and it is right for plain text and for the
-ordinary mail people send each other.
+the app. That is what the major desktop clients do, and it is right for plain
+text and for the ordinary mail people send each other.
 
-It is **not** right for every message, and the reason is worth knowing. Outlook
-can darken safely because it rewrites the sender's CSS on the server, inverting
-their colours before the mail is ever painted. This skin cannot: a message body
-is untrusted and stays inside Roundcube's own sanitiser, so all a skin can set is
-the surface behind it. Mail that names a text colour but no background — common
+It is **not** right for every message, and the reason is worth knowing. The
+clients that darken a message body safely do it by rewriting the sender's CSS on
+the server, inverting their colours before the mail is ever painted. This skin
+cannot: a message body is untrusted and stays inside Roundcube's own sanitiser,
+so all a skin can set is the surface behind it. Mail that names a text colour but no background — common
 in newsletters and templated corporate mail — therefore arrives dark on dark.
 
 The sun button beside the flag in the reading pane puts that message on paper.

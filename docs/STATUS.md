@@ -1,8 +1,8 @@
 # Status — what is built and what is left
 
-Last updated: **2026-07-31** — step 12 built: dark, high contrast and
-forced-colors, plus the contrast gate that holds them. The calendar half of step
-11 stays deferred.
+Last updated: **2026-08-03** — the ribbon pass: a command bar across all three
+tasks, a restyled message list, Favorites, and two new preferences. Step 12's themes and contrast gate hold throughout. The
+calendar half of step 11 stays deferred.
 
 ## The 14 steps (`ms-handoff/BUILD.md` §12)
 
@@ -11,7 +11,7 @@ forced-colors, plus the contrast gate that holds them. The calendar half of step
 | 1 | Skin scaffold — `meta.json`, `branding.json`, tokens, reset, Sass script | **Done** |
 | 2 | Header + rail + folder pane | **Done** |
 | 3 | Message list — comfortable density, states, date groups | **Done** |
-| 4 | Reading pane + ribbon toolbar + overflow popover | **Done** |
+| 4 | Reading pane + ribbon toolbar + overflow popover | **Done** (the toolbar later moved into the app-wide ribbon — D-75) |
 | 5 | Compact density + density toggle + pane resize + persistence | **Done** |
 | 6 | Threading, categories, hover quick actions, Focused/Other | **Done** |
 | 7 | Compose (+ TinyMCE, attachments) | **Done** |
@@ -23,9 +23,10 @@ forced-colors, plus the contrast gate that holds them. The calendar half of step
 | 13 | Responsive/mobile incl. swipe + FAB + bottom tabs | **Next** |
 | 14 | Accessibility audit (§9), then icon subset finalisation | Not started |
 
-Plus two unnumbered additions made at the user's request after step 10, both signed
-off: **avatar photos and the identity photo**, and **printing** — which §12 never
-owned (DECISIONS.md D-19, now closed).
+Plus three unnumbered additions made at the user's request, each signed off:
+**avatar photos and the identity photo**, **printing** — which §12 never owned
+(DECISIONS.md D-19, now closed) — and the **ribbon pass** after step 12, which is
+the largest of the three and has a section of its own below.
 
 Everything a user touches day to day is real design work. **Nothing in the skin is
 scaffolding any more** — `_scaffold.scss` was deleted at step 11, and no template
@@ -81,12 +82,12 @@ theme that exists for people who need contrast never got its black band at all.
 | --- | --- |
 | **The accent** | Now five inline properties — the raw hex plus four derivations computed server-side, because each is a contrast measurement and CSS cannot measure. Themes derive from those and can override any of it (D-66). |
 | **`--bc-brand-primary` vs `--bc-brand-fg`** | Fills that carry on-brand text, versus anything that must be *seen*. 33 declarations moved. A pale accent is a fine fill and an unreadable link. |
-| **Dark** | The header band is a neutral with the brand as a 2px rule under it, which is what Fluent 2 and Outlook do and the only shape readable for *every* accent. The brand ramp is derived from the admin's accent instead of Microsoft's hard-coded `#479EF5`. Avatars inverted; tints re-derived. |
+| **Dark** | The header band is a neutral with the brand as a 2px rule under it, which is what Fluent 2 does and the only shape readable for *every* accent. The brand ramp is derived from the admin's accent instead of Microsoft's hard-coded `#479EF5`. Avatars inverted; tints re-derived. |
 | **High contrast** | Now actually applies. Black band, white rule, cyan accent, and `--bc-fg-on-tint` so the yellow selected row stops being white-on-yellow at 1.07:1 (D-70). |
 | **forced-colors** | Rewritten in `_contrast.scss`. The old block's one rule was `* { forced-color-adjust: auto }`, which is the default and did nothing (D-71). |
 | **`color-scheme`** | Declared for the first time. Without it the browser paints scrollbars, `<select>` drop-downs and date pickers light-on-white inside a dark app, and no stylesheet can reach them. |
 | **Logos in dark** | `logo.rail_dark` / `logo.login_dark` in `branding.json`, optional and falling back to the light asset. The JetHost lockups measured 1.50:1 and 1.13:1 on their dark surfaces — gone, not faint (D-67). |
-| **The message body** | Follows the theme by default with a sun/moon toggle to paper, persisted. Outlook's design; the record of what its default costs us is D-68. |
+| **The message body** | Follows the theme by default with a sun/moon toggle to paper, persisted. The record of what that default costs us is D-68. |
 | **The compose editor** | Stays white in every theme, structurally rather than by convention (D-69). |
 
 ### The gate
@@ -104,6 +105,49 @@ luminance pivot still matches the one the tool assumes (D-72).
 
 Fixtures for the eye are written to `.verify-out/t-theme-<theme>-<accent>.html`.
 
+---
+
+## The ribbon pass — what was built (after step 12)
+
+The client supplied screenshots of a commercial webmail client and asked the skin
+to match its chrome and layout. **`BUILD.md` §1 rules that out** — *"an original
+mail UI in the Fluent 2 language, not a clone of Microsoft's product UI"* — so the
+conflict was put to them with the line quoted and they chose to override it, for
+chrome and layout only. **§10 was not overridden and is not in question**: no
+Microsoft logos, illustrations or icon webfont, and every glyph still comes from
+the MIT Fluent set. The full record, including what was referenced and why, is
+DECISIONS.md D-73 to D-77.
+
+Anything in the reference design that Roundcube has no data behind is
+**omitted, not drawn disabled** — a permanently disabled control offers a user a
+feature their mail server does not have.
+
+| | |
+| --- | --- |
+| **The ribbon** | Two rows spanning the window: a tab strip and one command row per tab. Mail gets Home / View / Help, Contacts the same, Settings **Home / Help only** — there is nothing on a Settings screen for a View tab to configure, and an empty band is worse than an absent one. |
+| **Message list** | Subject in the accent, date beside the subject rather than the sender, selection as a 2px outline instead of a tint fill, collapsible date group headings. |
+| **Favorites** | A real preference (`businessclass_favorites`), seeded Inbox/Drafts/Sent, pinned from a star on folder-row hover. The folder tree also gained a collapsible account heading. |
+| **Preview lines** | `businessclass_preview` — off / 1 / 2 — in the View tab. |
+| **What moved** | New Message left the folder pane; every message action left the reading pane; density and the reading-pane position left the list toolbar; Contacts' three toolbars became one. |
+
+**The skin now checks Roundcube's command set at runtime.** Sync and Expand
+conversation carry `data-bc-command`; `syncRibbonCommands()` hides either one
+whenever core has not registered it, re-checked on every list update because
+`expand-all` only appears once threading is on. Roundcube's command set is not
+part of the skin API and differs by version and by loaded plugins, so this is the
+only honest way to keep a dead control off the row.
+
+**A gap in the verification harness was found and closed.** `render.mjs`'s
+`roundcube:button` stand-in emitted only `data-bc-icon` and dropped every other
+`data-*`. That is why the first version of the command check appeared to pass
+while doing nothing — and it means **`data-bc-priority` had never been exercised
+in a fixture, so the §5 overflow order has been untested since step 4**. The
+stand-in now passes all `data-*` through.
+
+**Still to do here:** Move to folder is not on the ribbon. Roundcube has the
+command but no folder-picker popover exists in this skin yet,
+and half-building one was worse than leaving it out. Drag-to-folder still works.
+
 ## What exists, by area
 
 ### Shell and chrome
@@ -115,11 +159,14 @@ Fixtures for the eye are written to `.verify-out/t-theme-<theme>-<accent>.html`.
   server's 404 page.
 
 ### Mail
-- Message list: both densities, row states, date groups, category chips, hover
-  quick actions, threading, Focused/Other, third line of preview text (needs
-  `businessclass_preview`).
-- Reading pane: sender block with avatar, ribbon toolbar with overflow popover,
-  attachments, flag toggle, print and part views.
+- **The ribbon** — Home / View / Help spanning the whole window, carrying every
+  message action. Home also holds the plugin `toolbar` container.
+- Message list: both densities, row states, collapsible date groups, category
+  chips, hover quick actions, threading, Focused/Other, and one to two lines of
+  preview text (needs `businessclass_preview`; the line count is a preference).
+- Reading pane: sender block with avatar, attachments, flag toggle, print and
+  part views. **No toolbar of its own** — the actions are in the ribbon.
+- Folder pane: collapsible Favorites and account groups, no compose button.
 - Compose: recipient pills, TinyMCE, attachments with a determinate progress bar,
   drag-to-attach, draft-saved timestamp.
 - Search: filter token chips, refine panel, cross-folder scopes, results summary.
@@ -129,12 +176,15 @@ Fixtures for the eye are written to `.verify-out/t-theme-<theme>-<accent>.html`.
   (via the skin's own template override), About.
 - The **Appearance** block — theme, density, reading pane, Focused/Other — is
   contributed by `businessclass_prefs` into Settings → Preferences → User
-  Interface.
+  Interface. Density and the reading-pane position are also in the ribbon's View
+  tab, and both controls write the same preference.
+- Every Settings screen carries the ribbon, with two tabs rather than three.
 - **Identity photo** well on each identity (see below).
 
 ### Contacts
 - Address books 200 / contact list 300 / detail, all on core's own objects.
-- Contact detail, edit, print, import, advanced search.
+- Contact detail, edit, print, import, advanced search — all in the ribbon now,
+  which replaced three separate toolbars.
 - Group membership as toggling chips.
 
 ### Avatars and photos (added after step 10)
@@ -213,19 +263,21 @@ Documented in `README.md` for installers; repeated here so nobody "fixes" them:
   inline styles the wrapper would not follow.
 - **The contact detail pane keeps Roundcube's section headings** (Properties,
   Personal information, Notes, Groups) where the design draws one flat list.
+- **No "Move to folder" on the ribbon.** Roundcube has the command, but raising
+  it needs a folder-picker popover this skin does not have,
+  and half-building one was worse than leaving it out. Drag-to-folder still works.
 - **No "download selected messages" trigger.** zipdownload's `.eml`/`.mbox`/
-  `.maildir` menu is styled and works, but it is raised from a `download` command
-  in the *list* toolbar, and `BUILD.md` §5 enumerates that toolbar without one.
-  Adding it would put a permanently disabled item in the More menu of every
-  install that does not run zipdownload. The attachment "Download all" link is
-  unaffected and works.
+  `.maildir` menu is styled and works, but the `download` command that raises it
+  is not one the design enumerates. Adding it would put a permanently disabled
+  item in the More menu of every install that does not run zipdownload. The
+  attachment "Download all" link is unaffected and works.
 - **No raw-message-headers affordance.** Core's `show-headers` needs
   `all_headers_row` / `all_headers_box` gui objects, which this skin does not
-  render, and `BUILD.md` §5 does not list it in the reading-pane toolbar. The
-  dialog host it would open is built and styled; only the trigger is absent.
+  render, and `BUILD.md` §5 does not list it. The dialog host it would open is
+  built and styled; only the trigger is absent.
 - **markasjunk's `markmenu` container has no home**, because the design draws no
   Mark menu. `markasjunk_toolbar` defaults to true, so the toolbar path — which
-  this skin does render — is the one installs take.
+  the ribbon renders through its `toolbar` container — is the one installs take.
 
 ---
 
