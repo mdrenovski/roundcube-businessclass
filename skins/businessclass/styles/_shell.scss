@@ -41,6 +41,26 @@ body.task-settings {
   > #layout { flex: 1; min-height: 0; }
 }
 
+// The ribbon's folder-pane toggle (D-75). The pane is a grid track, so it is
+// collapsed by zeroing the track rather than by hiding the nav: display:none on
+// #layout-sidebar would leave its column at --bc-folders-w and the panes would
+// keep a 236px gap where the pane used to be.
+//
+// The splitter goes with it. Left behind it would be a drag handle for a pane
+// that is not there, and dragging it would set a width nothing is reading.
+// All three second-column widths, because each shell names its own track and the
+// same button collapses the pane on all of them: mail's folder tree, Contacts'
+// address books, Settings' section nav. Setting a variable a given shell does
+// not use costs nothing — it is simply never read.
+.bc-shell.bc-folders-hidden {
+  --bc-folders-w: 0px;
+  --bc-books-w: 0px;
+  --bc-settings-nav-w: 0px;
+
+  #layout-sidebar,
+  #bc-splitter-folders { display: none; }
+}
+
 // Framed documents scroll; the app shell never does (see _reset.scss). Their
 // panes are the parent's, so there is nothing here to scroll a long message or
 // a tall form except the document itself. .bc-formpage and .bc-partview set

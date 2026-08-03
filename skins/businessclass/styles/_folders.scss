@@ -32,12 +32,106 @@
   padding: 0 var(--bc-s-8) var(--bc-s-8);
 }
 
+// -- Collapsible groups (§3.4) ------------------------------------------------
+// One heading per section of the pane — the account that owns the tree, and
+// whatever else the pane grows. The body is a plain wrapper the heading hides
+// with [hidden], so nothing here depends on the shape of what is inside it.
+.bc-folders__group + .bc-folders__group {
+  margin-top: var(--bc-s-8);
+}
+
+.bc-folders__grouphead {
+  display: flex;
+  align-items: center;
+  gap: var(--bc-s-4);
+  width: 100%;
+  height: var(--bc-s-32);
+  padding: 0 var(--bc-s-8);
+  border-radius: var(--bc-radius-m);
+  background: transparent;
+  // Heavier and darker than a folder row: this names the thing the rows belong
+  // to, so it has to sit above them rather than read as one more of them.
+  font: var(--bc-weight-semibold) var(--bc-size-body1) / var(--bc-lh-body1) var(--bc-font-body);
+  color: var(--bc-fg-1);
+  text-align: start;
+  cursor: pointer;
+
+  &:hover { background: var(--bc-bg-4); }
+  &:focus-visible { @include bc-focus-ring; }
+}
+
+// The account is an address and will not fit at the pane's 200px minimum, so it
+// truncates rather than wrapping the heading onto a second line.
+.bc-folders__groupname {
+  min-width: 0;
+  @include bc-truncate;
+}
+
+.bc-folders__chevron {
+  flex: none;
+  color: var(--bc-fg-2);
+  transition: rotate var(--bc-dur-fast) var(--bc-ease-decel);
+}
+
+.bc-folders__grouphead[aria-expanded="false"] .bc-folders__chevron {
+  rotate: -90deg;
+}
+
 // -- Folder rows --------------------------------------------------------------
 .bc-folderlist,
 .bc-folderlist ul {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+// The row has to be the star's containing block, and the star has to overlay the
+// unread count rather than take a fourth grid column — the anchor's three
+// columns are core's markup and adding to them would mean rebuilding the row.
+.bc-folderlist li {
+  position: relative;
+}
+
+// The pin star (§3.4). Hidden until the row is touched, so a pane of thirty
+// folders is not a column of thirty stars; still focusable while invisible, so
+// tabbing to it is what reveals it — which is why this is opacity and not
+// display, and why the rule below keys off :focus-within.
+.bc-folders__fav {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: var(--bc-s-4);
+  display: grid;
+  place-items: center;
+  width: var(--bc-s-24);
+  margin-block: auto;
+  height: var(--bc-s-24);
+  border-radius: var(--bc-radius-s);
+  background: transparent;
+  color: var(--bc-fg-3);
+  opacity: 0;
+  cursor: pointer;
+
+  &:hover { color: var(--bc-fg-1); }
+  &:focus-visible { @include bc-focus-ring; }
+}
+
+.bc-folderlist li:hover .bc-folders__fav,
+.bc-folderlist li:focus-within .bc-folders__fav {
+  opacity: 1;
+}
+
+// Pinned reads as the accent while the star is on screen. It is deliberately
+// NOT shown persistently: a pinned folder is already visible in the Favorites
+// group above, and a star that stayed would have to sit on top of the unread
+// count — which for the Inbox is the number the whole pane exists to show.
+.bc-folders__fav[aria-pressed="true"] {
+  color: var(--bc-brand-fg);
+}
+
+// The count gives way only while the star is actually over it.
+.bc-folderlist li:hover .unreadcount,
+.bc-folderlist li:focus-within .unreadcount {
+  visibility: hidden;
 }
 
 .bc-folderlist li > a {

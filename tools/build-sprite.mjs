@@ -18,6 +18,9 @@ const OUT = "skins/businessclass/images/icons/fluent-sprite.svg";
 const ICONS = {
   // App header (§3.2)
   grid: ["Grid", ["regular"]],
+  // The ribbon's folder-pane toggle (D-75). A hamburger, which is what Outlook
+  // puts at the head of its tab strip; nothing else in the skin uses one.
+  navigation: ["Navigation", ["regular"]],
   // Filled too: a saved contact search is a row in the Contacts directory pane,
   // where the selected row is drawn filled like every other list row (§10).
   search: ["Search", ["regular", "filled"]],
@@ -45,6 +48,10 @@ const ICONS = {
   mail_prohibited: ["Mail Prohibited", ["regular", "filled"]],
   delete: ["Delete", ["regular", "filled"]],
   folder: ["Folder", ["regular", "filled"]],
+  // Favorites (§3.4). Both variants: the star on a folder row is a toggle, and
+  // outline-vs-solid is what says which way it is set — the label alone would
+  // mean hovering every row to find out (§9 wants both, not either).
+  star: ["Star", ["regular", "filled"]],
   chevron_right: ["Chevron Right", ["regular"]],
   chevron_down: ["Chevron Down", ["regular"]],
   // Message list toolbar (§3.5)
@@ -54,6 +61,11 @@ const ICONS = {
   mail_unread: ["Mail Unread", ["regular"]],
   mail_read: ["Mail Read", ["regular"]],
   arrow_sort: ["Arrow Sort", ["regular"]],
+  // The View tab (D-76): refresh the folder, and show or hide the folder pane.
+  arrow_sync: ["Arrow Sync", ["regular"]],
+  panel_left: ["Panel Left", ["regular"]],
+  // "Expand conversation", which only exists while threading is on.
+  expand_up_right: ["Expand Up Right", ["regular"]],
   text_density: ["Text Density", ["regular"]],
   panel_right: ["Panel Right", ["regular"]],
   more_horizontal: ["More Horizontal", ["regular"]],

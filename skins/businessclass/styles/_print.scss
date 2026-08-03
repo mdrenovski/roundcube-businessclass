@@ -93,6 +93,10 @@ body.action-print {
   .bc-splitter,
   .bc-toolbar,
   .bc-ribbon,
+  // The bar as well as its rows. Every child of it is already a .bc-toolbar or
+  // a .bc-tabs, so it would collapse to nothing — except for its own border,
+  // which would print as a hairline across the top of every page.
+  .bc-ribbonbar,
   .bc-message__ribbon,
   .bc-tabs,
   .bc-pagenav,

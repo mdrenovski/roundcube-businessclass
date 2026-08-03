@@ -4,20 +4,59 @@
      plus div.treetoggle.collapsed|expanded for parents. Styled, never replaced. -->
 <nav id="layout-sidebar" class="bc-folders" aria-label="<roundcube:label name='folders' />">
 
-	<!-- Icon + localized text. The icon cannot go in content= (that would discard
-	     the translated label, and a nested roundcube:label tag inside an
-	     attribute is never resolved — parse_xml is a single non-recursive pass),
-	     so ui.js prepends it from data-bc-icon. Without JS the button is
-	     text-only and still works. -->
-	<div class="bc-folders__compose">
-		<roundcube:button command="compose" type="link" label="newmessage" title="writenewmessage"
-			class="bc-btn bc-btn--primary bc-btn--block" innerclass="bc-btn__label"
-			data-bc-icon="compose" />
-	</div>
+	<!-- New Message used to head this pane. It moved into the ribbon at D-75,
+	     where Outlook keeps it: one primary button at the left of the command
+	     row, above the folder pane rather than inside it. Rendering it here as
+	     well would be two buttons on the same command, which core would enable
+	     and disable together but a user would read as two different things. -->
 
 	<div class="bc-folders__scroll bc-scroll">
-		<roundcube:object name="mailboxlist" id="mailboxlist" class="bc-folderlist"
-			unreadwrap="%s" folder_filter="mail" />
+
+		<!-- Favorites (§3.4, D-74). Roundcube has no pinned-folder concept, so the
+		     list is businessclass_prefs' own businessclass_favorites pref; the
+		     plugin validates every name against the user's subscribed folders
+		     before it reaches env, so nothing here is a string the browser chose.
+
+		     Rendered empty and filled by ui.js from the real folder rows, for the
+		     same reason the labels list below is: without JS there is nothing to
+		     copy and a hand-built row would be a link core has not wired up. The
+		     group hides itself when the list comes out empty. -->
+		<div class="bc-folders__group" id="bc-favorites" hidden>
+			<button type="button" class="bc-folders__grouphead"
+				aria-expanded="true" aria-controls="bc-favlist">
+				<svg class="bc-icon bc-icon--16 bc-folders__chevron" aria-hidden="true"><use href="#ic_fluent_chevron_down_20_regular" /></svg>
+				<span class="bc-folders__groupname"><roundcube:label name="bc_favorites" /></span>
+			</button>
+
+			<div class="bc-folders__groupbody">
+				<ul class="bc-folderlist bc-favlist" id="bc-favlist"></ul>
+			</div>
+		</div>
+
+		<!-- Outlook heads the folder tree with the account it belongs to, and makes
+		     that heading collapsible. Roundcube is a single-account client, so this
+		     group is never one of several — it is there because a folder tree with
+		     no owner named above it reads as the app's folders rather than as this
+		     mailbox's.
+
+		     The name is businessclass_prefs' bc_account_email, falling back to
+		     core's own username object so the heading still says something with the
+		     plugin absent. The condition is inside the span, not around the whole
+		     group: the mailboxlist object has to be rendered exactly once, and a
+		     branch on either side of it would be two declarations of the same
+		     gui object id. -->
+		<div class="bc-folders__group">
+			<button type="button" class="bc-folders__grouphead"
+				aria-expanded="true" aria-controls="bc-folders-account">
+				<svg class="bc-icon bc-icon--16 bc-folders__chevron" aria-hidden="true"><use href="#ic_fluent_chevron_down_20_regular" /></svg>
+				<span class="bc-folders__groupname"><roundcube:if condition="env:bc_account_email" /><roundcube:var name="env:bc_account_email" /><roundcube:else /><roundcube:object name="username" /><roundcube:endif /></span>
+			</button>
+
+			<div class="bc-folders__groupbody" id="bc-folders-account">
+				<roundcube:object name="mailboxlist" id="mailboxlist" class="bc-folderlist"
+					unreadwrap="%s" folder_filter="mail" />
+			</div>
+		</div>
 
 		<roundcube:if condition="env:bc_categories" />
 		<div class="bc-folders__divider" role="separator"></div>
@@ -43,4 +82,9 @@
 		</div>
 	</div>
 	<roundcube:endif />
+
+	<!-- Needed client-side: ui.js builds the star on every folder row and the
+	     Favorites rows themselves. One tag per label (see mail.html). -->
+	<roundcube:add_label name="bc_addfavorite" />
+	<roundcube:add_label name="bc_removefavorite" />
 </nav>

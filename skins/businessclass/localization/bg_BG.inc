@@ -19,6 +19,36 @@ $labels['bc_by'] = 'от';
 
 // Folder pane (§3.4) / categories (§8)
 $labels['bc_labels'] = 'Етикети';
+$labels['bc_favorites'] = 'Любими';
+
+// The ribbon (D-75)
+$labels['bc_ribbontabs'] = 'Лента';
+$labels['bc_tabhome'] = 'Начало';
+// Not core's 'newmessage' ("Compose"): the ribbon's primary button is worded
+// the way Outlook words it, and core's label is used elsewhere unchanged.
+$labels['bc_newemail'] = 'Ново писмо';
+$labels['bc_tabview'] = 'Изглед';
+$labels['bc_tabhelp'] = 'Помощ';
+$labels['bc_togglefolders'] = 'Показване или скриване на папките';
+$labels['bc_togglebooks'] = 'Показване или скриване на адресните книги';
+$labels['bc_togglesections'] = 'Показване или скриване на разделите';
+
+// View tab (D-76)
+$labels['bc_viewsettings'] = 'Настройки на изгледа';
+$labels['bc_vmessages'] = 'Съобщения';
+$labels['bc_vconversations'] = 'Разговори';
+$labels['bc_vgrouped'] = 'Групиране по разговор';
+$labels['bc_vungrouped'] = 'Без групиране';
+$labels['bc_vpreview'] = 'Преглед на съобщението';
+$labels['bc_voff'] = 'Изключено';
+$labels['bc_v1line'] = '1 ред';
+$labels['bc_v2lines'] = '2 реда';
+$labels['bc_vexpand'] = 'Разгъване на разговора';
+$labels['bc_folderpane'] = 'Панел с папки';
+$labels['bc_vshow'] = 'Показване';
+$labels['bc_vhide'] = 'Скриване';
+$labels['bc_addfavorite'] = 'Добавяне в Любими';
+$labels['bc_removefavorite'] = 'Премахване от Любими';
 
 // App header (§3.2)
 $labels['bc_appmenu'] = 'Меню с приложения';

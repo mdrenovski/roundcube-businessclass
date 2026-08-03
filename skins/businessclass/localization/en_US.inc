@@ -16,6 +16,36 @@ $labels['bc_by'] = 'by';
 
 // Folder pane (§3.4) / categories (§8)
 $labels['bc_labels'] = 'Labels';
+$labels['bc_favorites'] = 'Favorites';
+
+// The ribbon (D-75)
+$labels['bc_ribbontabs'] = 'Ribbon';
+$labels['bc_tabhome'] = 'Home';
+// Not core's 'newmessage' ("Compose"): the ribbon's primary button is worded
+// the way Outlook words it, and core's label is used elsewhere unchanged.
+$labels['bc_newemail'] = 'New Email';
+$labels['bc_tabview'] = 'View';
+$labels['bc_tabhelp'] = 'Help';
+$labels['bc_togglefolders'] = 'Toggle the folder pane';
+$labels['bc_togglebooks'] = 'Toggle the address book pane';
+$labels['bc_togglesections'] = 'Toggle the sections pane';
+
+// View tab (D-76)
+$labels['bc_viewsettings'] = 'View settings';
+$labels['bc_vmessages'] = 'Messages';
+$labels['bc_vconversations'] = 'Conversations';
+$labels['bc_vgrouped'] = 'Group messages by conversation';
+$labels['bc_vungrouped'] = 'Do not group messages';
+$labels['bc_vpreview'] = 'Message preview';
+$labels['bc_voff'] = 'Off';
+$labels['bc_v1line'] = '1 line';
+$labels['bc_v2lines'] = '2 lines';
+$labels['bc_vexpand'] = 'Expand conversation';
+$labels['bc_folderpane'] = 'Folder pane';
+$labels['bc_vshow'] = 'Show';
+$labels['bc_vhide'] = 'Hide';
+$labels['bc_addfavorite'] = 'Add to Favorites';
+$labels['bc_removefavorite'] = 'Remove from Favorites';
 
 // App header (§3.2)
 $labels['bc_appmenu'] = 'App menu';

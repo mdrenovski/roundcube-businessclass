@@ -1,0 +1,187 @@
+<!-- Contacts ribbon (D-77). Same component as the mail ribbon, same behaviour
+     from ui.js — initRibbon() finds #bc-ribbonbar and its .bc-tabs__tab
+     children and needs to know nothing about which task it is on.
+
+     The tab strip is written out again rather than shared with
+     includes/ribbonbar.html. A Roundcube include takes no parameters, so a
+     shared strip would have to carry every task's tabs and hide the wrong ones
+     — and the aria-controls ids differ per task, which is the one part that
+     cannot be made conditional cheaply.
+
+     Contacts keeps a View tab because it has two real things to put in it.
+     Settings does not, and says so in its own file. -->
+<div id="bc-ribbonbar" class="bc-ribbonbar">
+
+	<div class="bc-tabs bc-tabs--ribbon">
+		<button type="button" id="bc-folderpane" class="bc-iconbtn bc-iconbtn--sm"
+			aria-pressed="false" title="<roundcube:label name='bc_togglebooks' />">
+			<span class="voice"><roundcube:label name="bc_togglebooks" /></span>
+			<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_navigation_20_regular" /></svg>
+		</button>
+
+		<div class="bc-tabs__list" role="tablist" aria-label="<roundcube:label name='bc_ribbontabs' />">
+			<button type="button" role="tab" id="bc-tab-home" class="bc-tabs__tab"
+				aria-selected="true" tabindex="0" aria-controls="bc-ribbon"><roundcube:label name="bc_tabhome" /></button>
+			<button type="button" role="tab" id="bc-tab-view" class="bc-tabs__tab"
+				aria-selected="false" tabindex="-1" aria-controls="bc-ribbon-view"><roundcube:label name="bc_tabview" /></button>
+			<button type="button" role="tab" id="bc-tab-help" class="bc-tabs__tab"
+				aria-selected="false" tabindex="-1" aria-controls="bc-ribbon-help"><roundcube:label name="bc_tabhelp" /></button>
+		</div>
+	</div>
+
+	<h2 id="aria-label-contactstoolbar" class="voice"><roundcube:label name="arialabeltoolbar" /></h2>
+
+	<!-- Home. Order follows the mail ribbon's, which follows Outlook's: the
+	     primary button, then the actions that operate on the selection.
+
+	     Every one of these used to be somewhere else — New contact headed the
+	     address-book pane, Import and Advanced search sat on the list head, and
+	     Edit / Compose / Export / Delete were a toolbar above the detail frame.
+	     They act on the parent's list selection, which is why they were never in
+	     the frame; the ribbon is in the same document, so core still enables and
+	     disables them from contactlist_select(). -->
+	<div id="bc-ribbon" class="bc-toolbar bc-ribbon" role="tabpanel"
+		aria-labelledby="bc-tab-home">
+
+		<roundcube:button command="add" type="link" label="newcontact" title="newcontact"
+			class="bc-btn bc-btn--primary bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="person_add" data-bc-priority="1" />
+
+		<div class="bc-toolbar__divider bc-ribbon__item" data-bc-priority="10" role="separator" aria-orientation="vertical"></div>
+
+		<roundcube:button command="delete" type="link" label="delete" title="deletecontact"
+			class="bc-iconbtn bc-iconbtn--danger bc-ribbon__item" innerclass="voice"
+			data-bc-icon="delete" data-bc-priority="4" />
+
+		<div class="bc-toolbar__divider bc-ribbon__item" data-bc-priority="11" role="separator" aria-orientation="vertical"></div>
+
+		<roundcube:button command="edit" type="link" label="edit" title="editcontact"
+			class="bc-btn bc-btn--secondary bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="edit" data-bc-priority="2" />
+
+		<!-- id, because ui.js has to find this one: compose is enabled for every
+		     task, so core never dims it, yet here it needs a selection to compose
+		     to. Kept from the toolbar this replaced, along with the wiring. -->
+		<roundcube:button command="compose" type="link" id="bc-contact-compose"
+			label="compose" title="composeto"
+			class="bc-btn bc-btn--secondary bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="mail" data-bc-priority="3" />
+
+		<div class="bc-toolbar__divider bc-ribbon__item" data-bc-priority="12" role="separator" aria-orientation="vertical"></div>
+
+		<roundcube:button command="export-selected" type="link" label="export" title="exportvcards"
+			class="bc-iconbtn bc-ribbon__item" innerclass="voice"
+			data-bc-icon="arrow_download" data-bc-priority="5" />
+
+		<roundcube:button command="import" type="link" label="import" title="importcontacts"
+			class="bc-iconbtn bc-ribbon__item" innerclass="voice"
+			data-bc-icon="arrow_upload" data-bc-priority="6" />
+
+		<roundcube:button command="advanced-search" type="link" label="search" title="advsearch"
+			class="bc-iconbtn bc-ribbon__item" innerclass="voice"
+			data-bc-icon="search" data-bc-priority="7" />
+
+		<!-- The rest of what core registers for a contact. Without this they would
+		     be unreachable, since §4.5 names only four. Same menu as before, moved
+		     whole — including the contactmenu container, which must be rendered
+		     exactly once in a document. -->
+		<div class="bc-popover__anchor bc-ribbon__item" data-bc-priority="8">
+			<button type="button" id="bc-contact-more" class="bc-iconbtn"
+				aria-haspopup="true" aria-expanded="false" aria-controls="bc-contact-menu"
+				title="<roundcube:label name='arialabelmorecontactactions' />">
+				<span class="voice"><roundcube:label name="arialabelmorecontactactions" /></span>
+				<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_more_horizontal_20_regular" /></svg>
+			</button>
+
+			<div id="bc-contact-menu" class="bc-popover bc-popover--form" role="group"
+				aria-labelledby="bc-contact-more" hidden>
+				<roundcube:button command="print" type="link"
+					class="bc-popover__action" innerclass="bc-btn__label"
+					label="print" title="printcontact" data-bc-icon="print" />
+				<roundcube:if condition="env:qrcode" />
+				<roundcube:button command="qrcode" type="link"
+					class="bc-popover__action" innerclass="bc-btn__label"
+					label="qrcode" title="qrcode" data-bc-icon="qr_code" />
+				<roundcube:endif />
+				<roundcube:button command="export" type="link"
+					class="bc-popover__action" innerclass="bc-btn__label"
+					label="exportall" title="exportvcards" data-bc-icon="arrow_download" />
+				<div class="bc-popover__sep" role="separator"></div>
+				<roundcube:button command="group-assign-selected" type="link"
+					class="bc-popover__action" innerclass="bc-btn__label"
+					label="groupassign" title="groupassign" data-bc-icon="people_add" />
+				<roundcube:button command="group-remove-selected" type="link"
+					class="bc-popover__action" innerclass="bc-btn__label"
+					label="groupremove" title="groupremove" data-bc-icon="people_prohibited" />
+				<roundcube:if condition="env:contact_move_enabled" />
+				<roundcube:button command="move" type="link"
+					class="bc-popover__action" innerclass="bc-btn__label"
+					label="moveto" title="moveto" data-bc-icon="folder_arrow_right" />
+				<roundcube:endif />
+				<roundcube:if condition="env:contact_copy_enabled" />
+				<roundcube:button command="copy" type="link"
+					class="bc-popover__action" innerclass="bc-btn__label"
+					label="copyto" title="copyto" data-bc-icon="copy" />
+				<roundcube:endif />
+				<roundcube:container name="contactmenu" id="bc-contact-menu" />
+			</div>
+		</div>
+
+		<div class="bc-popover__anchor bc-ribbon__more" hidden>
+			<button type="button" id="bc-ribbon-more" class="bc-iconbtn"
+				aria-haspopup="menu" aria-expanded="false" aria-controls="bc-ribbon-menu"
+				title="<roundcube:label name='moreactions' />">
+				<span class="voice"><roundcube:label name="moreactions" /></span>
+				<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_more_horizontal_20_regular" /></svg>
+			</button>
+			<div id="bc-ribbon-menu" class="bc-popover" role="menu" aria-labelledby="bc-ribbon-more" hidden></div>
+		</div>
+
+		<div class="bc-toolbar__spacer"></div>
+	</div>
+
+	<!-- View. Two entries, both real: the address-book pane can be collapsed, and
+	     View settings goes to the same place it does on mail. Density, layout and
+	     the message-preview lines are all properties of the message list and have
+	     nothing to say here. -->
+	<div id="bc-ribbon-view" class="bc-toolbar bc-ribbon" role="tabpanel"
+		aria-labelledby="bc-tab-view" hidden>
+
+		<roundcube:button command="preferences" task="settings" type="link" label="bc_viewsettings" title="bc_viewsettings"
+			class="bc-btn bc-btn--subtle bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="settings" data-bc-priority="2" />
+
+		<div class="bc-popover__anchor bc-ribbon__item" data-bc-priority="1">
+			<button type="button" id="bc-folderpane-menu-btn" class="bc-btn bc-btn--subtle"
+				aria-haspopup="menu" aria-expanded="false" aria-controls="bc-folderpane-menu">
+				<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_panel_left_20_regular" /></svg>
+				<span class="bc-btn__label"><roundcube:label name="bc_addressbooks" /></span>
+				<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_chevron_down_20_regular" /></svg>
+			</button>
+			<div id="bc-folderpane-menu" class="bc-popover" role="menu" aria-labelledby="bc-folderpane-menu-btn" hidden>
+				<button type="button" role="menuitemradio" aria-checked="true" data-bc-folderpane="show"><roundcube:label name="bc_vshow" /></button>
+				<button type="button" role="menuitemradio" aria-checked="false" data-bc-folderpane="hide"><roundcube:label name="bc_vhide" /></button>
+			</div>
+		</div>
+
+		<div class="bc-toolbar__spacer"></div>
+	</div>
+
+	<div id="bc-ribbon-help" class="bc-toolbar bc-ribbon" role="tabpanel"
+		aria-labelledby="bc-tab-help" hidden>
+
+		<roundcube:if condition="env:bc_support_url" />
+		<a class="bc-btn bc-btn--subtle bc-ribbon__item" data-bc-priority="1"
+			href="<roundcube:var name='env:bc_support_url' />" target="_blank" rel="noopener noreferrer">
+			<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_question_circle_20_regular" /></svg>
+			<span class="bc-btn__label"><roundcube:label name="bc_support" /></span>
+		</a>
+		<roundcube:endif />
+
+		<roundcube:button command="about" type="link" label="about" title="about"
+			class="bc-btn bc-btn--subtle bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="info" data-bc-priority="2" />
+
+		<div class="bc-toolbar__spacer"></div>
+	</div>
+</div>

@@ -1,5 +1,10 @@
 <roundcube:include file="/templates/includes/header.html" />
 
+<!-- The ribbon (D-75). Outside #layout, which §1.2 requires to keep Elastic's
+     four children — and above it, because the ribbon spans the whole window
+     including the folder pane, exactly as Outlook draws it. -->
+<roundcube:include file="/templates/includes/ribbonbar.html" />
+
 <!-- Pane widths come from the persisted prefs (§3.1). Elastic's ids are kept so
      third-party plugins that target #layout / #layout-* keep working (§1.2).
 
@@ -27,8 +32,12 @@
 		<!-- Toolbar. Core toggles aria-disabled/tabindex on command buttons whose
 		     command is currently unavailable (app.js set_button), so the disabled
 		     look is driven off [aria-disabled] rather than a swapped class.
-		     Density and reading-pane toggles arrive with step 5, the sort menu and
-		     the More overflow with step 4 (§5). -->
+
+		     Every message ACTION moved into the ribbon at D-75 — mark read and
+		     unread, delete, archive and the plugin container that carried it. What
+		     is left is what Outlook leaves on this row: the things that change how
+		     the list itself is shown. §3.5 wrote them as one toolbar because at the
+		     time there was nowhere else for them to be. -->
 		<h2 id="aria-label-listtoolbar" class="voice"><roundcube:label name="arialabeltoolbar" /></h2>
 		<div id="messagelist-header" class="bc-toolbar" role="toolbar" aria-labelledby="aria-label-listtoolbar">
 
@@ -40,32 +49,6 @@
 				<span class="voice"><roundcube:label name="select" /></span>
 				<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_checkbox_unchecked_20_regular" /></svg>
 			</button>
-
-			<!-- label + innerclass, not content=: for type="link" the button renderer
-			     uses content INSTEAD of the label (rcmail_output_html.php:1886), so
-			     pairing the two would wrap the icon in the visually-hidden span and
-			     leave the button with no accessible name at all. The icon is
-			     prepended by ui.js from data-bc-icon; without JS these stay text
-			     buttons and still work (§1.4). -->
-			<roundcube:button command="mark" prop="read" type="link" title="markread" label="markread"
-				class="bc-iconbtn" innerclass="voice" data-bc-icon="mail_read" />
-
-			<roundcube:button command="mark" prop="unread" type="link" title="markunread" label="markunread"
-				class="bc-iconbtn" innerclass="voice" data-bc-icon="mail_unread" />
-
-			<roundcube:button command="delete" type="link" title="deletemessage" label="delete"
-				class="bc-iconbtn bc-iconbtn--danger" innerclass="voice" data-bc-icon="delete" />
-
-			<!-- §3.5 puts Archive here, but the archive plugin registers itself into
-			     the "toolbar" container, which the reading-pane ribbon owns — a
-			     container rendered in two places emits the same button ids twice and
-			     core would only ever find the first. So this one is hand-rendered
-			     against the same command; both copies register under it and core
-			     enables and disables them together. -->
-			<roundcube:if condition="env:archive_folder" />
-			<roundcube:button command="plugin.archive" type="link" title="buttontitle" label="buttontext" domain="archive"
-				class="bc-iconbtn" innerclass="voice" data-bc-icon="archive" />
-			<roundcube:endif />
 
 			<div class="bc-toolbar__spacer"></div>
 
@@ -89,31 +72,12 @@
 				<div id="bc-sort-menu" class="bc-popover" role="menu" aria-labelledby="bc-sort-more" hidden></div>
 			</div>
 
-			<!-- Density (§3.5). A straight two-state toggle, as the design draws it;
-			     the class it writes on #messagelist is what the CSS keys off. -->
-			<button type="button" id="bc-density" class="bc-iconbtn" aria-pressed="false"
-				title="<roundcube:label name='bc_density' />">
-				<span class="voice"><roundcube:label name="bc_density" /></span>
-				<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_text_density_20_regular" /></svg>
-			</button>
-
-			<!-- Reading pane (§3.5). Three positions, so a menu rather than a cycle:
-			     a one-button cycle gives a screen reader no way to know the options.
-			     Selecting one goes through set_list_options(), which is what core
-			     persists the layout pref through (list.php:63). -->
-			<div class="bc-popover__anchor">
-				<button type="button" id="bc-pane" class="bc-iconbtn"
-					aria-haspopup="menu" aria-expanded="false" aria-controls="bc-pane-menu"
-					title="<roundcube:label name='bc_readingpane' />">
-					<span class="voice"><roundcube:label name="bc_readingpane" /></span>
-					<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_panel_right_20_regular" /></svg>
-				</button>
-				<div id="bc-pane-menu" class="bc-popover" role="menu" aria-labelledby="bc-pane" hidden>
-					<button type="button" role="menuitemradio" aria-checked="false" data-bc-layout="widescreen"><roundcube:label name="bc_paneright" /></button>
-					<button type="button" role="menuitemradio" aria-checked="false" data-bc-layout="desktop"><roundcube:label name="bc_panebottom" /></button>
-					<button type="button" role="menuitemradio" aria-checked="false" data-bc-layout="list"><roundcube:label name="bc_paneoff" /></button>
-				</div>
-			</div>
+			<!-- Density and the reading-pane position used to sit here (§3.5). Both
+			     moved into the View tab at D-76, which is where Outlook keeps them
+			     and where §3.5 could not have put them because there was no ribbon
+			     to put them in. Sort stays: it is the one control on this row that
+			     changes the ORDER of what is listed rather than how it is drawn,
+			     and Outlook leaves its sort on the list header too. -->
 		</div>
 
 		<!-- Focused / Other (§3.5, §7.4). Rendered only where the preference is
@@ -189,13 +153,17 @@
 		tabindex="0" aria-label="<roundcube:label name='bc_resizelist' />"
 		aria-valuemin="320" aria-valuemax="520" aria-valuenow="<roundcube:var name='env:bc_list_w' />"></div>
 
-	<!-- Reading pane (§3.6). The ribbon sits in this document rather than inside
-	     the preview iframe, so it is on screen and correctly disabled before a
-	     message is picked; message.html renders its own copy only when the
-	     message has its own window. -->
+	<!-- Reading pane (§3.6). It no longer carries a toolbar of its own: at D-75
+	     every message action moved into the ribbon at the top of the window,
+	     which is where Outlook keeps them and why there is only one row of them
+	     in this document. The commands are still bound the same way — the ribbon
+	     is in this document too, so core's set_button() reaches it and the
+	     buttons are correctly disabled before a message is picked.
+
+	     includes/ribbon.html is still rendered by message.html when a message has
+	     its own window, which is the one case with no ribbon above it. -->
 	<main id="layout-content" class="bc-reading" role="region" aria-live="polite"
 		aria-label="<roundcube:label name='arialabelmailpreviewframe' />">
-		<roundcube:include file="/templates/includes/ribbon.html" />
 		<roundcube:object name="contentframe" id="messagecontframe" class="bc-reading__frame"
 			src="env:blankpage" title="arialabelmailpreviewframe" />
 

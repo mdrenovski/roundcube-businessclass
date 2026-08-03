@@ -78,6 +78,24 @@
   &[hidden] { display: none; }
 }
 
+// A titled section inside a menu (D-76). Outlook reaches the same options
+// through a cascade of submenus; one menu with named groups says the same thing
+// in one place, and gives a screen reader a role="group" with a name instead of
+// three levels to walk back out of.
+.bc-popover__group + .bc-popover__group {
+  margin-top: var(--bc-s-4);
+  padding-top: var(--bc-s-4);
+  border-top: 1px solid var(--bc-stroke-2);
+}
+
+.bc-popover__title {
+  margin: 0;
+  padding: var(--bc-s-4) var(--bc-s-8);
+  font-weight: var(--bc-weight-semibold);
+  @include bc-caption2;
+  color: var(--bc-fg-3);
+}
+
 // Items are the real command elements, moved in from the toolbar and moved back
 // out on resize — so they are <a> and <button> both, and are matched by role.
 // The overridden properties are the toolbar's own: an item arriving here may

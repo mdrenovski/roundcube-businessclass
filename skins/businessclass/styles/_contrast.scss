@@ -39,8 +39,14 @@ html[data-bc-theme="hc"] {
   // The descendant selector is blunt on purpose: it is the *fill* that changed
   // meaning, so everything drawn on it changes with it, including whatever a
   // plugin renders into a row this skin has never seen.
-  .bc-messagelist tr.message.selected,
-  .bc-messagelist tr.message.selected *,
+  //
+  // Scoped to .bc-multiselect for the message list, because a single selected
+  // message is no longer a fill at all — it is the row's own background with a
+  // 2px accent outline (_list.scss). Applied there, this rule would paint black
+  // text onto the black --bc-bg-1 the row still has, and lose the one row the
+  // user is standing on. The contact list has not changed and keeps the tint.
+  .bc-messagelist.bc-multiselect tr.message.selected,
+  .bc-messagelist.bc-multiselect tr.message.selected *,
   .bc-contactlist tr.selected,
   .bc-contactlist tr.selected * {
     color: var(--bc-fg-on-tint);
@@ -48,7 +54,7 @@ html[data-bc-theme="hc"] {
 
   // Icons follow currentColor (_reset.scss), so they come along with the rule
   // above — except where a component pinned an icon colour of its own.
-  .bc-messagelist tr.message.selected .bc-icon,
+  .bc-messagelist.bc-multiselect tr.message.selected .bc-icon,
   .bc-contactlist tr.selected .bc-icon {
     color: var(--bc-fg-on-tint);
   }

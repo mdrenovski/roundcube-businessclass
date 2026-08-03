@@ -1,5 +1,9 @@
 <roundcube:include file="/templates/includes/header.html" />
 
+<!-- The Settings ribbon (D-77). Same place as on mail and Contacts:
+     outside #layout and above it, spanning the whole window. -->
+<roundcube:include file="/templates/includes/ribbonbar-settings.html" />
+
 <!-- About. Not a framed section: the 'about' command is a full redirect to
      ?_task=settings&_action=about (app.js:804), so this is a whole page and
      carries the settings nav to get back out of.
