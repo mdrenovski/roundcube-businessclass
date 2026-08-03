@@ -1037,3 +1037,247 @@ requirement, and it is what every input is actually bordered with. And a categor
 always labelled; the dot now carries a 1px ring in its own `-fg` step instead, so
 the hue survives and the shape is visible. Amber was 2.16:1 on white and every
 dot was under 3:1 on the dark surface, the worst at 1.56:1.
+
+---
+
+## Outlook parity (unnumbered, after step 12)
+
+The user supplied screenshots of a real outlook.com account and asked for the
+skin to match it "as much as identical as possible". `ms-handoff/BUILD.md` §1
+says the opposite — *"an original mail UI in the Fluent 2 language, not a clone
+of Microsoft's product UI. Do not copy Outlook's proprietary iconography,
+illustrations, marks or exact chrome."* That was put to the user with the
+conflict stated, and they chose to override it for chrome and layout. §10 still
+holds and is not in question: no Microsoft logos, illustrations or icon webfont,
+and every glyph still comes from the MIT Fluent set.
+
+Commands Outlook has and Roundcube has no data behind — Quick Steps, Sweep,
+Snooze, Viva Insights, Copilot, Zoom, Immersive Reader, conversation grouping by
+branch, Tips, Feedback — are **omitted, not drawn disabled**. A permanently
+disabled control offers a user a feature their mail server does not have, and
+§9's audit would have to defend a button with no path to enabled.
+
+### D-73 · The message row is Outlook's, not the design file's
+Subject in the accent, date beside the *subject* rather than the sender, and the
+flag/attachment cell moved up to the sender's line.
+
+The accent is `--bc-brand-fg`, never `--bc-accent`. That is the whole reason
+step 12's server-side derivation exists: `accent_text()` walks the admin's colour
+away from the surface 2% at a time until it clears 4.5:1, so a subject in it
+holds for any accent, light or dark, and high contrast restates it as `#1AEBFF`
+without ever reading the raw value. Colour therefore stops distinguishing read
+from unread — weight and the brand bar carry that, which is what §9 asks for
+anyway, and the date keeps the accent only while unread.
+
+Selection changed from a tint fill to a 2px accent outline on the row's own
+background, which is what Outlook draws. Written as an inset `box-shadow`: a
+border would add 2px to a content-sized grid row and shift every row beneath it,
+and `outline` is already the focus ring — a row that is both selected and focused
+has to show both.
+
+That change broke a high-contrast rule that had been correct. `_contrast.scss`
+forced `--bc-fg-on-tint` onto every selected row *and all its descendants*,
+because in hc the tint is solid yellow rather than a wash. With selection now on
+`--bc-bg-1` — also black in hc — it would have painted the focused row black on
+black. It is scoped to `.bc-multiselect` now, where a fill genuinely still
+exists; the contact list is unchanged and keeps the tint. Multi-select also gives
+the subject back to `--bc-fg-on-tint`, for the reason §9 gives: brand text on a
+tint fails.
+
+Date group headings became real `<button aria-expanded>` toggles. Collapsed rows
+are hidden with `display: none`, which `rcube_list_widget` already treats as an
+absent row (list.js:959) — so they leave `j`/`k` and select-all with no further
+help. Only rows the skin hid are ever shown again (`data-bc-collapsed`): core
+hides rows too, and clearing that blindly would restore messages a search had
+filtered away. Collapse state is per-sitting, not persisted.
+
+### D-74 · Favorites is a real preference, not a static list
+Outlook's Favorites is user-curated. Roundcube has no pinned-folder concept, so
+this is `businessclass_favorites` — one `"\n"`-separated string, because that is
+the only shape `rcmail.save_pref()` carries and `"\n"` is the one separator an
+IMAP mailbox name cannot contain. Seeded with Inbox / Drafts / Sent the way
+Outlook seeds it, and only when the pref has never been set: `''` means the user
+emptied it, and re-seeding would put back what they just removed.
+
+**The value is untrusted.** `save_pref.php` checks only that the name is
+whitelisted and then writes whatever the browser sent into the user's
+preferences — there is no hook in between. So the check is on the way out, in
+`sanitize_favorites()`, and it is the strongest available: a name survives only
+if the user is subscribed to a folder by that name. Nothing downstream has to
+escape anything, because every string that reaches the browser is one the IMAP
+server just named. `FAVORITES_MAX` caps the list so a crafted pref cannot make
+every page render ten thousand rows.
+
+The Favorites rows are **clones** of the tree rows, not links built here. Core
+wires each anchor to its own list command and writes the row's classes itself; an
+anchor assembled in `ui.js` would be one this skin had to keep in step with
+`render_folder_tree_html` for ever. What is maintained instead is what gets
+stripped — ids, which must not exist twice, and child lists, which belong to the
+tree. A `MutationObserver` on `#mailboxlist` copies class and unread-count
+changes onto the clones, so every path core uses to touch a folder row is covered
+without naming any of them, including a plugin's. The count element is *created*
+on the clone when needed: core adds it when a folder becomes unread and removes
+it when it is read, so a clone taken while the folder was read has nothing to
+write into. That was a real bug, caught by driving the code in a browser.
+
+The star is shown on hover and focus only, never persistently. A pinned folder is
+already visible in the Favorites group, and a star that stayed would sit on top
+of the unread count — which for the Inbox is the number the pane exists to show.
+
+### D-75 · The ribbon replaces both toolbars
+Two rows under the app header, spanning the whole window including the folder
+pane: a tab strip (**Home / View / Help**) and one command row per tab. It is a
+third flex child of `<body>` beside `#bc-header` and `#layout`, so it costs its
+own height and nothing is re-laid out — and `#layout` keeps Elastic's four
+children exactly as §1.2 requires.
+
+**No File tab.** The user chose three. Outlook's File is the tab with least
+behind it in Roundcube, and the alternative was a tab of entries that go nowhere.
+
+Every message action moved into it, which means the reading pane no longer has a
+toolbar and the message list toolbar no longer has any actions. That split is the
+point: Outlook puts what you do *to a message* in the ribbon and leaves what
+changes *how the list is drawn* on the list. The commands are bound exactly as
+before — the ribbon is in the same document, so `set_button()` reaches it and the
+buttons are correctly disabled before a message is picked.
+
+`includes/ribbon.html` survives unchanged for the one case with no ribbon above
+it: a message in its own window. The `toolbar` container — archive, markasjunk,
+zipdownload — moved with the actions, and mail.html's hand-rendered Archive is
+gone. That button only ever existed because a container cannot be rendered twice
+in one document and the reading pane owned the one copy; there is now one
+toolbar, so there is nothing to work around.
+
+New Message moved out of the folder pane. Two buttons on the same command would
+have been enabled and disabled together by core and read as two different things
+by a user. `.bc-folders__compose` stays in the stylesheet because Contacts still
+uses it — that pane gets its ribbon at the next checkpoint but one.
+
+**Three existing selectors had to be qualified**, and each would have been a real
+bug. `initTabs()`, `restoreScope()` and `syncTabs()` all queried `.bc-tabs__tab`
+unqualified, and the ribbon deliberately reuses that component rather than
+shipping a second tab control. Unqualified, the ribbon's tabs would have been
+wired to `applyScope(null)`, pulled into Focused/Other's arrow navigation, made
+`restoreScope()` report Focused/Other as present on every install — filtering the
+mailbox for a control that is not there — and had `syncTabs()` clear
+`aria-selected` on Home. All three now read `.bc-tabs__tab[data-bc-scope]`.
+
+The hamburger beside the tabs collapses the folder pane by zeroing its grid
+track, not by hiding the nav: `display: none` on `#layout-sidebar` would leave its
+column at `--bc-folders-w` and the panes would keep a 236px gap where the pane
+used to be. The splitter goes with it, because a drag handle for an absent pane
+sets a width nothing reads.
+
+One ordering trap is load-bearing and marked in both files: `_ribbon.scss` must
+load **after** `_list.scss` and `_reading.scss`. `.bc-tabs--ribbon` and `.bc-tabs`
+are both a single class, so they tie on specificity and source order is the only
+thing deciding whose height and border win.
+
+### D-76 · View and Help carry what Roundcube can actually do
+**View**: View settings · Messages ▾ · Expand conversation · Sync │ Layout ▾ ·
+Folder pane ▾ · Density ▾. Outlook's **Zoom** and **Immersive reader** have no
+Roundcube equivalent and are left out rather than drawn permanently disabled.
+**Help**: the `support_url` link and About. Outlook's **Tips** and **Feedback**
+have nothing behind them; **Get Diagnostics** becomes About, which is the page
+that actually names the versions and plugins a support request needs.
+
+Density and the reading-pane position moved here out of the message-list toolbar.
+Sort stayed: it changes the *order* of what is listed rather than how it is
+drawn, and Outlook leaves its sort on the list header too. Density stopped being
+§3.5's two-state toggle and became a menu, because a menu names both states
+instead of asking the user to press the button to find out what the other one is.
+`setDensity()` still writes `aria-pressed` where it finds it, so both shapes stay
+correct without the caller knowing which is installed.
+
+**Outlook's three-level cascade is one menu with named groups.** `Messages →
+Conversations → Message list → three radios` collapses to a `Conversations`
+group with two, because Roundcube's threading is one boolean and its "group by
+branches within conversations" has no equivalent. The whole `Reading pane`
+submenu is gone: every entry in it is about showing a conversation at once, which
+Roundcube's reading pane does not do. A `role="group"` with a name gives a screen
+reader the same structure without three levels to walk back out of.
+
+Conversation grouping goes through `set_list_options()` — the same call the
+reading-pane position uses, whose fourth argument is the threading flag. Neither
+is a `save_pref` preference; core persists both as a side effect of reloading the
+list.
+
+**`businessclass_preview`** is new: `off | 1 | 2` snippet lines, Outlook's own
+default being 1. "Off" hides the line rather than stopping the plugin — the
+snippet arrives with the list either way, and a preference about how a row is
+*drawn* should not change what is asked of the server.
+
+**Sync and Expand conversation are marked `data-bc-command`.** Roundcube's
+command set is not part of the skin API and differs by version and by loaded
+plugins, so the skin cannot know from a template whether `checkmail` or
+`expand-all` exist here. `syncRibbonCommands()` hides either one whenever core
+has not registered it. Three things about it were got wrong first and fixed:
+
+- It removed the controls. A command can be registered *late* — `expand-all` only
+  appears once threading is on — so a control deleted at startup would stay gone
+  until the page was reloaded. It sets `[hidden]` instead, which leaves the tab
+  order and the accessibility tree in the same state removal would, and re-runs
+  on every list update.
+- It read the command out of the `onclick` core generates. It now reads an
+  explicit `data-bc-command`, which says which buttons this is *meant* to govern
+  — so a command merely absent from `rcmail.commands` at that instant cannot
+  silently hide a button nobody was unsure about — and does not depend on the
+  shape of core's markup.
+- `tools/verify/render.mjs` emitted only `data-bc-icon` from a `roundcube:button`
+  and dropped every other `data-*`. That is why the first version of this check
+  appeared to pass while doing nothing, and it means **`data-bc-priority` was
+  never exercised in a fixture either** — the §5 overflow order has been
+  untestable since step 4. The stand-in now passes all `data-*` through, as
+  `rcmail_output_html::button()` does.
+
+`refcheck` also caught a `label()` call whose first quoted string was a ternary
+operand rather than a label key. The key is resolved into a variable before the
+call now; the check is right and the code was written in a shape it cannot read.
+
+### D-77 · Contacts gets a real ribbon; Settings gets an honest one
+**Contacts** consolidates three separate toolbars into one Home row: New contact
+(which headed the address-book pane), Import and Advanced search (which sat on
+the list head), and Edit / Email / Export / Delete plus the More popover (which
+were a toolbar above the detail frame). Order follows the mail ribbon's, which
+follows Outlook's — primary button, then the actions that operate on the
+selection. It also gets a View tab, because it has two real things to put in one:
+collapsing the address-book pane, and View settings.
+
+None of those buttons ever belonged to the contact frame: they act on the
+parent's list selection, which is why §4.5 put them outside it. The ribbon is in
+that same document, so core still enables and disables them from
+`contactlist_select()` with nothing rewired. The `contactmenu` container moved
+whole; `groupoptions` stayed in the directory pane, so each still renders exactly
+once per document.
+
+**Settings gets two tabs, not three, and that is the honest answer.** Outlook has
+no Settings ribbon at all — settings there are a dialog — so there is no
+arrangement to copy, and what Roundcube actually has is one or two actions per
+screen and nothing to configure about the view. A View tab would be an empty
+band, which is the thing D-75 exists to avoid. It was flagged to the user when
+they chose all three tasks and again when the screens turned out to hold two
+buttons between them; they kept the choice, so it is built.
+
+Its Home row changes with the screen, because the Settings task is several
+top-level templates rather than one: `env:action` picks the branch, and
+conditions resolve before template objects, so only one is ever rendered and no
+button is emitted twice. Preferences, About and a plugin's own page have no
+actions and get an empty row — deliberately, because the tab strip and the Help
+tab are identical across sibling screens and chrome that appears and disappears
+between them reads as a fault.
+
+**The tab strip is written out in each of the three ribbon files rather than
+shared.** A Roundcube include takes no parameters, so a shared strip would have
+to carry every task's tabs and hide the wrong ones — and the `aria-controls` ids
+differ per task, which is the part that cannot be made conditional cheaply.
+`ui.js` needs none of this: `initRibbon()` finds `#bc-ribbonbar` and its
+`.bc-tabs__tab` children and knows nothing about which task it is on.
+
+The pane-collapse rule now zeroes all three second-column widths —
+`--bc-folders-w`, `--bc-books-w`, `--bc-settings-nav-w`. Each shell names its own
+track and one button collapses the pane on all of them; setting a variable a
+given shell does not read costs nothing.
+
+`tools/verify/render.mjs` takes `env:action == 'identities'` as true, so the
+Settings ribbon's richest branch — primary button, divider, destructive action —
+is the one that actually gets laid out in a fixture.
