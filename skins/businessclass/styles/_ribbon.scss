@@ -1,0 +1,80 @@
+// =============================================================================
+// skins/businessclass/styles/_ribbon.scss
+// The ribbon — tab strip + command rows (DECISIONS.md D-75).
+//
+// §2's file list predates the ribbon, so there is no partial named for it. It
+// gets one anyway rather than being folded into _shell.scss or _header.scss: it
+// is a component of the same weight as the header, and _shell.scss owns the
+// grid rather than the things sitting in it.
+//
+// The bar is a flex child of <body> alongside #bc-header and #layout, so it
+// costs its own height and nothing else is re-laid out. The panels reuse
+// .bc-toolbar and .bc-ribbon from _reading.scss — same row, same overflow rule,
+// same disabled treatment — and only the chrome around them is new.
+//
+// Tokens only — no literal colors, sizes, radii or shadows.
+// =============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+.bc-ribbonbar {
+  flex: none;
+  background: var(--bc-bg-2);
+  border-bottom: 1px solid var(--bc-stroke-2);
+}
+
+// -- Tab strip ----------------------------------------------------------------
+// A modifier on .bc-tabs (_list.scss), not a second tab component: Focused/Other
+// and these are the same control with the same active treatment, and the one
+// place a skin can afford two of those is nowhere.
+.bc-tabs--ribbon {
+  gap: var(--bc-s-8);
+  align-items: center;
+  height: var(--bc-s-32);
+  padding-inline: var(--bc-s-8);
+  border-bottom: 0;
+}
+
+.bc-tabs__list {
+  display: flex;
+  align-items: stretch;
+  gap: var(--bc-s-4);
+  height: 100%;
+}
+
+.bc-tabs--ribbon .bc-tabs__tab {
+  padding-inline: var(--bc-s-8);
+  @include bc-caption1;
+}
+
+// -- Command row --------------------------------------------------------------
+// A white card floating on the band, which is how Outlook separates the commands
+// from the tabs above them. The radius and the hairline are what make it read as
+// a surface rather than as more of the same strip.
+.bc-ribbonbar .bc-ribbon {
+  height: var(--bc-toolbar-h);
+  margin: 0 var(--bc-s-8) var(--bc-s-8);
+  border: 1px solid var(--bc-stroke-2);
+  border-radius: var(--bc-radius-l);
+  background: var(--bc-bg-1);
+}
+
+// The panel is the row itself, so hiding it is [hidden] on a flex container —
+// which needs saying, because `display: flex` in the rule above would otherwise
+// win against the [hidden] user-agent rule and every tab's row would be drawn at
+// once, stacked.
+.bc-ribbonbar .bc-ribbon[hidden] {
+  display: none;
+}
+
+// An empty panel would collapse to a 1px line and read as a rendering fault.
+// View and Help are filled at the next checkpoint; until then they keep the
+// row's height so switching tabs does not move the panes underneath.
+//
+// :not([hidden]) is load-bearing. This rule sits after the one above and would
+// otherwise win on source order, giving every hidden-and-empty panel a
+// display — which is all three of them at rest.
+.bc-ribbonbar .bc-ribbon:empty:not([hidden]) {
+  display: block;
+}

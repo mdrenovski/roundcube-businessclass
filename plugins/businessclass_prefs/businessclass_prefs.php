@@ -33,6 +33,8 @@ class businessclass_prefs extends rcube_plugin
         'businessclass_density',      // comfortable | compact
         'businessclass_sheet',        // theme | light — the message-body surface
         'businessclass_focused',      // Focused/Other tabs on/off
+        'businessclass_preview',      // snippet lines under a row: off | 1 | 2
+        'businessclass_favorites',    // pinned folders, "\n"-separated — see sanitize_favorites()
         'businessclass_folders_w',    // folder pane width, px
         'businessclass_list_w',       // message list width, px
         'businessclass_list_h',       // message list height, px — 'desktop' layout only
@@ -42,6 +44,8 @@ class businessclass_prefs extends rcube_plugin
     private const DEFAULTS = [
         'theme' => 'system',
         'density' => 'comfortable',
+        // Snippet lines under a message row. Outlook's own default is 1.
+        'preview' => '1',
         // "theme": a sender's HTML sits on whatever surface the theme is using,
         // which in dark means a dark one. Outlook's default, and chosen over the
         // safer paper default on 2026-07-31. See docs/DECISIONS.md D-68.
@@ -996,6 +1000,18 @@ class businessclass_prefs extends rcube_plugin
         $output->set_env('bc_density', $this->sanitize_density($rcmail->config->get('businessclass_density')));
         $output->set_env('bc_sheet', $this->sanitize_sheet($rcmail->config->get('businessclass_sheet')));
         $output->set_env('bc_focused', (bool) $rcmail->config->get('businessclass_focused', false));
+        $output->set_env('bc_preview', $this->sanitize_preview($rcmail->config->get('businessclass_preview')));
+
+        // Favorites (§3.4). Only on the mail task: nothing else renders a folder
+        // pane, and validating the list costs an IMAP LSUB — which is cheap, but
+        // not worth spending on the settings and contacts screens that would
+        // never read it. The default is null, not '', so that "never set" and
+        // "emptied by the user" stay distinguishable (sanitize_favorites).
+        if ($rcmail->task === 'mail') {
+            $output->set_env('bc_favorites', $this->sanitize_favorites(
+                $rcmail->config->get('businessclass_favorites', null)
+            ));
+        }
         $output->set_env('bc_folders_w', $this->clamp_int(
             $rcmail->config->get('businessclass_folders_w'),
             self::FOLDERS_W_MIN, self::FOLDERS_W_MAX, self::DEFAULTS['folders_w']
@@ -1361,6 +1377,22 @@ class businessclass_prefs extends rcube_plugin
     }
 
     /**
+     * How many lines of the message body show under a row (View tab, D-76).
+     *
+     * Reaches the browser as a class name on the list, so it is whitelisted
+     * rather than escaped — the same treatment as theme, density and sheet, and
+     * for the same reason: rcmail.save_pref() writes it from the browser and it
+     * arrives as whatever the client sent. Compared as a string because '0'
+     * would be falsy and 'off' is not numeric.
+     */
+    private function sanitize_preview($value)
+    {
+        return in_array($value, ['off', '1', '2'], true)
+            ? $value
+            : self::DEFAULTS['preview'];
+    }
+
+    /**
      * The message-body surface. Reaches <html data-bc-sheet="…">, so it is
      * whitelisted rather than escaped — the same treatment as theme and density,
      * and for the same reason: it is written by rcmail.save_pref() from the
@@ -1371,6 +1403,64 @@ class businessclass_prefs extends rcube_plugin
         return in_array($value, ['theme', 'light'], true)
             ? $value
             : self::DEFAULTS['sheet'];
+    }
+
+    /**
+     * The Favorites list (§3.4).
+     *
+     * Stored as one "\n"-separated string rather than an array, because that is
+     * what rcmail.save_pref() can carry: save_pref.php reads a single _value and
+     * an array would arrive as _value[] and be whitelisted as a different name.
+     * "\n" is the one separator an IMAP mailbox name cannot contain — CRLF ends
+     * the command line — so nothing here has to escape anything.
+     *
+     * The value is UNTRUSTED. save_pref.php checks only that the pref name is
+     * whitelisted (rcube_plugin_api::$allowed_prefs) and then writes whatever the
+     * browser sent straight into the user's preferences; there is no hook in
+     * between. So the check is here, on the way out, and it is the strongest one
+     * available: a name survives only if the user is actually subscribed to a
+     * folder by that name. That leaves nothing to sanitise afterwards — every
+     * string that reaches the browser is one the IMAP server just named.
+     *
+     * MAX exists so a crafted pref cannot make every page render a list of ten
+     * thousand rows. It is a ceiling, not a design limit.
+     */
+    private const FAVORITES_MAX = 30;
+
+    private function sanitize_favorites($value)
+    {
+        $rcmail = rcmail::get_instance();
+
+        // Never set — seed it the way Outlook does, with the special folders that
+        // exist. An empty string is a different thing: the user emptied the list,
+        // and re-seeding it would put back what they just removed.
+        if ($value === null) {
+            $names = array_filter([
+                'INBOX',
+                $rcmail->config->get('drafts_mbox'),
+                $rcmail->config->get('sent_mbox'),
+            ]);
+        } elseif (is_string($value)) {
+            $names = explode("\n", $value);
+        } else {
+            return [];
+        }
+
+        $names = array_values(array_unique(array_filter(array_map('trim', $names), 'strlen')));
+
+        if (!$names) {
+            return [];
+        }
+
+        // list_folders_subscribed() talks to IMAP, so it is asked once and only
+        // where there is something to check it against.
+        $known = $rcmail->storage ? $rcmail->storage->list_folders_subscribed('', '*', 'mail') : [];
+
+        if (!is_array($known)) {
+            return [];
+        }
+
+        return array_slice(array_values(array_intersect($names, $known)), 0, self::FAVORITES_MAX);
     }
 
     private function clamp_int($value, $min, $max, $default)

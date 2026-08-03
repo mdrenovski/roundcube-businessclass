@@ -1,0 +1,267 @@
+<!-- The ribbon (Outlook parity, DECISIONS.md D-75).
+
+     Two rows spanning the whole window under the app header: a tab strip, and
+     one command row per tab. It sits between #bc-header and #layout as a third
+     child of <body>, which is a flex column (_shell.scss) — so it costs its own
+     height and nothing else has to be re-laid out. #layout keeps Elastic's
+     meaning and its four children exactly as §1.2 requires.
+
+     Buttons carry label + innerclass rather than content=, because for
+     type="link" the renderer uses content INSTEAD of the label
+     (rcmail_output_html.php:1886); the icon is prepended by ui.js from
+     data-bc-icon, and without JS these stay working text buttons (§1.4).
+
+     data-bc-priority is the §5 overflow order: the highest number is moved into
+     the More popover first, and 1-3 are never moved. -->
+<div id="bc-ribbonbar" class="bc-ribbonbar">
+
+	<div class="bc-tabs bc-tabs--ribbon">
+		<!-- Collapses the folder pane, which is what this control does in every
+		     Outlook screenshot. Not a tab, so it sits outside the tablist —
+		     inside it, a screen reader would count it as a fourth tab. -->
+		<button type="button" id="bc-folderpane" class="bc-iconbtn bc-iconbtn--sm"
+			aria-pressed="false" title="<roundcube:label name='bc_togglefolders' />">
+			<span class="voice"><roundcube:label name="bc_togglefolders" /></span>
+			<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_navigation_20_regular" /></svg>
+		</button>
+
+		<div class="bc-tabs__list" role="tablist" aria-label="<roundcube:label name='bc_ribbontabs' />">
+			<!-- tabindex is stated on all three, not just the two that need -1: it
+			     is the roving index, and the selected tab carrying no attribute
+			     while the others carry one leaves the resting state written in a
+			     different language from the one ui.js speaks. -->
+			<button type="button" role="tab" id="bc-tab-home" class="bc-tabs__tab"
+				aria-selected="true" tabindex="0" aria-controls="bc-ribbon"><roundcube:label name="bc_tabhome" /></button>
+			<button type="button" role="tab" id="bc-tab-view" class="bc-tabs__tab"
+				aria-selected="false" tabindex="-1" aria-controls="bc-ribbon-view"><roundcube:label name="bc_tabview" /></button>
+			<button type="button" role="tab" id="bc-tab-help" class="bc-tabs__tab"
+				aria-selected="false" tabindex="-1" aria-controls="bc-ribbon-help"><roundcube:label name="bc_tabhelp" /></button>
+		</div>
+	</div>
+
+	<h2 id="aria-label-mailtoolbar" class="voice"><roundcube:label name="arialabeltoolbar" /></h2>
+
+	<!-- Home. Every message action in the app, in one row — which is the whole
+	     point of a ribbon and why the reading pane no longer carries its own. -->
+	<div id="bc-ribbon" class="bc-toolbar bc-ribbon" role="tabpanel"
+		aria-labelledby="bc-tab-home">
+
+		<!-- Order follows Outlook's: the primary button, then the icon actions
+		     that operate on whatever is selected, then the reply group. Not the
+		     other way round — the icons sit against New Email there, and moving
+		     the reply buttons ahead of them puts three wide labelled buttons
+		     between the two things a user reaches for most often.
+
+		     bc_newemail rather than core's 'newmessage' ("Compose"): this is the
+		     one button in the app worded the way Outlook words it, and core's own
+		     label is still used everywhere else. -->
+		<roundcube:button command="compose" type="link" label="bc_newemail" title="writenewmessage"
+			class="bc-btn bc-btn--primary bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="compose" data-bc-priority="1" />
+
+		<div class="bc-toolbar__divider bc-ribbon__item" data-bc-priority="9" role="separator" aria-orientation="vertical"></div>
+
+		<roundcube:button command="delete" type="link" title="deletemessage" label="delete"
+			class="bc-iconbtn bc-iconbtn--danger bc-ribbon__item" innerclass="voice"
+			data-bc-icon="delete" data-bc-priority="5" />
+
+		<!-- Archive, markasjunk and zipdownload all register themselves into the
+		     "toolbar" container, and they are message actions — so this is their
+		     home now that the ribbon is the only toolbar in this document. A
+		     container must not be rendered twice in one document: both copies
+		     would carry the same button ids and core would only ever find the
+		     first. mail.html's list toolbar used to hand-render its own Archive
+		     for exactly that reason; it no longer needs to.
+
+		     Here rather than further right because this is where Outlook's
+		     archive and junk buttons are — immediately after Delete. -->
+		<roundcube:container name="toolbar" id="bc-ribbon-plugins" />
+
+		<div class="bc-toolbar__divider bc-ribbon__item" data-bc-priority="10" role="separator" aria-orientation="vertical"></div>
+
+		<roundcube:button command="reply" type="link" title="replytomessage" label="reply"
+			class="bc-btn bc-btn--secondary bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="arrow_reply" data-bc-priority="2" />
+
+		<roundcube:button command="reply-all" type="link" title="replytoallmessage" label="replyall"
+			class="bc-btn bc-btn--secondary bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="arrow_reply_all" data-bc-priority="3" />
+
+		<roundcube:button command="forward" type="link" title="forwardmessage" label="forward"
+			class="bc-btn bc-btn--secondary bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="arrow_forward" data-bc-priority="4" />
+
+		<div class="bc-toolbar__divider bc-ribbon__item" data-bc-priority="11" role="separator" aria-orientation="vertical"></div>
+
+		<roundcube:button command="mark" prop="read" type="link" title="markread" label="markread"
+			class="bc-iconbtn bc-ribbon__item" innerclass="voice"
+			data-bc-icon="mail_read" data-bc-priority="6" />
+
+		<roundcube:button command="mark" prop="unread" type="link" title="markunread" label="markunread"
+			class="bc-iconbtn bc-ribbon__item" innerclass="voice"
+			data-bc-icon="mail_unread" data-bc-priority="7" />
+
+		<roundcube:button command="mark" prop="flagged" type="link" title="markflagged" label="flagged"
+			class="bc-iconbtn bc-ribbon__item" innerclass="voice"
+			data-bc-icon="flag" data-bc-priority="12" />
+
+		<roundcube:button command="print" type="link" title="printmessage" label="print"
+			class="bc-iconbtn bc-ribbon__item" innerclass="voice"
+			data-bc-icon="print" data-bc-priority="8" />
+
+		<!-- Whatever the overflow rule hides is moved in here by ui.js (§5). The
+		     anchor stays hidden until something is actually overflowing. -->
+		<div class="bc-popover__anchor bc-ribbon__more" hidden>
+			<button type="button" id="bc-ribbon-more" class="bc-iconbtn"
+				aria-haspopup="menu" aria-expanded="false" aria-controls="bc-ribbon-menu"
+				title="<roundcube:label name='moreactions' />">
+				<span class="voice"><roundcube:label name="moreactions" /></span>
+				<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_more_horizontal_20_regular" /></svg>
+			</button>
+			<div id="bc-ribbon-menu" class="bc-popover" role="menu" aria-labelledby="bc-ribbon-more" hidden></div>
+		</div>
+
+		<div class="bc-toolbar__spacer"></div>
+
+		<roundcube:button command="extwin" type="link" title="openinextwin" label="openinextwin"
+			class="bc-iconbtn" innerclass="voice" data-bc-icon="open" />
+	</div>
+
+	<!-- View (D-76). Everything that changes how the list is drawn rather than
+	     what is in it. Outlook's Zoom and Immersive reader have no equivalent in
+	     Roundcube and are left out rather than drawn permanently disabled.
+
+	     Sync and Expand conversation are bound to core commands this skin cannot
+	     confirm exist from here — Roundcube's command set is not part of the skin
+	     API, and differs by version and by which plugins are loaded. The
+	     data-bc-command attribute is what marks them: ui.js hides either one
+	     whenever core has not registered that command (syncRibbonCommands, run at
+	     startup and on every list update), so an install that lacks one shows no
+	     button rather than a button that can never do anything. -->
+	<div id="bc-ribbon-view" class="bc-toolbar bc-ribbon" role="tabpanel"
+		aria-labelledby="bc-tab-view" hidden>
+
+		<roundcube:button command="preferences" task="settings" type="link" label="bc_viewsettings" title="bc_viewsettings"
+			class="bc-btn bc-btn--subtle bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="settings" data-bc-priority="6" />
+
+		<!-- Messages: the conversation and preview submenus. Two levels, not
+		     Outlook's three — its third level is a Reading pane submenu whose
+		     every entry is about showing a whole conversation at once, which
+		     Roundcube's reading pane does not do. -->
+		<div class="bc-popover__anchor bc-ribbon__item" data-bc-priority="1">
+			<button type="button" id="bc-vmessages" class="bc-btn bc-btn--subtle"
+				aria-haspopup="menu" aria-expanded="false" aria-controls="bc-vmessages-menu">
+				<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_mail_20_regular" /></svg>
+				<span class="bc-btn__label"><roundcube:label name="bc_vmessages" /></span>
+				<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_chevron_down_20_regular" /></svg>
+			</button>
+			<div id="bc-vmessages-menu" class="bc-popover" role="menu" aria-labelledby="bc-vmessages" hidden>
+				<div class="bc-popover__group" role="group" aria-labelledby="bc-vgroup-conv">
+					<p class="bc-popover__title" id="bc-vgroup-conv"><roundcube:label name="bc_vconversations" /></p>
+					<button type="button" role="menuitemradio" aria-checked="false" data-bc-threads="1"><roundcube:label name="bc_vgrouped" /></button>
+					<button type="button" role="menuitemradio" aria-checked="false" data-bc-threads="0"><roundcube:label name="bc_vungrouped" /></button>
+				</div>
+				<div class="bc-popover__group" role="group" aria-labelledby="bc-vgroup-prev">
+					<p class="bc-popover__title" id="bc-vgroup-prev"><roundcube:label name="bc_vpreview" /></p>
+					<button type="button" role="menuitemradio" aria-checked="false" data-bc-preview="off"><roundcube:label name="bc_voff" /></button>
+					<button type="button" role="menuitemradio" aria-checked="false" data-bc-preview="1"><roundcube:label name="bc_v1line" /></button>
+					<button type="button" role="menuitemradio" aria-checked="false" data-bc-preview="2"><roundcube:label name="bc_v2lines" /></button>
+				</div>
+			</div>
+		</div>
+
+		<roundcube:button command="expand-all" type="link" label="bc_vexpand" title="bc_vexpand"
+			class="bc-btn bc-btn--subtle bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="expand_up_right" data-bc-command="expand-all" data-bc-priority="7" />
+
+		<roundcube:button command="checkmail" type="link" label="refresh" title="refresh"
+			class="bc-btn bc-btn--subtle bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="arrow_sync" data-bc-command="checkmail" data-bc-priority="5" />
+
+		<div class="bc-toolbar__divider bc-ribbon__item" data-bc-priority="9" role="separator" aria-orientation="vertical"></div>
+
+		<!-- Reading-pane position. The control itself is unchanged; it has moved
+		     here from the message-list toolbar, which is where Outlook keeps it
+		     and where §3.5 could not have put it because there was no View tab. -->
+		<div class="bc-popover__anchor bc-ribbon__item" data-bc-priority="2">
+			<button type="button" id="bc-pane" class="bc-btn bc-btn--subtle"
+				aria-haspopup="menu" aria-expanded="false" aria-controls="bc-pane-menu">
+				<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_panel_right_20_regular" /></svg>
+				<span class="bc-btn__label"><roundcube:label name="bc_readingpane" /></span>
+				<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_chevron_down_20_regular" /></svg>
+			</button>
+			<div id="bc-pane-menu" class="bc-popover" role="menu" aria-labelledby="bc-pane" hidden>
+				<button type="button" role="menuitemradio" aria-checked="false" data-bc-layout="widescreen"><roundcube:label name="bc_paneright" /></button>
+				<button type="button" role="menuitemradio" aria-checked="false" data-bc-layout="desktop"><roundcube:label name="bc_panebottom" /></button>
+				<button type="button" role="menuitemradio" aria-checked="false" data-bc-layout="list"><roundcube:label name="bc_paneoff" /></button>
+			</div>
+		</div>
+
+		<div class="bc-popover__anchor bc-ribbon__item" data-bc-priority="4">
+			<button type="button" id="bc-folderpane-menu-btn" class="bc-btn bc-btn--subtle"
+				aria-haspopup="menu" aria-expanded="false" aria-controls="bc-folderpane-menu">
+				<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_panel_left_20_regular" /></svg>
+				<span class="bc-btn__label"><roundcube:label name="bc_folderpane" /></span>
+				<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_chevron_down_20_regular" /></svg>
+			</button>
+			<div id="bc-folderpane-menu" class="bc-popover" role="menu" aria-labelledby="bc-folderpane-menu-btn" hidden>
+				<button type="button" role="menuitemradio" aria-checked="true" data-bc-folderpane="show"><roundcube:label name="bc_vshow" /></button>
+				<button type="button" role="menuitemradio" aria-checked="false" data-bc-folderpane="hide"><roundcube:label name="bc_vhide" /></button>
+			</div>
+		</div>
+
+		<!-- Density was a two-state toggle in the list toolbar (§3.5). It is a
+		     menu here because that is the shape every other control on this row
+		     has, and because a menu names both states instead of asking the user
+		     to press the button to find out what the other one is. -->
+		<div class="bc-popover__anchor bc-ribbon__item" data-bc-priority="3">
+			<button type="button" id="bc-density" class="bc-btn bc-btn--subtle"
+				aria-haspopup="menu" aria-expanded="false" aria-controls="bc-density-menu">
+				<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_text_density_20_regular" /></svg>
+				<span class="bc-btn__label"><roundcube:label name="bc_density" /></span>
+				<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_chevron_down_20_regular" /></svg>
+			</button>
+			<div id="bc-density-menu" class="bc-popover" role="menu" aria-labelledby="bc-density" hidden>
+				<button type="button" role="menuitemradio" aria-checked="false" data-bc-density="comfortable"><roundcube:label name="bc_comfortable" /></button>
+				<button type="button" role="menuitemradio" aria-checked="false" data-bc-density="compact"><roundcube:label name="bc_compact" /></button>
+			</div>
+		</div>
+
+		<div class="bc-popover__anchor bc-ribbon__more" hidden>
+			<button type="button" id="bc-ribbon-view-more" class="bc-iconbtn"
+				aria-haspopup="menu" aria-expanded="false" aria-controls="bc-ribbon-view-menu"
+				title="<roundcube:label name='moreactions' />">
+				<span class="voice"><roundcube:label name="moreactions" /></span>
+				<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_more_horizontal_20_regular" /></svg>
+			</button>
+			<div id="bc-ribbon-view-menu" class="bc-popover" role="menu" aria-labelledby="bc-ribbon-view-more" hidden></div>
+		</div>
+
+		<div class="bc-toolbar__spacer"></div>
+	</div>
+
+	<!-- Help. Outlook's Tips and Feedback have nothing behind them here and are
+	     left out; Get Diagnostics becomes About, which is the page that actually
+	     names the versions and plugins a support request needs. -->
+	<div id="bc-ribbon-help" class="bc-toolbar bc-ribbon" role="tabpanel"
+		aria-labelledby="bc-tab-help" hidden>
+
+		<!-- Driven by branding.json's support_url and simply absent where the
+		     admin has not set one — there is no 'help' command in core (the help
+		     plugin supplies its own), so there is nothing to fall back to. -->
+		<roundcube:if condition="env:bc_support_url" />
+		<a class="bc-btn bc-btn--subtle bc-ribbon__item" data-bc-priority="1"
+			href="<roundcube:var name='env:bc_support_url' />" target="_blank" rel="noopener noreferrer">
+			<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_question_circle_20_regular" /></svg>
+			<span class="bc-btn__label"><roundcube:label name="bc_support" /></span>
+		</a>
+		<roundcube:endif />
+
+		<roundcube:button command="about" type="link" label="about" title="about"
+			class="bc-btn bc-btn--subtle bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="info" data-bc-priority="2" />
+
+		<div class="bc-toolbar__spacer"></div>
+	</div>
+</div>

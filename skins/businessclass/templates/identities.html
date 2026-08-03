@@ -1,5 +1,9 @@
 <roundcube:include file="/templates/includes/header.html" />
 
+<!-- The Settings ribbon (D-77). Same place as on mail and Contacts:
+     outside #layout and above it, spanning the whole window. -->
+<roundcube:include file="/templates/includes/ribbonbar-settings.html" />
+
 <!-- Identities (BUILD.md §4.4). Same three panes as Preferences; the middle
      one lists the identities and the detail pane is core's edit form in an
      iframe. Delete is core's command and stays disabled until a row is
@@ -12,10 +16,7 @@
 	<div id="layout-list" class="bc-list">
 		<div class="bc-pane__head">
 			<h1 class="bc-pane__title"><roundcube:label name="identities" /></h1>
-			<roundcube:button command="add" type="link" title="newidentity" label="newidentity"
-				class="bc-iconbtn" innerclass="voice" data-bc-icon="person_add" />
-			<roundcube:button command="delete" type="link" title="delete" label="delete"
-				class="bc-iconbtn bc-iconbtn--danger" innerclass="voice" data-bc-icon="delete" />
+			<!-- The create and delete buttons moved into the ribbon at D-77. -->
 		</div>
 
 		<div class="bc-list__scroll bc-scroll">

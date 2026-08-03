@@ -69,6 +69,8 @@ These come from the user directly and have held for the whole project.
 | HTML message bodies stay inside Roundcube's sanitiser; only minimal typographic CSS is injected | `BUILD.md` §3.6, `styles/embed.scss` |
 | Search tokens are IMAP-quoted and CR/LF-stripped client-side before entering `_filter`, which goes raw into IMAP SEARCH | `ui.js` `imapQuote` |
 | Theme, density and layout posted from the Appearance block are re-validated server-side; `dont_override` is honoured on render *and* save | `businessclass_prefs::preferences_save` |
+| **The Favorites list is untrusted.** `save_pref.php` checks only that a pref name is whitelisted and then writes whatever the browser sent — there is no hook in between. So every folder name is checked on the way *out*, and only survives if the user is subscribed to a folder by that name; the list is capped so a crafted pref cannot render ten thousand rows | `businessclass_prefs::sanitize_favorites` |
+| The preview-lines pref reaches the page as a class name and is whitelisted `off \| 1 \| 2`, like theme, density and sheet | `businessclass_prefs::sanitize_preview` |
 | An uploaded identity photo is type-checked with `rcube_image` (the real format, not the filename or the browser's content type) and scaled to `contact_photo_size` | `businessclass_prefs::photo_upload` |
 
 ---

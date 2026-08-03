@@ -1278,6 +1278,16 @@ body.task-settings > #layout {
   min-height: 0;
 }
 
+.bc-shell.bc-folders-hidden {
+  --bc-folders-w: 0px;
+  --bc-books-w: 0px;
+  --bc-settings-nav-w: 0px;
+}
+.bc-shell.bc-folders-hidden #layout-sidebar,
+.bc-shell.bc-folders-hidden #bc-splitter-folders {
+  display: none;
+}
+
 html.iframe body {
   overflow: auto;
 }
@@ -1710,11 +1720,97 @@ body.bc-resizing--v {
   padding: 0 var(--bc-s-8) var(--bc-s-8);
 }
 
+.bc-folders__group + .bc-folders__group {
+  margin-top: var(--bc-s-8);
+}
+
+.bc-folders__grouphead {
+  display: flex;
+  align-items: center;
+  gap: var(--bc-s-4);
+  width: 100%;
+  height: var(--bc-s-32);
+  padding: 0 var(--bc-s-8);
+  border-radius: var(--bc-radius-m);
+  background: transparent;
+  font: var(--bc-weight-semibold) var(--bc-size-body1)/var(--bc-lh-body1) var(--bc-font-body);
+  color: var(--bc-fg-1);
+  text-align: start;
+  cursor: pointer;
+}
+.bc-folders__grouphead:hover {
+  background: var(--bc-bg-4);
+}
+.bc-folders__grouphead:focus-visible {
+  outline: var(--bc-focus-ring-w) solid var(--bc-focus-ring-color);
+  outline-offset: var(--bc-s-2);
+  box-shadow: 0 0 0 1px var(--bc-bg-1);
+}
+
+.bc-folders__groupname {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bc-folders__chevron {
+  flex: none;
+  color: var(--bc-fg-2);
+  transition: rotate var(--bc-dur-fast) var(--bc-ease-decel);
+}
+
+.bc-folders__grouphead[aria-expanded=false] .bc-folders__chevron {
+  rotate: -90deg;
+}
+
 .bc-folderlist,
 .bc-folderlist ul {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+.bc-folderlist li {
+  position: relative;
+}
+
+.bc-folders__fav {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: var(--bc-s-4);
+  display: grid;
+  place-items: center;
+  width: var(--bc-s-24);
+  margin-block: auto;
+  height: var(--bc-s-24);
+  border-radius: var(--bc-radius-s);
+  background: transparent;
+  color: var(--bc-fg-3);
+  opacity: 0;
+  cursor: pointer;
+}
+.bc-folders__fav:hover {
+  color: var(--bc-fg-1);
+}
+.bc-folders__fav:focus-visible {
+  outline: var(--bc-focus-ring-w) solid var(--bc-focus-ring-color);
+  outline-offset: var(--bc-s-2);
+  box-shadow: 0 0 0 1px var(--bc-bg-1);
+}
+
+.bc-folderlist li:hover .bc-folders__fav,
+.bc-folderlist li:focus-within .bc-folders__fav {
+  opacity: 1;
+}
+
+.bc-folders__fav[aria-pressed=true] {
+  color: var(--bc-brand-fg);
+}
+
+.bc-folderlist li:hover .unreadcount,
+.bc-folderlist li:focus-within .unreadcount {
+  visibility: hidden;
 }
 
 .bc-folderlist li > a {
@@ -2085,9 +2181,39 @@ body.bc-resizing--v {
 }
 .bc-messagelist tr.bc-group > td {
   display: block;
-  padding: var(--bc-s-8) var(--bc-s-12) var(--bc-s-4);
+  padding: var(--bc-s-4) var(--bc-s-8);
+}
+
+.bc-messagelist .bc-group__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--bc-s-4);
+  width: 100%;
+  padding: var(--bc-s-4) var(--bc-s-4);
+  border-radius: var(--bc-radius-m);
+  background: transparent;
   font: var(--bc-weight-semibold) var(--bc-size-caption1)/var(--bc-lh-caption1) var(--bc-font-body);
   color: var(--bc-fg-3);
+  text-align: start;
+  cursor: pointer;
+}
+.bc-messagelist .bc-group__toggle:hover {
+  background: var(--bc-bg-3);
+  color: var(--bc-fg-1);
+}
+.bc-messagelist .bc-group__toggle:focus-visible {
+  outline: var(--bc-focus-ring-w) solid var(--bc-focus-ring-color);
+  outline-offset: var(--bc-s-2);
+  box-shadow: 0 0 0 1px var(--bc-bg-1);
+}
+
+.bc-messagelist .bc-group__chevron {
+  flex: none;
+  transition: rotate var(--bc-dur-fast) var(--bc-ease-decel);
+}
+
+.bc-messagelist .bc-group__toggle[aria-expanded=false] .bc-group__chevron {
+  rotate: -90deg;
 }
 
 .bc-messagelist tr.message {
@@ -2137,7 +2263,7 @@ body.bc-resizing--v {
 
 .bc-messagelist span.date {
   grid-column: 4;
-  grid-row: 1;
+  grid-row: 2;
   justify-self: end;
   padding-inline-start: var(--bc-s-8);
   font: var(--bc-weight-regular) var(--bc-size-caption1)/var(--bc-lh-caption1) var(--bc-font-body);
@@ -2153,7 +2279,7 @@ body.bc-resizing--v {
   gap: var(--bc-s-4);
   min-width: 0;
   font: var(--bc-weight-regular) var(--bc-size-body1)/var(--bc-lh-body1) var(--bc-font-body);
-  color: var(--bc-fg-1);
+  color: var(--bc-brand-fg);
 }
 .bc-messagelist span.subject > a {
   overflow: hidden;
@@ -2168,7 +2294,7 @@ body.bc-resizing--v {
 
 .bc-messagelist td.flags {
   grid-column: 4;
-  grid-row: 2;
+  grid-row: 1;
   justify-self: end;
   display: flex;
   align-items: center;
@@ -2185,6 +2311,18 @@ body.bc-resizing--v {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--bc-fg-3);
+}
+
+.bc-messagelist.bc-preview-off .bc-snippet {
+  display: none;
+}
+
+.bc-messagelist.bc-preview-2 .bc-snippet {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
 }
 
 .bc-messagelist span.size {
@@ -2208,7 +2346,7 @@ body.bc-resizing--v {
   font-weight: var(--bc-weight-semibold);
 }
 .bc-messagelist tr.message.unread span.date {
-  color: var(--bc-fg-1);
+  color: var(--bc-brand-fg);
   font-weight: var(--bc-weight-semibold);
 }
 .bc-messagelist tr.message.unread::before {
@@ -2223,7 +2361,8 @@ body.bc-resizing--v {
 }
 
 .bc-messagelist tr.message.selected {
-  background: var(--bc-brand-tint-selected);
+  background: var(--bc-bg-1);
+  box-shadow: inset 0 0 0 2px var(--bc-brand-fg);
 }
 .bc-messagelist tr.message.selected::before {
   content: "";
@@ -2238,6 +2377,11 @@ body.bc-resizing--v {
 
 .bc-messagelist.bc-multiselect tr.message.selected {
   background: var(--bc-brand-tint-strong);
+  box-shadow: none;
+}
+.bc-messagelist.bc-multiselect tr.message.selected span.subject,
+.bc-messagelist.bc-multiselect tr.message.selected span.date {
+  color: var(--bc-fg-on-tint);
 }
 
 .bc-messagelist tr.message.deleted {
@@ -2677,6 +2821,20 @@ body.bc-resizing--v {
   display: none;
 }
 
+.bc-popover__group + .bc-popover__group {
+  margin-top: var(--bc-s-4);
+  padding-top: var(--bc-s-4);
+  border-top: 1px solid var(--bc-stroke-2);
+}
+
+.bc-popover__title {
+  margin: 0;
+  padding: var(--bc-s-4) var(--bc-s-8);
+  font-weight: var(--bc-weight-semibold);
+  font: var(--bc-weight-regular) 13px/18px var(--bc-font-body);
+  color: var(--bc-fg-3);
+}
+
 .bc-popover [role=menuitem],
 .bc-popover [role=menuitemradio] {
   display: flex;
@@ -3060,6 +3218,48 @@ html[data-bc-sheet=light] .bc-message__body {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+.bc-ribbonbar {
+  flex: none;
+  background: var(--bc-bg-2);
+  border-bottom: 1px solid var(--bc-stroke-2);
+}
+
+.bc-tabs--ribbon {
+  gap: var(--bc-s-8);
+  align-items: center;
+  height: var(--bc-s-32);
+  padding-inline: var(--bc-s-8);
+  border-bottom: 0;
+}
+
+.bc-tabs__list {
+  display: flex;
+  align-items: stretch;
+  gap: var(--bc-s-4);
+  height: 100%;
+}
+
+.bc-tabs--ribbon .bc-tabs__tab {
+  padding-inline: var(--bc-s-8);
+  font: var(--bc-weight-regular) var(--bc-size-caption1)/var(--bc-lh-caption1) var(--bc-font-body);
+}
+
+.bc-ribbonbar .bc-ribbon {
+  height: var(--bc-toolbar-h);
+  margin: 0 var(--bc-s-8) var(--bc-s-8);
+  border: 1px solid var(--bc-stroke-2);
+  border-radius: var(--bc-radius-l);
+  background: var(--bc-bg-1);
+}
+
+.bc-ribbonbar .bc-ribbon[hidden] {
+  display: none;
+}
+
+.bc-ribbonbar .bc-ribbon:empty:not([hidden]) {
+  display: block;
 }
 
 body.task-mail.action-compose {
@@ -5748,13 +5948,13 @@ table.records-table tr.deleted td {
   border-top: 1px solid var(--bc-stroke-2);
 }
 
-html[data-bc-theme=hc] .bc-messagelist tr.message.selected,
-html[data-bc-theme=hc] .bc-messagelist tr.message.selected *,
+html[data-bc-theme=hc] .bc-messagelist.bc-multiselect tr.message.selected,
+html[data-bc-theme=hc] .bc-messagelist.bc-multiselect tr.message.selected *,
 html[data-bc-theme=hc] .bc-contactlist tr.selected,
 html[data-bc-theme=hc] .bc-contactlist tr.selected * {
   color: var(--bc-fg-on-tint);
 }
-html[data-bc-theme=hc] .bc-messagelist tr.message.selected .bc-icon,
+html[data-bc-theme=hc] .bc-messagelist.bc-multiselect tr.message.selected .bc-icon,
 html[data-bc-theme=hc] .bc-contactlist tr.selected .bc-icon {
   color: var(--bc-fg-on-tint);
 }
@@ -6036,6 +6236,7 @@ body.action-print {
   .bc-splitter,
   .bc-toolbar,
   .bc-ribbon,
+  .bc-ribbonbar,
   .bc-message__ribbon,
   .bc-tabs,
   .bc-pagenav,

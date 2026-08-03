@@ -1,5 +1,9 @@
 <roundcube:include file="/templates/includes/header.html" />
 
+<!-- The Settings ribbon (D-77). Same place as on mail and Contacts:
+     outside #layout and above it, spanning the whole window. -->
+<roundcube:include file="/templates/includes/ribbonbar-settings.html" />
+
 <!-- Folder manager (BUILD.md §4.4). The tree is core's foldersubscription
      object: nested <ul>/<li class="mailbox …"> with an <a> and a subscribe
      checkbox per row, the same shape as the mail folder pane, plus the
@@ -17,8 +21,7 @@
 	<div id="layout-list" class="bc-list">
 		<div class="bc-pane__head">
 			<h1 class="bc-pane__title"><roundcube:label name="folders" /></h1>
-			<roundcube:button command="create-folder" type="link" title="createfolder" label="createfolder"
-				class="bc-iconbtn" innerclass="voice" data-bc-icon="folder_add" />
+			<!-- The create and delete buttons moved into the ribbon at D-77. -->
 		</div>
 
 		<!-- All / subscribed / unsubscribed / special. Core's own select; it

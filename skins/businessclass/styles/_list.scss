@@ -186,10 +186,43 @@
 
   > td {
     display: block;
-    padding: var(--bc-s-8) var(--bc-s-12) var(--bc-s-4);
-    font: var(--bc-weight-semibold) var(--bc-size-caption1) / var(--bc-lh-caption1) var(--bc-font-body);
-    color: var(--bc-fg-3);
+    padding: var(--bc-s-4) var(--bc-s-8);
   }
+}
+
+// The heading is a button that collapses everything under it (§3.5). Sized and
+// coloured here rather than on the td, because the td is now only a wrapper.
+.bc-messagelist .bc-group__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--bc-s-4);
+  width: 100%;
+  padding: var(--bc-s-4) var(--bc-s-4);
+  border-radius: var(--bc-radius-m);
+  background: transparent;
+  font: var(--bc-weight-semibold) var(--bc-size-caption1) / var(--bc-lh-caption1) var(--bc-font-body);
+  color: var(--bc-fg-3);
+  text-align: start;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bc-bg-3);
+    color: var(--bc-fg-1);
+  }
+
+  &:focus-visible { @include bc-focus-ring; }
+}
+
+// Points down while the group is open and right while it is shut, so the shape
+// says which way the group will move. aria-expanded is the state that matters;
+// this is its visible half, and the two are set from the same place (ui.js).
+.bc-messagelist .bc-group__chevron {
+  flex: none;
+  transition: rotate var(--bc-dur-fast) var(--bc-ease-decel);
+}
+
+.bc-messagelist .bc-group__toggle[aria-expanded="false"] .bc-group__chevron {
+  rotate: -90deg;
 }
 
 // -- Comfortable row ----------------------------------------------------------
@@ -234,7 +267,7 @@
   margin-inline-end: var(--bc-s-12);
 }
 
-// Line 1 — sender, and the time hard right.
+// Line 1 — sender, with the flag/attachment cell hard right.
 .bc-messagelist span.fromto {
   grid-column: 3;
   grid-row: 1;
@@ -243,9 +276,18 @@
   color: var(--bc-fg-1);
 }
 
+// Line 2 — subject, with the date hard right.
+//
+// The date sits beside the SUBJECT, not beside the sender, and the flag cell
+// takes the sender's row instead. That is the arrangement Outlook uses and it
+// is not arbitrary: the sender is the only line whose text length is bounded,
+// so it is the one that can afford to give its right-hand end to icons that are
+// usually absent, while the subject — the line that always truncates — gets a
+// fixed-width neighbour it can measure itself against. Compact density puts
+// both back on one line and re-declares these positions itself (§3.5).
 .bc-messagelist span.date {
   grid-column: 4;
-  grid-row: 1;
+  grid-row: 2;
   justify-self: end;
   padding-inline-start: var(--bc-s-8);
   @include bc-caption1;
@@ -253,7 +295,14 @@
   white-space: nowrap;
 }
 
-// Line 2 — subject, with the flag/attachment cell hard right.
+// Subject in the accent, which is what makes the row read as mail rather than
+// as a table. --bc-brand-fg is the only accent-derived token safe for text: the
+// server walks it away from the surface until it clears 4.5:1 before it ever
+// reaches the page (businessclass_prefs::accent_text), so this holds for any
+// admin accent, in light and dark alike. Never --bc-accent, which is raw input.
+//
+// Unread is therefore carried by weight and the brand bar alone (§9) — colour
+// no longer distinguishes read from unread here, because every subject has it.
 .bc-messagelist span.subject {
   grid-column: 3;
   grid-row: 2;
@@ -262,7 +311,7 @@
   gap: var(--bc-s-4);
   min-width: 0;
   @include bc-body1;
-  color: var(--bc-fg-1);
+  color: var(--bc-brand-fg);
 
   > a {
     @include bc-truncate;
@@ -275,7 +324,7 @@
 
 .bc-messagelist td.flags {
   grid-column: 4;
-  grid-row: 2;
+  grid-row: 1;
   justify-self: end;
   display: flex;
   align-items: center;
@@ -293,6 +342,27 @@
   @include bc-caption2;
   @include bc-truncate;
   color: var(--bc-fg-3);
+}
+
+// The View tab's "Message preview" setting (D-76). One line is what the row
+// already had, so only the other two states need saying.
+//
+// Off hides the line rather than stopping the plugin: the snippet is fetched
+// with the list either way, and a preference about how a row is DRAWN should
+// not change what is asked of the server.
+.bc-messagelist.bc-preview-off .bc-snippet { display: none; }
+
+// -webkit-line-clamp is the only cross-browser way to truncate at two lines,
+// and it needs the -webkit- display and box-orient with it. Unprefixed
+// line-clamp is not in Firefox or Safari yet; where the whole group is
+// unsupported the row simply shows one truncated line, which is the default
+// this setting moved away from.
+.bc-messagelist.bc-preview-2 .bc-snippet {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
 }
 
 // Not shown in comfortable density; it is a compact-density column (§3.5).
@@ -316,25 +386,42 @@
   span.fromto,
   span.subject { font-weight: var(--bc-weight-semibold); }
 
+  // The date joins the subject in the accent on an unread row, so the two lines
+  // read as one block. Read rows keep it grey, which is what still tells the
+  // two apart now that the subject is accented either way.
   span.date {
-    color: var(--bc-fg-1);
+    color: var(--bc-brand-fg);
     font-weight: var(--bc-weight-semibold);
   }
 
   &::before { @include bc-brand-bar(10px); }
 }
 
+// Selection is an outline on the row's own background, not a tint fill.
+//
+// Drawn with an inset shadow rather than a border or an outline: a border would
+// add 2px to a grid row that is sized off its content and shift every row below
+// it by the time the list settles, and `outline` is already spoken for by the
+// focus ring below — a row that is both selected and focused has to show both.
+// The background is restated because the row underneath may be hovered.
 .bc-messagelist tr.message.selected {
-  background: var(--bc-brand-tint-selected);
+  background: var(--bc-bg-1);
+  box-shadow: inset 0 0 0 2px var(--bc-brand-fg);
 
   // Full height, unlike the unread bar's 10px inset.
   &::before { @include bc-brand-bar(0); }
 }
 
 // More than one row selected — ui.js sets the class on the list from the
-// widget's own 'select' event.
+// widget's own 'select' event. Here the fill comes back: an outline per row
+// reads as several separate things, a shared tint as one range. The subject
+// gives up the accent for the same reason it does on any tint (§9).
 .bc-messagelist.bc-multiselect tr.message.selected {
   background: var(--bc-brand-tint-strong);
+  box-shadow: none;
+
+  span.subject,
+  span.date { color: var(--bc-fg-on-tint); }
 }
 
 .bc-messagelist tr.message.deleted {

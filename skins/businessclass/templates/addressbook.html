@@ -1,5 +1,8 @@
 <roundcube:include file="/templates/includes/header.html" />
 
+<!-- The Contacts ribbon (D-77). Outside #layout and above it, as on mail. -->
+<roundcube:include file="/templates/includes/ribbonbar-contacts.html" />
+
 <!-- Contacts (BUILD.md §4.5): address books 200 · contact list 300 · detail.
 
      The detail pane is core's contentframe, as on the Settings screens, so the
@@ -17,12 +20,6 @@
 	     the same shape as the mail folder tree, so it reuses .bc-folderlist. -->
 	<nav id="layout-sidebar" class="bc-folders bc-directory"
 		aria-label="<roundcube:label name='addressbook' />">
-
-		<div class="bc-folders__compose">
-			<roundcube:button command="add" type="link" label="newcontact" title="newcontact"
-				class="bc-btn bc-btn--primary bc-btn--block" innerclass="bc-btn__label"
-				data-bc-icon="person_add" />
-		</div>
 
 		<div class="bc-directory__head">
 			<h2 id="bc-label-directory" class="bc-folders__section"><roundcube:label name="bc_addressbooks" /></h2>
@@ -88,11 +85,6 @@
 			     rather than a static label. -->
 			<roundcube:object name="addresslisttitle" tag="h1" id="rcmabooklisttitle"
 				class="bc-pane__title" label="contacts" />
-
-			<roundcube:button command="import" type="link" label="import" title="importcontacts"
-				class="bc-iconbtn" innerclass="voice" data-bc-icon="arrow_upload" />
-			<roundcube:button command="advanced-search" type="link" label="search" title="advsearch"
-				class="bc-iconbtn" innerclass="voice" data-bc-icon="search" />
 		</div>
 
 		<h2 id="bc-label-contactslist" class="voice"><roundcube:label name="contacts" /></h2>
@@ -112,67 +104,11 @@
 	<main id="layout-content" class="bc-reading"
 		aria-label="<roundcube:label name='contactproperties' />">
 
-		<div class="bc-pane__head" role="toolbar" aria-label="<roundcube:label name='arialabeltoolbar' />">
-			<roundcube:button command="edit" type="link" label="edit" title="editcontact"
-				class="bc-btn bc-btn--secondary" innerclass="bc-btn__label" data-bc-icon="edit" />
-			<!-- id, because ui.js has to find this one: compose is enabled for every
-			     task, so core never dims it, yet here it needs a selection to
-			     compose to. -->
-			<roundcube:button command="compose" type="link" id="bc-contact-compose"
-				label="compose" title="composeto"
-				class="bc-btn bc-btn--secondary" innerclass="bc-btn__label" data-bc-icon="mail" />
-
-			<span class="bc-pane__spacer"></span>
-
-			<roundcube:button command="export-selected" type="link" label="export" title="exportvcards"
-				class="bc-iconbtn" innerclass="voice" data-bc-icon="arrow_download" />
-			<roundcube:button command="delete" type="link" label="delete" title="deletecontact"
-				class="bc-iconbtn bc-iconbtn--danger" innerclass="voice" data-bc-icon="delete" />
-
-			<!-- The rest of what core registers for a contact. Without this they
-			     would be unreachable, since §4.5 names only four. -->
-			<div class="bc-popover__anchor">
-				<button type="button" id="bc-contact-more" class="bc-iconbtn"
-					aria-haspopup="true" aria-expanded="false" aria-controls="bc-contact-menu"
-					title="<roundcube:label name='arialabelmorecontactactions' />">
-					<span class="voice"><roundcube:label name="arialabelmorecontactactions" /></span>
-					<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_more_horizontal_20_regular" /></svg>
-				</button>
-
-				<div id="bc-contact-menu" class="bc-popover bc-popover--form" role="group"
-					aria-labelledby="bc-contact-more" hidden>
-					<roundcube:button command="print" type="link"
-						class="bc-popover__action" innerclass="bc-btn__label"
-						label="print" title="printcontact" data-bc-icon="print" />
-					<roundcube:if condition="env:qrcode" />
-					<roundcube:button command="qrcode" type="link"
-						class="bc-popover__action" innerclass="bc-btn__label"
-						label="qrcode" title="qrcode" data-bc-icon="qr_code" />
-					<roundcube:endif />
-					<roundcube:button command="export" type="link"
-						class="bc-popover__action" innerclass="bc-btn__label"
-						label="exportall" title="exportvcards" data-bc-icon="arrow_download" />
-					<div class="bc-popover__sep" role="separator"></div>
-					<roundcube:button command="group-assign-selected" type="link"
-						class="bc-popover__action" innerclass="bc-btn__label"
-						label="groupassign" title="groupassign" data-bc-icon="people_add" />
-					<roundcube:button command="group-remove-selected" type="link"
-						class="bc-popover__action" innerclass="bc-btn__label"
-						label="groupremove" title="groupremove" data-bc-icon="people_prohibited" />
-					<roundcube:if condition="env:contact_move_enabled" />
-					<roundcube:button command="move" type="link"
-						class="bc-popover__action" innerclass="bc-btn__label"
-						label="moveto" title="moveto" data-bc-icon="folder_arrow_right" />
-					<roundcube:endif />
-					<roundcube:if condition="env:contact_copy_enabled" />
-					<roundcube:button command="copy" type="link"
-						class="bc-popover__action" innerclass="bc-btn__label"
-						label="copyto" title="copyto" data-bc-icon="copy" />
-					<roundcube:endif />
-					<roundcube:container name="contactmenu" id="bc-contact-menu" />
-				</div>
-			</div>
-		</div>
+		<!-- The detail toolbar that stood here moved into the ribbon at D-77, with
+		     the More popover and the contactmenu container whole. It always acted on
+		     the parent's list selection rather than on the frame, so the ribbon —
+		     which is in this same document — reaches it exactly as this did, and
+		     core still enables and disables it from contactlist_select(). -->
 
 		<roundcube:object name="contentframe" id="contact-frame" class="bc-reading__frame"
 			src="env:blankpage" title="contactproperties" />

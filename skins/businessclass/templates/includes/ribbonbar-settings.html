@@ -1,0 +1,94 @@
+<!-- Settings ribbon (D-77).
+
+     Two tabs, not three. Outlook has no Settings ribbon at all — settings there
+     are a dialog — so there is no arrangement to copy, and the honest content is
+     small: each Settings screen has one or two actions, and none of them has a
+     "view" to configure. A View tab here would be an empty band, which is the
+     one thing this ribbon was built not to have (D-75).
+
+     Home changes with the screen, because the Settings task is several
+     top-level templates rather than one. env:action is what distinguishes them
+     — conditions are resolved before template objects, so only the branch that
+     applies is ever rendered and no button is emitted twice.
+
+     Screens with no actions of their own — Preferences, About, and a plugin's
+     own page — get an empty Home row. That is deliberate: the tab strip and the
+     Help tab are the same on every Settings screen, and chrome that appears and
+     disappears between sibling screens reads as a fault. -->
+<div id="bc-ribbonbar" class="bc-ribbonbar">
+
+	<div class="bc-tabs bc-tabs--ribbon">
+		<button type="button" id="bc-folderpane" class="bc-iconbtn bc-iconbtn--sm"
+			aria-pressed="false" title="<roundcube:label name='bc_togglesections' />">
+			<span class="voice"><roundcube:label name="bc_togglesections" /></span>
+			<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_navigation_20_regular" /></svg>
+		</button>
+
+		<div class="bc-tabs__list" role="tablist" aria-label="<roundcube:label name='bc_ribbontabs' />">
+			<button type="button" role="tab" id="bc-tab-home" class="bc-tabs__tab"
+				aria-selected="true" tabindex="0" aria-controls="bc-ribbon"><roundcube:label name="bc_tabhome" /></button>
+			<button type="button" role="tab" id="bc-tab-help" class="bc-tabs__tab"
+				aria-selected="false" tabindex="-1" aria-controls="bc-ribbon-help"><roundcube:label name="bc_tabhelp" /></button>
+		</div>
+	</div>
+
+	<h2 id="aria-label-settingstoolbar" class="voice"><roundcube:label name="arialabeltoolbar" /></h2>
+
+	<div id="bc-ribbon" class="bc-toolbar bc-ribbon" role="tabpanel"
+		aria-labelledby="bc-tab-home">
+
+		<roundcube:if condition="env:action == 'folders'" />
+		<roundcube:button command="create-folder" type="link" title="createfolder" label="createfolder"
+			class="bc-btn bc-btn--primary bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="folder_add" data-bc-priority="1" />
+
+		<roundcube:elseif condition="env:action == 'identities'" />
+		<roundcube:button command="add" type="link" title="newidentity" label="newidentity"
+			class="bc-btn bc-btn--primary bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="person_add" data-bc-priority="1" />
+		<div class="bc-toolbar__divider bc-ribbon__item" data-bc-priority="9" role="separator" aria-orientation="vertical"></div>
+		<roundcube:button command="delete" type="link" title="delete" label="delete"
+			class="bc-iconbtn bc-iconbtn--danger bc-ribbon__item" innerclass="voice"
+			data-bc-icon="delete" data-bc-priority="2" />
+
+		<roundcube:elseif condition="env:action == 'responses'" />
+		<roundcube:button command="add" type="link" title="newresponse" label="create"
+			class="bc-btn bc-btn--primary bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="add" data-bc-priority="1" />
+		<div class="bc-toolbar__divider bc-ribbon__item" data-bc-priority="9" role="separator" aria-orientation="vertical"></div>
+		<roundcube:button command="delete" type="link" title="delete" label="delete"
+			class="bc-iconbtn bc-iconbtn--danger bc-ribbon__item" innerclass="voice"
+			data-bc-icon="delete" data-bc-priority="2" />
+		<roundcube:endif />
+
+		<div class="bc-popover__anchor bc-ribbon__more" hidden>
+			<button type="button" id="bc-ribbon-more" class="bc-iconbtn"
+				aria-haspopup="menu" aria-expanded="false" aria-controls="bc-ribbon-menu"
+				title="<roundcube:label name='moreactions' />">
+				<span class="voice"><roundcube:label name="moreactions" /></span>
+				<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_more_horizontal_20_regular" /></svg>
+			</button>
+			<div id="bc-ribbon-menu" class="bc-popover" role="menu" aria-labelledby="bc-ribbon-more" hidden></div>
+		</div>
+
+		<div class="bc-toolbar__spacer"></div>
+	</div>
+
+	<div id="bc-ribbon-help" class="bc-toolbar bc-ribbon" role="tabpanel"
+		aria-labelledby="bc-tab-help" hidden>
+
+		<roundcube:if condition="env:bc_support_url" />
+		<a class="bc-btn bc-btn--subtle bc-ribbon__item" data-bc-priority="1"
+			href="<roundcube:var name='env:bc_support_url' />" target="_blank" rel="noopener noreferrer">
+			<svg class="bc-icon bc-icon--16" aria-hidden="true"><use href="#ic_fluent_question_circle_20_regular" /></svg>
+			<span class="bc-btn__label"><roundcube:label name="bc_support" /></span>
+		</a>
+		<roundcube:endif />
+
+		<roundcube:button command="about" type="link" label="about" title="about"
+			class="bc-btn bc-btn--subtle bc-ribbon__item" innerclass="bc-btn__label"
+			data-bc-icon="info" data-bc-priority="2" />
+
+		<div class="bc-toolbar__spacer"></div>
+	</div>
+</div>

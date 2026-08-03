@@ -1,5 +1,9 @@
 <roundcube:include file="/templates/includes/header.html" />
 
+<!-- The Settings ribbon (D-77). Same place as on mail and Contacts:
+     outside #layout and above it, spanning the whole window. -->
+<roundcube:include file="/templates/includes/ribbonbar-settings.html" />
+
 <!-- Canned responses (BUILD.md §4.4) — the same three panes as Identities. -->
 <div id="layout" class="bc-shell bc-shell--settings">
 	<roundcube:include file="/templates/includes/menu.html" />
@@ -8,10 +12,7 @@
 	<div id="layout-list" class="bc-list">
 		<div class="bc-pane__head">
 			<h1 class="bc-pane__title"><roundcube:label name="responses" /></h1>
-			<roundcube:button command="add" type="link" title="newresponse" label="create"
-				class="bc-iconbtn" innerclass="voice" data-bc-icon="add" />
-			<roundcube:button command="delete" type="link" title="delete" label="delete"
-				class="bc-iconbtn bc-iconbtn--danger" innerclass="voice" data-bc-icon="delete" />
+			<!-- The create and delete buttons moved into the ribbon at D-77. -->
 		</div>
 
 		<div class="bc-list__scroll bc-scroll">

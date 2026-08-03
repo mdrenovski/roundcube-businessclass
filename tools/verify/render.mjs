@@ -41,6 +41,12 @@ const TRUE_CONDITIONS = [
   '!config:no_save_sent_messages',
   "!in_array('acl_advanced_mode', (array)config:dont_override)",
   "env:action == 'index'",
+  // The Settings ribbon's Home row changes with the screen (D-77), and only one
+  // branch is ever rendered. Identities is the one taken here because it is the
+  // richest — a primary button, a divider and a destructive action — so the row
+  // that gets laid out and measured is the one with something in it. The
+  // folders and responses branches are the same shape with fewer items.
+  "env:action == 'identities'",
 ]);
 
 function templateName() {
@@ -515,7 +521,16 @@ function button(a) {
   const cls = a.class ? ` class="${a.class}"` : '';
   const inner = a.content ? a.content.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
     : `<span class="${a.innerclass || ''}">${a.label || ''}</span>`;
-  return `<a href="#"${cls} data-bc-icon="${a['data-bc-icon'] || ''}">${inner}</a>`;
+  // Every data-* attribute, not just the icon. rcmail_output_html::button()
+  // passes unknown attributes straight through, which is how data-bc-icon,
+  // data-bc-priority and data-bc-command reach the page at all — and a stand-in
+  // that emitted only one of them made the overflow order and the command check
+  // untestable here, silently, because the fixture simply had no such buttons.
+  const data = Object.keys(a)
+    .filter((k) => k.startsWith('data-'))
+    .map((k) => ` ${k}="${a[k]}"`)
+    .join('');
+  return `<a href="#"${cls}${data.includes('data-bc-icon') ? '' : ' data-bc-icon=""'}${data}>${inner}</a>`;
 }
 
 let html = expand(process.argv[2].includes('/') ? path.join(SKIN, process.argv[2]) : path.join(SKIN, 'templates', process.argv[2] + '.html'));

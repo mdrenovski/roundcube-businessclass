@@ -21,6 +21,10 @@
 @use "folders";       // §3.4
 @use "list";          // §3.5
 @use "reading";       // §3.6
+@use "ribbon";        // the ribbon (D-75). MUST load after "list" and "reading":
+                      //     .bc-tabs--ribbon and .bc-tabs are both one class, so
+                      //     they tie on specificity and source order is the only
+                      //     thing deciding which height and border win.
 @use "compose";       // §4.1
 @use "login";         // §4.2
 @use "settings";      // §4.4

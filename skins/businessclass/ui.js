@@ -391,28 +391,77 @@
     if (list) list.classList.toggle('bc-density-compact', compact);
     document.documentElement.setAttribute('data-bc-density', density);
 
+    // A menu since D-76, not the two-state toggle §3.5 drew. aria-pressed is
+    // still written where a toggle is what is on screen — the message list's
+    // own toolbar carried one until the View tab took it — so both shapes stay
+    // correct without the caller having to know which is installed.
     if (button) {
-      button.setAttribute('aria-pressed', compact ? 'true' : 'false');
-      button.title = label(compact ? 'bc_comfortable' : 'bc_compact');
+      if (button.hasAttribute('aria-pressed')) {
+        button.setAttribute('aria-pressed', compact ? 'true' : 'false');
+        button.title = label(compact ? 'bc_comfortable' : 'bc_compact');
+      }
+
+      checkRadios('bc-density-menu', 'data-bc-density', density);
     }
 
     if (persist !== false) savePref('businessclass_density', density);
   };
 
-  function initDensity() {
-    var button = document.getElementById('bc-density');
+  /** Tick exactly one menuitemradio in a menu, by the value it carries. */
+  function checkRadios(menuId, attribute, value) {
+    var menu = document.getElementById(menuId);
+    if (!menu) return;
 
-    // Reflect the stored preference even where the toggle is absent, so the
+    var items = menu.querySelectorAll('[' + attribute + ']');
+    for (var i = 0; i < items.length; i++) {
+      items[i].setAttribute('aria-checked',
+        items[i].getAttribute(attribute) === String(value) ? 'true' : 'false');
+    }
+  }
+
+  function initDensity() {
+    // Reflect the stored preference even where no control is present, so the
     // class is on the list before the first rows land.
     businessclass.setDensity((window.rcmail && rcmail.env.bc_density) || 'comfortable', false);
 
-    if (!button) return;
+    initMenu('bc-density', 'bc-density-menu', function (item) {
+      var next = item.getAttribute('data-bc-density');
+      if (!next) return;
 
-    button.addEventListener('click', function () {
-      var compact = button.getAttribute('aria-pressed') === 'true';
-      businessclass.setDensity(compact ? 'comfortable' : 'compact');
-      businessclass.announce(label(compact ? 'bc_comfortable' : 'bc_compact'));
+      businessclass.setDensity(next);
+
+      // The key is resolved before the call, not inside it: verify:refs reads
+      // the first quoted string in a label() call to check it is shipped to the
+      // client, and a ternary there hands it a comparison operand instead.
+      var announced = next === 'compact' ? 'bc_compact' : 'bc_comfortable';
+      businessclass.announce(label(announced));
     });
+  }
+
+  /**
+   * How many lines of the message body show under a row (View tab, D-76).
+   *
+   * A class on the list rather than a token, because the three states are
+   * "none", "one line" and "two lines" — the middle one is the truncation the
+   * row already had, and only the last needs a line clamp.
+   */
+  businessclass.setPreview = function (value, persist) {
+    if (['off', '1', '2'].indexOf(String(value)) < 0) value = '1';
+
+    var list = document.getElementById('messagelist');
+
+    if (list) {
+      list.classList.toggle('bc-preview-off', value === 'off');
+      list.classList.toggle('bc-preview-2', value === '2');
+    }
+
+    checkRadios('bc-vmessages-menu', 'data-bc-preview', value);
+
+    if (persist !== false) savePref('businessclass_preview', value);
+  };
+
+  function initPreview() {
+    businessclass.setPreview((window.rcmail && rcmail.env.bc_preview) || '1', false);
   }
 
   /**
@@ -503,6 +552,250 @@
   }
 
   /**
+   * Collapsible headings in the folder pane (§3.4).
+   *
+   * The heading and its body are both in the template, already expanded, so a
+   * user without JS gets the tree open rather than a heading that will not
+   * open — the button is simply inert. [hidden] rather than a class: it is the
+   * one way of hiding something that a screen reader and the CSS agree on, and
+   * it takes the body out of the tab order along with the display.
+   *
+   * Not persisted. Which sections of the pane are folded is a property of this
+   * sitting, and there is no server pref behind it — see the date groups in the
+   * message list, which work the same way for the same reason.
+   */
+  function initFolderGroups() {
+    var heads = document.querySelectorAll('.bc-folders__grouphead');
+
+    for (var i = 0; i < heads.length; i++) {
+      heads[i].addEventListener('click', function () {
+        var body = document.getElementById(this.getAttribute('aria-controls'));
+        if (!body) return;
+
+        var open = this.getAttribute('aria-expanded') !== 'true';
+        this.setAttribute('aria-expanded', open ? 'true' : 'false');
+        body.hidden = !open;
+      });
+    }
+  }
+
+  // -- Favorites (§3.4) --------------------------------------------------------
+
+  /** The pinned folders, in order. Mirrors businessclass_favorites. */
+  var favorites = [];
+
+  /**
+   * Which folder a tree row points at.
+   *
+   * render_folder_tree_html gives the <li> an id built by html_identifier(),
+   * which is not reversible, so the name is read off the anchor instead — from
+   * the rcmail.command('list', …) call core writes into onclick, falling back to
+   * the href's _mbox for any row that arrived without one. Both are core's own
+   * output; neither is parsed from anything the user typed.
+   */
+  function folderOf(li) {
+    var a = li.querySelector('a');
+    if (!a) return '';
+
+    var onclick = a.getAttribute('onclick') || '';
+    var m = /rcmail\.command\(\s*'list'\s*,\s*'((?:\\.|[^'\\])*)'/.exec(onclick);
+    if (m) return m[1].replace(/\\(.)/g, '$1');
+
+    m = /[?&]_mbox=([^&"']*)/.exec(a.getAttribute('href') || '');
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  function isFavorite(folder) {
+    return favorites.indexOf(folder) >= 0;
+  }
+
+  /**
+   * Persist the list. One "\n"-separated string, because that is the only shape
+   * save_pref carries — and the separator an IMAP name cannot contain. The
+   * plugin re-checks every name against the subscribed folders on the way back
+   * out, so this is a convenience, never the authority.
+   */
+  function saveFavorites() {
+    if (window.rcmail && rcmail.save_pref) {
+      rcmail.save_pref({ name: 'businessclass_favorites', value: favorites.join('\n') });
+    }
+  }
+
+  /** The star that pins a folder. One per tree row and per Favorites row. */
+  function favButton(folder) {
+    var on = isFavorite(folder);
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'bc-folders__fav';
+    btn.setAttribute('data-bc-folder', folder);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.title = label(on ? 'bc_removefavorite' : 'bc_addfavorite');
+
+    var name = document.createElement('span');
+    name.className = 'voice';
+    name.textContent = btn.title;
+    btn.appendChild(name);
+
+    var icon = svgIcon('star', on ? 'filled' : 'regular');
+    icon.setAttribute('class', 'bc-icon bc-icon--16');
+    btn.appendChild(icon);
+
+    // The row's anchor is a link; a click that reached it would navigate to the
+    // folder as well as pin it.
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      var target = this.getAttribute('data-bc-folder');
+      var at = favorites.indexOf(target);
+
+      if (at >= 0) favorites.splice(at, 1);
+      else favorites.push(target);
+
+      saveFavorites();
+      renderFavorites();
+      syncFavorites();
+      decorateFolderStars();
+    });
+
+    return btn;
+  }
+
+  /**
+   * Build the Favorites list out of the real tree rows.
+   *
+   * The rows are CLONES, not hand-built links: core wires each anchor to its own
+   * list command and writes the row's classes itself, and a link assembled here
+   * would be one this skin has to keep in step with render_folder_tree_html for
+   * ever. Cloning means the only thing to maintain is what gets stripped —
+   * the ids, which must not exist twice, and the children, which belong to the
+   * tree rather than to a favourite.
+   */
+  function renderFavorites() {
+    var group = document.getElementById('bc-favorites');
+    var out = document.getElementById('bc-favlist');
+    var tree = document.getElementById('mailboxlist');
+    if (!group || !out || !tree) return;
+
+    out.textContent = '';
+
+    var rows = tree.querySelectorAll('li');
+    var found = {};
+
+    for (var i = 0; i < rows.length; i++) {
+      var folder = folderOf(rows[i]);
+      if (!folder || !isFavorite(folder) || found[folder]) continue;
+      found[folder] = rows[i];
+    }
+
+    // Ordered by the pref, not by the tree, so the list stays in the order the
+    // user pinned things in.
+    for (var f = 0; f < favorites.length; f++) {
+      var source = found[favorites[f]];
+      if (!source) continue;
+
+      var li = source.cloneNode(true);
+      li.removeAttribute('id');
+      li.setAttribute('data-bc-fav-of', favorites[f]);
+
+      // Sub-folders belong to the tree; a favourite is one folder. The twisty
+      // and any nested list go with them.
+      var drop = li.querySelectorAll('ul, div.treetoggle, .bc-folders__fav');
+      for (var d = 0; d < drop.length; d++) drop[d].parentNode.removeChild(drop[d]);
+
+      var ided = li.querySelectorAll('[id]');
+      for (var n = 0; n < ided.length; n++) ided[n].removeAttribute('id');
+
+      li.appendChild(favButton(favorites[f]));
+      out.appendChild(li);
+    }
+
+    group.hidden = !out.children.length;
+  }
+
+  /**
+   * Keep the clones in step with the rows they came from.
+   *
+   * Unread counts and the selected row are written straight into the tree by
+   * core, through several different paths (set_unread_count, select_folder, the
+   * folder manager). Rather than find and wrap each one, this watches the tree
+   * and copies what changed — so anything that edits a folder row, including a
+   * plugin, is covered without knowing it exists.
+   */
+  function syncFavorites() {
+    var out = document.getElementById('bc-favlist');
+    var tree = document.getElementById('mailboxlist');
+    if (!out || !tree || !out.children.length) return;
+
+    var source = {};
+    var rows = tree.querySelectorAll('li');
+    for (var i = 0; i < rows.length; i++) {
+      var folder = folderOf(rows[i]);
+      if (folder && !source[folder]) source[folder] = rows[i];
+    }
+
+    for (var c = 0; c < out.children.length; c++) {
+      var clone = out.children[c];
+      var from = source[clone.getAttribute('data-bc-fav-of')];
+      if (!from) continue;
+
+      clone.className = from.className;
+
+      var a = clone.querySelector('a');
+      var b = from.querySelector('a');
+      if (a && b) a.className = b.className;
+
+      // The count element may not exist on either side: core adds it to a folder
+      // that becomes unread and removes it again when it is read. A clone taken
+      // while the folder was read has nothing to write into, so the element is
+      // created here rather than the new count being dropped on the floor.
+      var live = from.querySelector('.unreadcount');
+      var count = clone.querySelector('.unreadcount');
+
+      if (live && !count && a) {
+        count = document.createElement('span');
+        count.className = live.className;
+        a.appendChild(count);
+      }
+
+      if (count) count.textContent = live ? live.textContent : '';
+    }
+  }
+
+  /** Everything the folder pane needs after core has redrawn the tree. */
+  function refreshFolders() {
+    decorateFolders();
+    renderFavorites();
+    syncFavorites();
+    decorateFolderStars();
+  }
+
+  function initFavorites() {
+    var tree = document.getElementById('mailboxlist');
+    if (!tree) return;
+
+    var stored = window.rcmail && rcmail.env.bc_favorites;
+    favorites = Array.isArray(stored) ? stored.slice() : [];
+
+    renderFavorites();
+    syncFavorites();
+
+    // No core event covers every write to a folder row, so the tree itself is
+    // the signal. Attributes and character data only — the subtree is small and
+    // the callback is a handful of string copies.
+    if (window.MutationObserver) {
+      new MutationObserver(syncFavorites).observe(tree, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        characterData: true,
+        attributeFilter: ['class'],
+      });
+    }
+  }
+
+  /**
    * Folder icons (§3.4). render_folder_tree_html emits no icon element, so one
    * is prepended per row from the folder's class. Without JS the 20px grid
    * column stays empty and the list still works.
@@ -528,6 +821,33 @@
         svgIcon(symbol, li.classList.contains('selected') ? 'filled' : 'regular'),
         link.firstChild
       );
+    }
+  }
+
+  /**
+   * The pin star on every tree row (§3.4).
+   *
+   * A pass of its own rather than part of decorateFolders(), which stops at the
+   * first row that already has an icon — that guard is what keeps it idempotent
+   * across list refreshes, and it would skip the one thing here that has to be
+   * redrawn when the state changes. Replaces rather than mutates, so there is a
+   * single place where a star's icon, label and aria-pressed are decided.
+   */
+  function decorateFolderStars() {
+    var list = document.getElementById('mailboxlist');
+    if (!list) return;
+
+    var items = list.querySelectorAll('li');
+
+    for (var i = 0; i < items.length; i++) {
+      var li = items[i];
+      var folder = folderOf(li);
+      if (!folder) continue;
+
+      var old = li.querySelector(':scope > .bc-folders__fav');
+      if (old) old.parentNode.removeChild(old);
+
+      li.appendChild(favButton(folder));
     }
   }
 
@@ -971,8 +1291,168 @@
    * Focused / Other tabs (§7.4). The chosen scope is remembered per folder in
    * sessionStorage, so it lasts the session without becoming a stored setting.
    */
+  // -- The ribbon (D-75) -------------------------------------------------------
+
+  /**
+   * Home / View / Help, and the folder-pane toggle beside them.
+   *
+   * A separate tablist from Focused/Other, sharing the component but not the
+   * behaviour: these switch which command row is on screen, and switch nothing
+   * on the server. Both are wired by aria-controls, so the markup states the
+   * relationship a screen reader is told about and the script reads it back
+   * rather than keeping a second copy of it.
+   */
+  function initRibbon() {
+    var bar = document.getElementById('bc-ribbonbar');
+    if (!bar) return;
+
+    var tabs = bar.querySelectorAll('.bc-tabs__tab');
+
+    function select(tab) {
+      for (var i = 0; i < tabs.length; i++) {
+        var on = tabs[i] === tab;
+        var panel = document.getElementById(tabs[i].getAttribute('aria-controls'));
+
+        tabs[i].setAttribute('aria-selected', on ? 'true' : 'false');
+        // Roving tabindex: a tablist is one tab stop and the arrows move inside
+        // it, so only the selected tab is reachable with Tab (§9).
+        tabs[i].setAttribute('tabindex', on ? '0' : '-1');
+        if (panel) panel.hidden = !on;
+      }
+
+      // Nothing to do about the overflow rule here: initOverflow() watches each
+      // bar with a ResizeObserver, and going from hidden to shown is a resize —
+      // a panel that was 0 wide while hidden is measured the moment it is not.
+    }
+
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].addEventListener('click', function () { select(this); });
+
+      tabs[i].addEventListener('keydown', function (event) {
+        var all = Array.prototype.slice.call(tabs);
+        var index = all.indexOf(this);
+        var next = null;
+
+        if (event.key === 'ArrowRight') next = all[(index + 1) % all.length];
+        else if (event.key === 'ArrowLeft') next = all[(index - 1 + all.length) % all.length];
+        else return;
+
+        next.focus();
+        next.click();
+        event.preventDefault();
+      });
+    }
+
+    var toggle = document.getElementById('bc-folderpane');
+
+    if (toggle) {
+      toggle.addEventListener('click', function () {
+        setFolderPane(this.getAttribute('aria-pressed') !== 'true');
+      });
+    }
+
+    // Two controls, one state (D-76): the hamburger beside the tabs and the
+    // View tab's "Folder pane" menu, exactly as Outlook has both. They are
+    // routed through setFolderPane() rather than each toggling the class, so
+    // neither can end up describing a state the other just changed.
+    initMenu('bc-folderpane-menu-btn', 'bc-folderpane-menu', function (item) {
+      var choice = item.getAttribute('data-bc-folderpane');
+      if (choice) setFolderPane(choice === 'hide');
+    });
+
+    initView();
+    syncRibbonCommands();
+    initOverflow('bc-ribbon-view', '.bc-ribbon__more');
+  }
+
+  /** Show or hide the folder pane, and tell both controls about it. */
+  function setFolderPane(hidden) {
+    var shell = document.getElementById('layout');
+    var toggle = document.getElementById('bc-folderpane');
+
+    if (shell) shell.classList.toggle('bc-folders-hidden', hidden);
+
+    // aria-pressed says "the folder pane is hidden", which is the state this
+    // button puts the app in — not "the pane is showing".
+    if (toggle) toggle.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+
+    checkRadios('bc-folderpane-menu', 'data-bc-folderpane', hidden ? 'hide' : 'show');
+  }
+
+  /** The View tab's Messages menu: conversation grouping and preview lines. */
+  function initView() {
+    initPreview();
+    syncThreads();
+
+    initMenu('bc-vmessages', 'bc-vmessages-menu', function (item) {
+      var preview = item.getAttribute('data-bc-preview');
+      if (preview) {
+        businessclass.setPreview(preview);
+        return;
+      }
+
+      var threads = item.getAttribute('data-bc-threads');
+      if (threads === null || !window.rcmail) return;
+
+      // Threading is not a save_pref-able preference either. set_list_options()
+      // is how core persists it, the same call the reading-pane position goes
+      // through — its fourth argument is the threading flag (list.php:63).
+      if (Number(threads) === Number(rcmail.env.threading)) return;
+
+      rcmail.set_list_options(null, undefined, undefined, Number(threads), rcmail.env.layout);
+    });
+  }
+
+  function syncThreads() {
+    checkRadios('bc-vmessages-menu', 'data-bc-threads',
+      (window.rcmail && rcmail.env.threading) ? '1' : '0');
+  }
+
+  /**
+   * Hide any ribbon control whose command core has not registered.
+   *
+   * Roundcube's command set is not part of the skin API and differs by version
+   * and by which plugins are loaded, so a skin cannot know from its templates
+   * whether "checkmail" or "expand-all" exist on this install. Binding a button
+   * to a command that was never registered leaves it permanently disabled — a
+   * control offering the user something their server cannot do, which is the one
+   * thing this ribbon was built not to have (D-75).
+   *
+   * rcmail.commands holds every command enable_command() has touched, including
+   * the ones currently disabled — so presence as a key is the test, and a false
+   * value means "exists, not available right now", which core already draws.
+   *
+   * [hidden], not removal, and re-run on every list update: a command can be
+   * registered late — expand-all only appears once threading is on — and a
+   * control deleted at startup would stay gone until the page was reloaded.
+   * [hidden] takes it out of the tab order and the accessibility tree just as
+   * removal would, and can be undone the moment the command shows up.
+   *
+   * Driven by an explicit data-bc-command, not by parsing the onclick core
+   * writes. Two reasons, and both matter: the attribute says which buttons this
+   * is *meant* to govern, so a command that is simply absent from rcmail.commands
+   * at the moment this runs cannot silently hide a button nobody was unsure
+   * about; and it does not depend on the shape of core's generated markup.
+   */
+  function syncRibbonCommands() {
+    var bar = document.getElementById('bc-ribbonbar');
+    if (!bar || !window.rcmail || !rcmail.commands) return;
+
+    var items = bar.querySelectorAll('[data-bc-command]');
+
+    for (var i = 0; i < items.length; i++) {
+      var command = items[i].getAttribute('data-bc-command');
+      var item = items[i].closest('.bc-ribbon__item') || items[i];
+
+      item.hidden = !(command in rcmail.commands);
+    }
+  }
+
   function initTabs() {
-    var tabs = document.querySelectorAll('.bc-tabs__tab');
+    // [data-bc-scope], not .bc-tabs__tab: the ribbon's Home/View/Help use the
+    // same tab component (D-75) and an unqualified selector would wire them to
+    // applyScope(null) and drag them into this tablist's arrow navigation.
+    var tabs = document.querySelectorAll('.bc-tabs__tab[data-bc-scope]');
     if (!tabs.length || !window.rcmail) return;
 
     for (var i = 0; i < tabs.length; i++) {
@@ -982,7 +1462,7 @@
 
       // A tablist is one tab stop; arrows move between the tabs (§9).
       tabs[i].addEventListener('keydown', function (event) {
-        var all = Array.prototype.slice.call(document.querySelectorAll('.bc-tabs__tab'));
+        var all = Array.prototype.slice.call(document.querySelectorAll('.bc-tabs__tab[data-bc-scope]'));
         var index = all.indexOf(this);
         var next = null;
 
@@ -1008,7 +1488,10 @@
    * update, but by then the two agree and nothing further happens.
    */
   function restoreScope() {
-    if (!window.rcmail || !document.querySelector('.bc-tabs__tab')) return;
+    // Qualified for the reason initTabs() is: the ribbon's tabs are the same
+    // component, and an unqualified test would report Focused/Other as present
+    // on every install and filter the mailbox for a control that is not there.
+    if (!window.rcmail || !document.querySelector('.bc-tabs__tab[data-bc-scope]')) return;
 
     var scope = scopeFor(rcmail.env.mailbox);
     var want = SCOPES[scope];
@@ -1050,7 +1533,7 @@
   }
 
   function syncTabs(scope) {
-    var tabs = document.querySelectorAll('.bc-tabs__tab');
+    var tabs = document.querySelectorAll('.bc-tabs__tab[data-bc-scope]');
 
     for (var i = 0; i < tabs.length; i++) {
       var on = tabs[i].getAttribute('data-bc-scope') === scope;
@@ -1082,6 +1565,66 @@
   }
 
   /**
+   * Which date groups the user has collapsed, keyed by group name.
+   *
+   * Module-level rather than per-render: the list is rebuilt on every page,
+   * search, sort and folder change, and a heading that sprang back open each
+   * time would make collapsing it pointless. Not persisted to the server —
+   * "Last month is collapsed" is a property of this sitting, not of the account.
+   */
+  var collapsedGroups = {};
+
+  /**
+   * Show or hide the rows under each heading, from `collapsedGroups`.
+   *
+   * Hiding is display:none, which is also what the list widget treats as an
+   * absent row (list.js:959) — so a collapsed group drops out of j/k navigation
+   * and out of select-all with no further help, because the widget tests the
+   * same property this does.
+   *
+   * Only rows this function hid are ever shown again, which is what
+   * data-bc-collapsed records. Core hides rows too — a search that filters the
+   * list leaves them in the tbody at display:none — and clearing that blindly
+   * would put messages back on screen that the user had filtered away.
+   */
+  function applyGroupCollapse() {
+    var table = messagelist();
+    if (!table) return;
+
+    var headers = table.querySelectorAll('tr.bc-group');
+
+    for (var i = 0; i < headers.length; i++) {
+      var header = headers[i];
+      var toggle = header.querySelector('.bc-group__toggle');
+      var key = toggle && toggle.getAttribute('data-bc-group');
+      var collapsed = !!(key && collapsedGroups[key]);
+
+      if (toggle) toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      header.classList.toggle('bc-group--collapsed', collapsed);
+
+      var row = header.nextSibling;
+
+      while (row) {
+        if (row.nodeType === 1) {
+          if (String(row.className).indexOf('bc-group') >= 0) break;
+
+          if (collapsed) {
+            if (row.style.display !== 'none') {
+              row.setAttribute('data-bc-collapsed', '1');
+              row.style.display = 'none';
+            }
+          } else if (row.getAttribute('data-bc-collapsed')) {
+            row.removeAttribute('data-bc-collapsed');
+            row.style.display = '';
+          }
+        }
+
+        row = row.nextSibling;
+      }
+    }
+  }
+
+  /**
    * Insert sticky date headings between rows.
    *
    * Only meaningful while the list is sorted by date, so any other sort column
@@ -1096,6 +1639,16 @@
     var stale = table.querySelectorAll('tr.bc-group');
     for (var s = 0; s < stale.length; s++) {
       stale[s].parentNode.removeChild(stale[s]);
+    }
+
+    // Undo the previous pass's collapsing before deciding anything. The loop
+    // below skips hidden rows — that is how it stays out of core's filtering —
+    // so a group left collapsed would contribute no visible row, get no heading,
+    // and become the one group with no way back open.
+    var hidden = table.querySelectorAll('tr[data-bc-collapsed]');
+    for (var h = 0; h < hidden.length; h++) {
+      hidden[h].removeAttribute('data-bc-collapsed');
+      hidden[h].style.display = '';
     }
 
     if (['date', 'arrival'].indexOf(rcmail.env.sort_col) < 0) return;
@@ -1122,17 +1675,45 @@
       if (group === current) continue;
       current = group;
 
+      // A real <button>, not a styled <td>: collapsing a group is an action, and
+      // aria-expanded on anything else means nothing. The chevron is decorative
+      // — the button's name is the group label, and its state is the attribute.
+      var toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'bc-group__toggle';
+      toggle.setAttribute('data-bc-group', group);
+      toggle.setAttribute('aria-expanded', 'true');
+      var chevron = svgIcon('chevron_down');
+      chevron.setAttribute('class', 'bc-icon bc-icon--16 bc-group__chevron');
+      toggle.appendChild(chevron);
+
+      var name = document.createElement('span');
+      name.textContent = groupLabel(group);
+      toggle.appendChild(name);
+
+      // The list widget binds selection on the tbody, so a click that reaches it
+      // from here would also move the selection to whatever row is underneath.
+      toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var key = this.getAttribute('data-bc-group');
+        collapsedGroups[key] = !collapsedGroups[key];
+        applyGroupCollapse();
+      });
+
       var cell = document.createElement('td');
-      cell.textContent = groupLabel(group);
+      cell.appendChild(toggle);
 
       var header = document.createElement('tr');
       header.className = 'bc-group';
-      // Presentational: the rows it separates already carry their own date.
+      // Presentational: the rows it separates already carry their own date, and
+      // the only thing here that a screen reader needs is the button.
       header.setAttribute('role', 'presentation');
       header.appendChild(cell);
 
       tr.parentNode.insertBefore(header, tr);
     }
+
+    applyGroupCollapse();
   }
 
   /**
@@ -1438,6 +2019,8 @@
     sortPinnedToTop();
     renderThreadCounts();
     renderDateGroups();
+    syncThreads();
+    syncRibbonCommands();
     decoratePluginButtons();
     restoreScope();
 
@@ -3976,7 +4559,13 @@
     // applies there, and nothing here applies anywhere else.
     initLogin();
 
+    // Order matters: the Favorites rows are clones of the tree rows, so the tree
+    // has to have its icons and wrapped labels before anything is copied out of
+    // it, and the stars go on last so the clones are not carrying one already.
     decorateFolders();
+    initFavorites();
+    decorateFolderStars();
+    initFolderGroups();
     renderCategories();
     initSplitter('folders');
     initSplitter('list');
@@ -3989,6 +4578,7 @@
     // Reading pane: the ribbon lives in the shell, the message document inside
     // the frame — init() runs in both and each half no-ops where its markup is
     // absent.
+    initRibbon();
     initOverflow('bc-ribbon', '.bc-ribbon__more');
     decorateSender();
     initFlag();
@@ -4103,8 +4693,11 @@
     rcmail.addEventListener('init', init);
     rcmail.addEventListener('message', decorateNotice);
     rcmail.addEventListener('setquota', updateQuota);
-    rcmail.addEventListener('responseafterlist', decorateFolders);
-    rcmail.addEventListener('responseaftergetunread', decorateFolders);
+    // Both of these can hand back a rebuilt folder tree, which arrives without
+    // the icons, the wrapped labels or the stars — and with rows the Favorites
+    // clones were copied from now replaced. All three passes have to follow it.
+    rcmail.addEventListener('responseafterlist', refreshFolders);
+    rcmail.addEventListener('responseaftergetunread', refreshFolders);
     rcmail.addEventListener('insertrow', onInsertRow);
     rcmail.addEventListener('listupdate', onListUpdate);
     rcmail.addEventListener('plugin.businessclass_pinned', onPinned);
