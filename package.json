@@ -1,6 +1,6 @@
 {
   "name": "jethost-roundcube-businessclass",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "BusinessClass — a Fluent 2 skin for Roundcube 1.6.x",
   "license": "GPL-3.0",
