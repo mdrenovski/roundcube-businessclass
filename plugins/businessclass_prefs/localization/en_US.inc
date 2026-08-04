@@ -33,6 +33,10 @@ $labels['bc_paneright'] = 'Right';
 $labels['bc_panebottom'] = 'Bottom';
 $labels['bc_paneoff'] = 'Off';
 $labels['bc_focused'] = 'Sort mail into Focused and Other';
+// Worded as what it does rather than as "show avatars", because the initials are
+// avatars too and stay either way. What this switch governs is whether anything
+// is asked of the internet to replace them.
+$labels['bc_avatars'] = 'Look up sender pictures online';
 
 // Identity photo (§7.10). These are the plugin's because the action that writes
 // the photo is the plugin's, and $this->gettext() there resolves against these.

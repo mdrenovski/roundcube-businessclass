@@ -72,14 +72,64 @@ class businessclass_prefs extends rcube_plugin
     private const PIN_FLAG = '$PINNED';
 
     /**
-     * Where an avatar photo is looked for, in order (§7.10).
+     * Where an avatar photo is looked for, in order (§7.10, D-78).
      *
-     * Gravatar is asked only after every address book has come back empty, and
-     * only where the admin leaves $config['businessclass_gravatar'] on. It is an
-     * outbound request that carries a hash of the address and the user's IP to a
-     * third party, so it is a documented choice rather than a silent default.
+     *   1. every address book, which core does before this hook is reached
+     *   2. BIMI, for a domain that stands for one organisation
+     *   3. Gravatar
+     *   4. nothing, and the initials the skin already drew stay showing
+     *
+     * Steps 2 and 3 are outbound and each has its own switch, because they
+     * disclose different things to different people. Gravatar carries a hash of
+     * the address and the user's IP to Automattic. BIMI is answered here, from
+     * DNS, and the only thing that leaves the browser is a request for a logo
+     * from a host the sender's own domain nominated. Both are documented
+     * choices rather than silent defaults.
      */
     private const GRAVATAR_BASE = 'https://www.gravatar.com/avatar/';
+
+    /**
+     * Domains where the address identifies a person, not an organisation.
+     *
+     * BIMI publishes one mark per domain. On a company domain that mark is the
+     * company, which is exactly what a sender avatar should be. On a freemail
+     * domain it is the mail provider — so asking gmail.com for its logo would
+     * put the same picture on every person who happens to have a Gmail address,
+     * which is worse than the initials it replaced. These domains therefore skip
+     * BIMI and go straight to Gravatar, which is keyed on the address.
+     *
+     * Two lists, because "is this a freemail domain" has two different shapes of
+     * answer and conflating them is how the reference implementation gets
+     * yahoo.co.uk wrong. Its registrable domain is co.uk and its TLD-stripped
+     * form is yahoo.co, so neither reading ever matches an entry of "yahoo".
+     *
+     * BRANDS match the first label, which is what catches every national
+     * variant — yahoo.co.uk, hotmail.fr, gmx.at — without listing the world.
+     * Only words that are a mail provider and nothing else belong here: a false
+     * positive costs a company its BIMI mark.
+     *
+     * DOMAINS match in full, and are where the ordinary words go. "live",
+     * "free", "me" and "msn" are all real first labels of real companies, so
+     * they are listed as the specific domains they are and nothing more.
+     */
+    private const FREEMAIL_BRANDS = [
+        'gmail', 'googlemail', 'yahoo', 'ymail', 'hotmail', 'outlook', 'aol',
+        'protonmail', 'yandex', 'icloud', 'gmx', 'zoho', 'fastmail', 'tutanota',
+        'laposte', 'wanadoo', 'seznam',
+    ];
+
+    private const FREEMAIL_DOMAINS = [
+        'proton.me', 'pm.me', 'tuta.com', 'me.com', 'mac.com', 'web.de',
+        'mail.ru', 'live.com', 'live.co.uk', 'live.de', 'live.fr', 'msn.com',
+        'free.fr', 'sfr.fr', 'bbox.fr', 'orange.fr',
+        'abv.bg', 'mail.bg', 'dir.bg',
+    ];
+
+    /** Where a BIMI answer is kept when no shared cache backend is configured. */
+    private const BIMI_TTL = '10d';
+
+    /** The DNS label BIMI reserves for the default selector (RFC draft §4). */
+    private const BIMI_HOST = 'default._bimi.';
 
     /** Image formats accepted for an identity photo, matching core's own list. */
     private const PHOTO_TYPES = ['jpeg', 'jpg', 'png', 'gif', 'bmp', 'tiff', 'tif', 'webp'];
@@ -100,7 +150,7 @@ class businessclass_prefs extends rcube_plugin
     }
 
     /**
-     * Gravatar as the last resort for an avatar (§7.10).
+     * The remote half of the avatar chain (§7.10, D-78).
      *
      * Fires from two places in core, and both are wanted: the contacts/photo
      * action, which the skin's avatars point an <img> at, and the contactphoto
@@ -108,9 +158,19 @@ class businessclass_prefs extends rcube_plugin
      * returned here — the action by redirecting to it, the template object by
      * putting it in the src.
      *
-     * Only when nothing local was found. d=404 rather than one of Gravatar's
-     * generated fallbacks, because the skin already draws initials underneath and
-     * a 404 is what lets the <img> fail and leave them showing.
+     * Only when nothing local was found: core has already searched every address
+     * book by the time this runs, and a photo the user saved themselves outranks
+     * anything the internet has to offer.
+     *
+     * The hook can hand back exactly one URL, so the chain is walked here rather
+     * than in the browser — there is no way to say "try this, then that" to a
+     * single redirect. A BIMI mark that turns out to 404 therefore does not fall
+     * through to Gravatar; it falls through to the initials, which is the same
+     * place every other miss lands.
+     *
+     * Gravatar is asked with d=404 rather than one of its generated fallbacks,
+     * because the skin already draws initials underneath and a 404 is what lets
+     * the <img> fail and leave them showing.
      */
     public function contact_photo($args)
     {
@@ -122,7 +182,7 @@ class businessclass_prefs extends rcube_plugin
 
         if (
             $rcmail->config->get('skin') !== 'businessclass'
-            || !$rcmail->config->get('businessclass_gravatar', true)
+            || !$rcmail->config->get('businessclass_avatars', true)
         ) {
             return $args;
         }
@@ -136,13 +196,217 @@ class businessclass_prefs extends rcube_plugin
             $email = $emails[0] ?? null;
         }
 
-        if (!is_string($email) || !strlen($email) || !strpos($email, '@')) {
+        // Both halves have to be there, and the domain has to have a dot in it.
+        // "ann@" satisfies a strpos() test for '@' and then hashes into a
+        // perfectly well-formed Gravatar URL for an address that does not exist
+        // — an outbound request that can only ever 404. A domain with no dot
+        // cannot publish BIMI and cannot be reached by Gravatar either.
+        if (!is_string($email) || !preg_match('/^[^@\s]+@([^@\s]+\.[^@\s]+)$/', $email, $parts)) {
             return $args;
         }
 
-        $args['url'] = $this->gravatar_url($email);
+        $domain = strtolower($parts[1]);
+        $url = null;
+
+        if (
+            $rcmail->config->get('businessclass_bimi', true)
+            && !$this->is_freemail($domain)
+        ) {
+            $url = $this->bimi_url($domain);
+        }
+
+        if (!$url && $rcmail->config->get('businessclass_gravatar', true)) {
+            $url = $this->gravatar_url($email);
+        }
+
+        if (!$url) {
+            return $args;
+        }
+
+        // Core sets a day's expiry on the answers it sends itself, including the
+        // 204 that stands in for "no photo", but not on the redirect it is about
+        // to build out of this URL — so without this the browser would ask again
+        // for every row of every list, forever. The day matches what core
+        // already chose for a photo looked up by address, and avatarPhoto()'s
+        // _bc parameter is how a changed photo escapes it.
+        $rcmail->output->future_expire_header(86400);
+
+        $args['url'] = $url;
 
         return $args;
+    }
+
+    /**
+     * Is this a domain where the address names a person rather than a company?
+     *
+     * No public suffix list, deliberately — that is a dependency (§14) for a
+     * question these two lists already answer. Getting it wrong in either
+     * direction is survivable: a company mistaken for freemail loses its BIMI
+     * mark and falls back to Gravatar, and freemail mistaken for a company does
+     * one wasted DNS lookup that almost always comes back empty.
+     */
+    private function is_freemail($domain)
+    {
+        if (in_array($domain, self::FREEMAIL_DOMAINS, true)) {
+            return true;
+        }
+
+        $first = strstr($domain, '.', true);
+
+        return $first !== false && in_array($first, self::FREEMAIL_BRANDS, true);
+    }
+
+    /**
+     * The logo a domain publishes for itself, via BIMI (§7.10, D-78).
+     *
+     * BIMI exists so that a receiving client can show a sender's verified mark,
+     * which is precisely this. Publishing one is expensive — DMARC at
+     * quarantine or reject, and a Verified Mark Certificate (see D-24) — but
+     * *reading* one is a DNS TXT lookup and costs nothing, which is why this is
+     * the one remote source with no privacy cost attached: it is answered on the
+     * server, from DNS, and no third party is contacted to answer it.
+     *
+     * Cached, and that is not optional. dns_get_record() blocks the PHP process
+     * for as long as the resolver takes, and the message list asks about every
+     * sender on the page; a folder page could otherwise be fifty serialised DNS
+     * queries. Misses are cached too — most domains have no BIMI record and
+     * re-asking them is the common case, not the rare one.
+     *
+     * @return string|null An https URL, or null for no record and for a record
+     *                     that did not survive validation
+     */
+    private function bimi_url($domain)
+    {
+        // Present on any ordinary PHP build, absent on some hardened shared
+        // hosts. Nothing else in the chain depends on it, so a host without it
+        // simply gets the Gravatar step.
+        if (!function_exists('dns_get_record')) {
+            return null;
+        }
+
+        // This came off an address in a message header, which means an attacker
+        // chose it. Constrain it to something that is unambiguously a hostname
+        // before it is concatenated into a name to resolve. The last label is
+        // required to be alphabetic, which is true of every TLD and is also what
+        // rules out a bare IPv4 address — no such thing publishes BIMI, and it
+        // is a shape worth never passing on by accident.
+        if (!preg_match('/^(?=.{4,253}$)([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/', $domain)) {
+            return null;
+        }
+
+        $cache = $this->avatar_cache();
+        $key = 'bimi.' . $domain;
+
+        if ($cache) {
+            $hit = $cache->get($key);
+
+            // A miss is stored as false, which is a real answer and has to be
+            // told apart from the null that means "never asked".
+            if ($hit !== null) {
+                return $hit ?: null;
+            }
+        }
+
+        $url = $this->bimi_lookup($domain);
+
+        if ($cache) {
+            $cache->set($key, $url ?: false);
+        }
+
+        return $url;
+    }
+
+    /** One uncached BIMI query. Split out so bimi_url() reads as the cache. */
+    private function bimi_lookup($domain)
+    {
+        // Silenced deliberately: a domain with no record, or a resolver that
+        // times out, is an ordinary outcome here and not something to put in the
+        // error log once per sender.
+        $records = @dns_get_record(self::BIMI_HOST . $domain, \DNS_TXT);
+
+        if (!is_array($records)) {
+            return null;
+        }
+
+        foreach ($records as $record) {
+            // A TXT record longer than 255 bytes arrives as several strings, and
+            // a BIMI record with a long URL usually is. PHP joins them into
+            // 'txt' for us; 'entries' is the unjoined form, kept as a fallback.
+            $txt = $record['txt'] ?? '';
+
+            if (!strlen($txt) && !empty($record['entries'])) {
+                $txt = implode('', (array) $record['entries']);
+            }
+
+            if (stripos($txt, 'v=BIMI1') === false) {
+                continue;
+            }
+
+            foreach (explode(';', $txt) as $tag) {
+                [$name, $value] = array_pad(explode('=', trim($tag), 2), 2, '');
+
+                if (strtolower(trim($name)) !== 'l') {
+                    continue;
+                }
+
+                // An empty l= is a domain saying "I publish BIMI and I am
+                // choosing not to show a logo". Honour it: return null and let
+                // the chain move on rather than treating it as a parse failure.
+                return $this->sanitize_bimi_url(trim($value));
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Validate a URL that came out of someone else's DNS.
+     *
+     * This string is chosen by whoever controls the sender's domain, and core
+     * puts it straight into output->redirect(). It is therefore exactly as
+     * trustworthy as the sender is, which is to say not at all — so it is held
+     * to the narrowest thing the BIMI spec allows: https, and nothing else.
+     * That is not a tightening of the spec, it is the spec; BIMI requires https
+     * for the location so that the mark cannot be swapped in transit.
+     *
+     * The scheme test is what keeps javascript: and data: out, matching the rule
+     * sanitize_url() applies to the branding file. What makes the rest
+     * survivable is that the result is only ever rendered inside <img>, where an
+     * SVG — and a BIMI mark is always an SVG — cannot run script or fetch
+     * anything of its own.
+     */
+    private function sanitize_bimi_url($value)
+    {
+        if (!is_string($value) || !strlen($value) || strlen($value) > 2048) {
+            return null;
+        }
+
+        // No whitespace, quotes or angle brackets: those are how a URL stops
+        // being a URL and starts being an injection into whatever consumes it.
+        if (!preg_match('~^https://[^\s"\'<>\\\\]+$~i', $value)) {
+            return null;
+        }
+
+        return filter_var($value, \FILTER_VALIDATE_URL) ? $value : null;
+    }
+
+    /**
+     * Where BIMI answers are kept.
+     *
+     * A BIMI record is a public fact about a domain and has nothing to do with
+     * the account that happened to receive the mail, so the shared cache is
+     * where it belongs: one lookup then serves every user on the server. That
+     * cache only exists once an admin names a backend for it —
+     * $config['businessclass_bimi_cache'] = 'db' — so this falls back to the
+     * per-user cache, which is always available. The fallback costs a row per
+     * user per domain and still turns a page of DNS queries into none.
+     */
+    private function avatar_cache()
+    {
+        $rcmail = rcmail::get_instance();
+
+        return $rcmail->get_cache_shared('businessclass_bimi')
+            ?: $rcmail->get_cache('businessclass_bimi', 'db', self::BIMI_TTL);
     }
 
     /**
@@ -575,6 +839,27 @@ class businessclass_prefs extends rcube_plugin
             ];
         }
 
+        // The one avatar switch a user gets. The per-source switches (BIMI,
+        // Gravatar) stay with the admin, because which third parties this
+        // installation is willing to talk to is an operator's decision and not
+        // a per-account taste. This one is the taste: whether to look outside
+        // the address book at all. Offered only where there is still a source
+        // left switched on for it to govern — with both off it would be a
+        // control over nothing.
+        if (
+            !isset($no_override['businessclass_avatars'])
+            && ($rcmail->config->get('businessclass_bimi', true)
+                || $rcmail->config->get('businessclass_gravatar', true))
+        ) {
+            $field_id = 'rcmfd_businessclass_avatars';
+            $checkbox = new html_checkbox(['name' => '_businessclass_avatars', 'id' => $field_id, 'value' => 1]);
+
+            $block['options']['businessclass_avatars'] = [
+                'title' => html::label($field_id, rcube::Q($this->gettext('bc_avatars'))),
+                'content' => $checkbox->show($rcmail->config->get('businessclass_avatars', true) ? 1 : 0),
+            ];
+        }
+
         if (empty($block['options'])) {
             return $args;
         }
@@ -663,6 +948,18 @@ class businessclass_prefs extends rcube_plugin
             $args['prefs']['businessclass_focused'] = isset($_POST['_businessclass_focused']);
         }
 
+        // Guarded by the same condition that decided whether to draw it: an
+        // unchecked box and a box that was never on the page look identical in a
+        // post, so without this, turning every source off in config would write
+        // false over whatever the user had chosen and lose it.
+        if (
+            !isset($no_override['businessclass_avatars'])
+            && ($rcmail->config->get('businessclass_bimi', true)
+                || $rcmail->config->get('businessclass_gravatar', true))
+        ) {
+            $args['prefs']['businessclass_avatars'] = isset($_POST['_businessclass_avatars']);
+        }
+
         // All four are rendered into the page server-side — the theme and
         // density as attributes on <html>, the layout and the Focused tabs as
         // markup — so a saved change is invisible until the page is built
@@ -674,6 +971,9 @@ class businessclass_prefs extends rcube_plugin
             'businessclass_theme' => $this->sanitize_theme($rcmail->config->get('businessclass_theme')),
             'businessclass_density' => $this->sanitize_density($rcmail->config->get('businessclass_density')),
             'businessclass_focused' => (bool) $rcmail->config->get('businessclass_focused', false),
+            // Reaches the message list as an env flag read once, when a row is
+            // built, so a change only shows after the page is built again.
+            'businessclass_avatars' => (bool) $rcmail->config->get('businessclass_avatars', true),
             'layout' => $rcmail->config->get('layout') ?: 'widescreen',
         ];
 
@@ -1001,6 +1301,15 @@ class businessclass_prefs extends rcube_plugin
         $output->set_env('bc_sheet', $this->sanitize_sheet($rcmail->config->get('businessclass_sheet')));
         $output->set_env('bc_focused', (bool) $rcmail->config->get('businessclass_focused', false));
         $output->set_env('bc_preview', $this->sanitize_preview($rcmail->config->get('businessclass_preview')));
+
+        // Whether a message row should ask for a sender photo at all (§7.10,
+        // D-78). The hook enforces this on its own — a request that arrives with
+        // it off gets no remote URL back — so this is not a security boundary,
+        // it is what stops the browser making the request in the first place.
+        // Both halves matter: without the check here the requests still happen
+        // and all 204, and without the check in the hook a crafted request could
+        // still reach Gravatar.
+        $output->set_env('bc_avatars', (bool) $rcmail->config->get('businessclass_avatars', true));
 
         // Favorites (§3.4). Only on the mail task: nothing else renders a folder
         // pane, and validating the list costs an IMAP LSUB — which is cheap, but

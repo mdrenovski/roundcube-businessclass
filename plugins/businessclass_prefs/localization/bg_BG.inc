@@ -31,6 +31,7 @@ $labels['bc_paneright'] = 'Отдясно';
 $labels['bc_panebottom'] = 'Отдолу';
 $labels['bc_paneoff'] = 'Изключен';
 $labels['bc_focused'] = 'Разделяне на пощата на „Приоритетни“ и „Други“';
+$labels['bc_avatars'] = 'Търсене на снимки на подателите в интернет';
 
 // Identity photo (§7.10)
 $labels['bc_photosaved'] = 'Снимката е записана.';

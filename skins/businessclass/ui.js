@@ -137,6 +137,35 @@
   businessclass.avatarIndex = function (key) { return (hashCode(key) % 6) + 1; };
 
   /**
+   * The bare address out of anything that might contain one.
+   *
+   * Message rows carry it in the title of the span address_string() built, but
+   * that is a whole address string on some paths and a display name on others,
+   * and only an address is any use as a photo lookup key.
+   */
+  function addressOf(value) {
+    var found = String(value || '').match(/[^\s<>,;:"']+@[^\s<>,;:"']+\.[^\s<>,;:"']+/);
+    return found ? found[0].toLowerCase().replace(/[.,;]+$/, '') : '';
+  }
+
+  businessclass.addressOf = addressOf;
+
+  /**
+   * Addresses this session has already been told have no photo.
+   *
+   * Core answers those with a 204, and gives it a day's expiry — but a 204 has
+   * no body and browsers are inconsistent about reusing one across a reload, so
+   * without this a folder of senders nobody has a picture for would re-ask on
+   * every visit. Remembering the misses costs a string per sender and turns the
+   * common case into no traffic at all.
+   *
+   * Deliberately not persisted. It is a negative answer about the outside world
+   * that could stop being true at any moment, and a page load is a cheap enough
+   * moment to find out.
+   */
+  var photoMisses = {};
+
+  /**
    * Lay a real photo over an initials avatar, where one exists (§7.10).
    *
    * The src is core's own contacts/photo action: it searches every address book
@@ -151,6 +180,10 @@
   businessclass.avatarPhoto = function (el, email, bust) {
     if (!el || !email || !window.rcmail || !rcmail.url || el.querySelector('img')) return;
 
+    // A cache-busted request is asking to be told again, so it skips the memory
+    // rather than being refused by it.
+    if (!bust && photoMisses[email]) return;
+
     var img = document.createElement('img');
 
     // The circle is aria-hidden and the name is always beside it in text, so a
@@ -160,6 +193,7 @@
     img.loading = 'lazy';
     img.decoding = 'async';
     img.addEventListener('error', function () {
+      photoMisses[email] = true;
       if (img.parentNode) img.parentNode.removeChild(img);
     });
 
@@ -949,6 +983,21 @@
     avatar.setAttribute('aria-hidden', 'true');
     avatar.textContent = initials(sender);
     cell.insertBefore(avatar, cell.firstChild);
+
+    // The sender's real picture, where there is one (§7.10, D-78). This reverses
+    // D-26, which kept list rows on initials because fifty rows meant fifty
+    // lookups; the three things that decision asked for before it were reversed
+    // are all here — the <img> is loading="lazy" so a row below the fold costs
+    // nothing until it is scrolled to, an address already known to have no photo
+    // is never asked about twice (photoMisses), and the redirect the server
+    // builds now carries a day's expiry so the browser stops re-asking.
+    //
+    // Layered over the initials rather than replacing them, so the circle
+    // identifies the sender from the first frame and keeps doing so if the
+    // request 204s, times out, or never returns at all.
+    if (rcmail.env.bc_avatars) {
+      businessclass.avatarPhoto(avatar, addressOf(key));
+    }
 
     var extra = row.flags || {};
 

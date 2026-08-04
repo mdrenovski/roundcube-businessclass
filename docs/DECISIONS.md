@@ -168,8 +168,10 @@ but needs an outbound HTTP client, a cache and timeouts in PHP — a new depende
 (D-5) for a privacy gain the switch already offers.
 
 ### D-26 · Message-list rows stay initials-only
-**BUILT.** Fifty rows would be fifty outbound lookups per folder page. The header
-circle, the reading-pane sender and the contact card get photos; list rows do not.
+**REVERSED on 2026-08-04 by D-78.** Kept here because the reasoning still holds
+and is what D-78 had to answer.
+Fifty rows would be fifty outbound lookups per folder page. The header circle, the
+reading-pane sender and the contact card get photos; list rows do not.
 **To change:** if you ever want them, do it lazily on scroll and only for
 addresses already known to have a local contact photo.
 
@@ -1281,3 +1283,85 @@ given shell does not read costs nothing.
 `tools/verify/render.mjs` takes `env:action == 'identities'` as true, so the
 Settings ribbon's richest branch — primary button, divider, destructive action —
 is the one that actually gets laid out in a fixture.
+
+### D-78 · Message rows get real sender pictures; BIMI joins the chain
+**USER**, 2026-08-04, reversing D-26 and answering it rather than ignoring it.
+The full chain that was surveyed before choosing: local contacts → cache → BIMI →
+Gravatar → Libravatar → a favicon service → scraping the sender's website for a
+`<link rel=icon>`, with the first two steps ordered differently and BIMI skipped
+when the domain is freemail.
+
+**What was taken: contacts → BIMI → Gravatar → initials.** The favicon services
+and the website scrape were offered and declined. They are the two steps that buy
+coverage with someone else's privacy — a favicon service learns the domain of
+every correspondent, and scraping means the *server* issuing HTTP to hosts an
+attacker partly chooses, which needs SSRF guards to be safe at all.
+
+**BIMI is the interesting addition, because it is the one remote source with no
+privacy cost.** It is answered on the server from a DNS TXT lookup at
+`default._bimi.<domain>`, and the only thing that then leaves the browser is a
+request for a logo from a host the sender's own domain nominated. Note the
+asymmetry with D-24, which found BIMI too expensive to *publish* — a VMC is
+around $1,000/yr. *Reading* one is free, and the senders who have paid for it are
+exactly the ones a user most wants to recognise on sight: banks, airlines,
+couriers, retailers.
+
+**BIMI is skipped for freemail domains.** One mark per domain means asking
+gmail.com for its logo would put the same picture on every person with a Gmail
+address — worse than the initials it replaced. `is_freemail()` classifies first.
+The classifier deliberately does *not* pull in a public suffix list (§14): it
+matches the first label against provider brands, which is what catches
+`yahoo.co.uk` and `gmx.at` without listing every country, and matches whole
+domains for the ordinary words — `live`, `free`, `me`, `msn` are all real first
+labels of real companies. The reference implementation gets `yahoo.co.uk` wrong
+for exactly this reason; its registrable domain is `co.uk`.
+
+**Fetching stays in the browser** (chosen over a server-side proxy). Core's
+`contacts/photo` action redirects and the browser follows, as it already did for
+Gravatar. A proxy would hide the user's IP and cache the bytes, but needs an
+outbound HTTP client, a cache directory, timeouts and image validation in PHP —
+D-25 rejected exactly that trade and it has not changed.
+
+**D-26's three objections are answered, not overruled:**
+- *fifty rows, fifty lookups* — the `<img>` is `loading="lazy"`, so a row below
+  the fold costs nothing until it is scrolled to.
+- *repeated on every list* — `ui.js` remembers which addresses came back with no
+  photo (`photoMisses`) and never asks a second time in that session.
+- *no caching on the redirect* — core only sets an expiry on the answers it sends
+  itself, so the hook now calls `future_expire_header(86400)` before handing back
+  a URL. The 204 that stands in for "no photo" already had a day from core.
+
+**The DNS lookup is cached, and that is not optional.** `dns_get_record()` blocks
+the PHP process; a folder page could otherwise be fifty serialised queries.
+Misses are cached too — most domains have no BIMI record, so that is the common
+case rather than the rare one. It goes in the shared cache when the admin names a
+backend (`$config['businessclass_bimi_cache'] = 'db'`), because a BIMI record is a
+public fact about a domain and nothing to do with the account that received the
+mail; without that it falls back to the per-user cache, which always exists.
+
+**Three switches, split by who the decision belongs to.** `businessclass_bimi`
+and `businessclass_gravatar` are admin-only, because which third parties an
+installation will talk to is an operator's policy. `businessclass_avatars` is the
+user's, in Settings → Preferences → User Interface, worded "Look up sender
+pictures online" — not "show avatars", because the initials are avatars too and
+stay either way. It is hidden when both sources are already off, so it is never a
+control over nothing.
+
+**The `l=` URL is chosen by whoever controls the sender's domain**, and core puts
+it straight into a redirect. It is held to https and nothing else — which is the
+BIMI spec, not a tightening of it — plus no whitespace, quotes or angle brackets,
+and a 2048-character cap. What makes the rest survivable is that the result is
+only ever rendered inside `<img>`, where an SVG cannot run script. The domain fed
+to the resolver came off a message header and is validated as a hostname with an
+alphabetic TLD before it is concatenated into a name to look up; that also rules
+out a bare IPv4 address.
+
+**To change:** `$config['businessclass_bimi'] = false` drops back to D-25's
+chain. `$config['businessclass_avatars'] = false` turns the whole remote half off
+and leaves address-book photos and initials working. Adding the favicon step
+later means a new provider in the same place in `contact_photo()` and a fourth
+switch; the website scrape should not be added without SSRF guards.
+**Rejected alternative:** Libravatar, as a step after Gravatar. It is a second
+outbound service for a small increment of coverage over the same address hash,
+and the hook can only return one URL, so a chain where one falls through to the
+other cannot be expressed here anyway.

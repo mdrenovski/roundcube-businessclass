@@ -72,6 +72,8 @@ These come from the user directly and have held for the whole project.
 | **The Favorites list is untrusted.** `save_pref.php` checks only that a pref name is whitelisted and then writes whatever the browser sent — there is no hook in between. So every folder name is checked on the way *out*, and only survives if the user is subscribed to a folder by that name; the list is capped so a crafted pref cannot render ten thousand rows | `businessclass_prefs::sanitize_favorites` |
 | The preview-lines pref reaches the page as a class name and is whitelisted `off \| 1 \| 2`, like theme, density and sheet | `businessclass_prefs::sanitize_preview` |
 | An uploaded identity photo is type-checked with `rcube_image` (the real format, not the filename or the browser's content type) and scaled to `contact_photo_size` | `businessclass_prefs::photo_upload` |
+| **A BIMI `l=` URL is chosen by whoever controls the sender's domain**, and core puts it straight into `output->redirect()`. It is held to `https://` and nothing else — the BIMI spec, not a tightening of it — with no whitespace, quotes or angle brackets, and a 2048-char cap. Survivable beyond that only because it is rendered inside `<img>`, where an SVG cannot run script | `businessclass_prefs::sanitize_bimi_url`, `verify:avatars` |
+| **The domain fed to the resolver came off a message header.** It is validated as a hostname with an alphabetic TLD before it is concatenated into a name to look up — which also rules out a bare IPv4 address. Nothing else in this skin makes an outbound request on an attacker-chosen string | `businessclass_prefs::bimi_url`, `verify:avatars` |
 
 ---
 

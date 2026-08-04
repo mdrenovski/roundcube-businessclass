@@ -171,15 +171,23 @@
   text-transform: uppercase;
   user-select: none;
 
-  // A real picture, from the address book or from Gravatar, laid over the
-  // initials rather than replacing them (§7.10) — so nothing moves when it
-  // arrives, and nothing is left behind if it fails to.
+  // A real picture — from the address book, from the sender's BIMI mark, or
+  // from Gravatar — laid over the initials rather than replacing them (§7.10),
+  // so nothing moves when it arrives and nothing is left behind if it fails to.
+  //
+  // Opaque, because a BIMI logo is an SVG and SVG logos are usually transparent:
+  // without a ground of its own the initials would read straight through the
+  // mark. Photos are opaque already and cannot tell the difference.
+  //
+  // cover rather than contain: BIMI requires a square viewBox, so for a mark the
+  // two are the same, and for a photo cover is the one that fills the circle.
   > img {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     border-radius: inherit;
+    background: var(--bc-bg-1);
     object-fit: cover;
   }
 }
