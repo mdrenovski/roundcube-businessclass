@@ -34,6 +34,18 @@ debug-*.png
 rc-debug-*.png
 gh-debug-*.png
 
+# The same screenshots, now collected in one place instead of dropped in the
+# repository root. Whole folder: it holds captures of other people's products
+# (the design being matched, the live install with real mail in it), which is
+# exactly the material the license above must not be read to cover.
+debug/
+
+# Third-party plugins and components kept around to read for reference — other
+# projects' code under other projects' licenses. Nothing here is built or
+# shipped; it is the shelf, not the skin.
+examples/
+example/
+
 # Editor and agent configuration — local to whoever is working, not the project
 .claude/
 .vscode/

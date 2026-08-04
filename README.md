@@ -355,31 +355,76 @@ unread bar at once. See [DECISIONS.md](docs/DECISIONS.md) D-55 and D-63.
 
 ## Avatars and the identity photo
 
-Everywhere a person appears — the account circle in the app header, the sender in
-the reading pane, a contact card — the skin draws their initials in a colour
-hashed from their address, so one person keeps one colour throughout. A real
-picture is then laid over the top when one can be found:
+Everywhere a person appears — every row of the message list, the account circle in
+the app header, the sender in the reading pane, a contact card — the skin draws
+their initials in a colour hashed from their address, so one person keeps one
+colour throughout. A real picture is then laid over the top when one can be
+found:
 
 1. **The address book.** Roundcube already stores a photo per contact and already
    has an action that searches every book for the one matching an address. That
    action is what the skin points each avatar at, so a photo saved on a contact
    shows up everywhere without anything else being told about it.
-2. **Gravatar**, if the address books come back empty.
-3. **The initials**, which were there the whole time and are simply left
+2. **The sender's BIMI mark**, for a domain that stands for an organisation.
+   BIMI is how a domain publishes its verified logo for mail clients to show, and
+   it is a DNS lookup answered on your server — so this is the step that puts a
+   real bank, airline or courier logo on the row. Skipped for freemail domains
+   (gmail, yahoo, icloud, proton…), where one mark per domain would put the same
+   picture on every person who happens to have an address there.
+3. **Gravatar**, if neither of the above found anything.
+4. **The initials**, which were there the whole time and are simply left
    showing.
 
-### Turning Gravatar off
+The picture is layered *over* the initials rather than replacing them, so the
+circle identifies the sender from the first frame and keeps doing so if the
+lookup finds nothing, times out, or never comes back.
+
+### What each step discloses
+
+|   | Who is contacted | What they learn |
+|---|---|---|
+| Address book | nobody | — |
+| BIMI | your server's DNS resolver, then whichever host the sender's domain nominated for its logo | that someone fetched a public logo |
+| Gravatar | `gravatar.com`, from the user's browser | a SHA-256 of the address, and the browser's IP |
+
+Nothing is ever uploaded to either. BIMI carries no identifier for the recipient
+at all — the logo URL is the same one every mail client in the world fetches for
+that sender.
+
+### The switches
 
 ```php
-$config['businessclass_gravatar'] = false;
+// Admin, in config.inc.php. Both default to true.
+$config['businessclass_bimi']     = false;   // stop reading BIMI records
+$config['businessclass_gravatar'] = false;   // stop asking gravatar.com
+
+// Optional: share BIMI answers across every account on the server instead of
+// caching them per user. A BIMI record is a public fact about a domain, so this
+// is the better setting wherever you have a cache backend configured.
+$config['businessclass_bimi_cache'] = 'db';
 ```
 
-It is **on** by default. While it is on, the server redirects the avatar request
-to `gravatar.com`, so the browser sends a SHA-256 hash of the address and its own
-IP to Automattic, once per address per day. Nothing else is sent, no picture is
-uploaded there, and turning it off leaves address-book photos and initials
-working exactly as before. On a shared host this is a disclosure you may need to
-make; the switch is there so you can decide per install.
+Users get one switch of their own, at **Settings → Preferences → User Interface →
+Look up sender pictures online**. It turns off steps 2 and 3 together and leaves
+address-book photos and initials working exactly as before. It disappears if you
+have already turned both sources off in config, and `dont_override` freezes it
+like any other preference.
+
+On shared hosting the Gravatar step is a disclosure you may need to make; that is
+why it has always had its own switch.
+
+### Why the message list does not flood your server
+
+Fifty rows once meant fifty lookups, which is why list rows were initials-only
+to begin with. Three things changed:
+
+- each `<img>` is `loading="lazy"`, so rows below the fold cost nothing until
+  they are scrolled to;
+- an address that comes back with no photo is remembered and never asked about
+  again in that session;
+- the redirect now carries a day of browser cache, and BIMI's DNS answers — hits
+  *and* misses — are cached server-side, so a folder page is not fifty
+  serialised DNS queries.
 
 ### The identity photo
 
@@ -481,18 +526,19 @@ else on screen is core's or a plugin's and is already translated by them.
 | `businessclass_density` | `comfortable`, `compact` |
 | `businessclass_sheet` | `theme`, `light` — the surface a message body is drawn on |
 | `businessclass_focused` | on / off |
+| `businessclass_avatars` | on / off — whether sender pictures are looked up online at all |
 | `businessclass_preview` | `off`, `1`, `2` — lines of preview text under a message row |
 | `businessclass_favorites` | pinned folders, newline-separated; every name is checked against your subscribed folders server-side before it is used |
 | `businessclass_folders_w` | 200–360 px, clamped server-side |
 | `businessclass_list_w` | 320–520 px, clamped server-side |
 | `businessclass_list_h` | 200–640 px, clamped server-side — used only where the reading pane sits below the list |
 
-The first three, plus Roundcube's own reading-pane setting, are editable under
-**Settings -> Preferences -> User interface -> Appearance**. Saving a change
-there reloads the page, because all four are rendered into the document
-server-side. The reading-pane position also stays where Roundcube puts it,
-under **Mailbox view -> Layout**; both controls write the same setting and
-always agree on load.
+The first two, `businessclass_focused` and `businessclass_avatars`, plus
+Roundcube's own reading-pane setting, are editable under **Settings ->
+Preferences -> User interface -> Appearance**. Saving a change there reloads the
+page, because every one of them is rendered into the document server-side. The
+reading-pane position also stays where Roundcube puts it, under **Mailbox view ->
+Layout**; both controls write the same setting and always agree on load.
 
 `businessclass_sheet` has no control in Settings: it is the sun/moon button in
 the reading pane, and it appears only in the dark and high-contrast themes,

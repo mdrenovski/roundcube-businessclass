@@ -187,13 +187,29 @@ and half-building one was worse than leaving it out. Drag-to-folder still works.
   which replaced three separate toolbars.
 - Group membership as toggling chips.
 
-### Avatars and photos (added after step 10)
+### Avatars and photos (added after step 10; extended by D-78)
 - Initials in a palette colour hashed from the address, everywhere a person
   appears; one person keeps one colour throughout.
-- A real photo laid *over* the initials when one is found: address book →
+- A real photo laid *over* the initials when one is found: address book → BIMI →
   Gravatar → initials. Address-book lookup is core's own `contacts/photo` action;
-  the Gravatar step is `businessclass_prefs::contact_photo`, switchable with
-  `$config['businessclass_gravatar']`, on by default.
+  the two remote steps are `businessclass_prefs::contact_photo`.
+- **Message list rows now get photos too**, reversing D-26. What made that
+  affordable: `loading="lazy"` on every row image, a session memory of addresses
+  known to have no photo, a day's cache on the redirect core builds, and a
+  server-side cache of BIMI's DNS answers including the misses.
+- **BIMI** — the sender's own verified logo, read from a `default._bimi.<domain>`
+  TXT record. The one remote source with no privacy cost: answered on the server
+  from DNS, and the only thing the browser then fetches is a logo from a host the
+  sender's domain nominated. Skipped for freemail domains, where one mark per
+  domain would put the provider's logo on every person who uses it.
+- Three switches: `$config['businessclass_bimi']` and
+  `$config['businessclass_gravatar']` for the admin, both on by default, and
+  `businessclass_avatars` for the user in Settings → Preferences → User
+  Interface. `$config['businessclass_bimi_cache'] = 'db'` moves the DNS cache
+  from per-user to shared.
+- `tools/verify/avatarcheck.php` covers the freemail classifier, the record
+  parser, both validators and the caching. Offline by default; `BC_NET=1` also
+  resolves real records.
 - Identity photo upload, stored on the contact whose address matches the
   identity, because Roundcube identities have no photo column. Changing that
   address moves the picture with it (DECISIONS.md D-39); deleting the identity
