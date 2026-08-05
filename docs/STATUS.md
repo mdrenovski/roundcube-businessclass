@@ -1,8 +1,10 @@
 # Status — what is built and what is left
 
-Last updated: **2026-08-03** — the ribbon pass: a command bar across all three
-tasks, a restyled message list, Favorites, and two new preferences. Step 12's themes and contrast gate hold throughout. The
-calendar half of step 11 stays deferred.
+Last updated: **2026-08-05** — step 14, the accessibility audit: §9's keyboard
+shortcuts and their `?` dialog, focus containment for the step 13 overlays, a
+gate that measures §9 instead of trusting it, and the icon subset finalised.
+**The `BUILD.md` §12 build order is complete.** What remains is the calendar,
+deferred by the user since step 11, and two accelerators parked behind it.
 
 ## The 14 steps (`ms-handoff/BUILD.md` §12)
 
@@ -21,7 +23,7 @@ calendar half of step 11 stays deferred.
 | 11 | Calendar and remaining plugins | **Done except the calendar** |
 | 12 | Dark + high contrast + forced-colors | **Done** |
 | 13 | Responsive/mobile | **Done except swipe gestures** (D-79, D-80) |
-| 14 | Accessibility audit (§9), then icon subset finalisation | Not started |
+| 14 | Accessibility audit (§9), then icon subset finalisation | **Done** (D-81 to D-87) |
 
 Plus three unnumbered additions made at the user's request, each signed off:
 **avatar photos and the identity photo**, **printing** — which §12 never owned
@@ -250,17 +252,62 @@ and half-building one was worse than leaving it out. Drag-to-folder still works.
 
 ---
 
+## Step 14 — the accessibility audit, and the icon subset
+
+§9 is the one section whose requirements live in a template, a stylesheet and
+`ui.js` at once, which makes it the easiest to half-undo. The ribbon pass and the
+responsive pass both landed after it was last looked at; neither had been checked
+against it.
+
+Most of §9 turned out to be built already — contrast gated at step 12, landmarks,
+the roving tabindex, the live regions, `prefers-reduced-motion`, Escape on every
+overlay. **Six things were not.**
+
+| | |
+| --- | --- |
+| **The shortcuts** | All fourteen §9 keys, plus `Shift`+`F10`, plus the `?` dialog that documents them. None existed; only `Ctrl`+`P` did. On by default behind three guards, with `businessclass_shortcuts` as the way out (D-81). |
+| **The step 13 overlays** | The drawer and the message-cover are drawn with `z-index`, which the accessibility tree cannot see. Tab walked into the hidden list; a screen reader read the covered one. Now `inert`, keyed off the same signals the stylesheet uses (D-82). |
+| **New mail** | Never announced. Core has no event for it, so `set_unread_count()` is wrapped — the funnel every unread change goes through. Rate-limited to once a minute, because a busy INBOX polls every 60s. |
+| **Focus on text fields** | Fluent's underline stayed for the pointer; §9's ring was added for the keyboard. Two fields had suppressed the outline and replaced it with nothing at all (D-83). |
+| **The row menu** | Built, because `Shift`+`F10` needed somewhere to go — and because two `display: none` rules had been pointing at a menu that did not exist (D-84, and the correction on D-80). |
+| **The attachment mark** | A 16px box with no glyph in it. The row's `aria-label` had said "with attachment" since step 3, so screen readers were told and eyes were not (D-85). |
+
+### The gate
+
+`npm run verify:a11y` — `tools/verify/a11ycheck.mjs`, now part of
+`npm run verify`, which is 15 gates.
+
+A source half that asserts §9's own key list against the table in `ui.js`, the
+three guards, the live regions, the inert wiring, and both locales; and a reflow
+half that measures 320px and the widths 200% zoom produces (512, 640) for
+WCAG 1.4.10.
+
+Its focus check was written wrong first — file-wide rather than per-rule, so it
+passed with the ring deleted — and finding that is what turned up two of the
+gaps above (D-87).
+
+### The icon subset
+
+**Two symbols dropped, not the twenty-eight this file used to claim.** That
+number was an artefact of how `refcheck` counts references: it cannot see an id
+built by concatenation, and four of the "unused" symbols are live toggles built
+exactly that way. Deleting on the reported figure would have broken the dark
+sheet toggle, the password reveal and the select-all tri-state (D-86).
+
+---
+
 ## By the numbers
 
 | | |
 | --- | --- |
 | Templates | 25 + 8 includes + 14 plugin overrides (6 managesieve, 5 enigma, 2 help, 1 acl) |
 | Sass partials | 21 (1 still a TODO stub: calendar) |
-| `ui.js` | ~3970 lines, single IIFE, modules commented with their `BUILD.md` § |
-| `businessclass_prefs.php` | ~1070 lines |
-| Sprite | 96 symbols; 68 referenced |
-| Skin labels | 91 `bc_*` keys, 79 registered client-side |
-| Preferences added | 6 (see `README.md`) |
+| `ui.js` | ~5430 lines, single IIFE, modules commented with their `BUILD.md` § |
+| `businessclass_prefs.php` | ~1810 lines |
+| Sprite | 102 symbols; 102 reachable (see D-86 — the old "68 referenced" was a counting artefact, not dead weight) |
+| Skin labels | 144 `bc_*` keys, 115 registered client-side |
+| Preferences added | 7 (see `README.md`) |
+| Verify gates | 15 |
 
 ---
 

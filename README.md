@@ -91,9 +91,10 @@ Log out and back in, then hard-refresh (`Ctrl`/`Cmd` + `Shift` + `R`).
 
 ## What is finished, and what is not
 
-Thirteen of the fourteen build steps are done, bar the calendar. **Every screen in
-the skin is now designed** — nothing is scaffolding any more. What is left is the
-accessibility audit, the calendar, and swipe gestures on touch.
+All fourteen build steps are done. **Every screen in the skin is designed** —
+nothing is scaffolding any more — and the accessibility gate now measures §9
+rather than trusting it. What is left is the calendar, which was deferred by
+choice and needs a decision before it can start, and swipe gestures on touch.
 
 | Area | State |
 | --- | --- |
@@ -114,6 +115,7 @@ accessibility audit, the calendar, and swipe gestures on touch.
 | Calendar | Not built — see below |
 | Dark, high-contrast and forced-colors themes | Designed |
 | Mobile and responsive — tablet and phone widths | Designed |
+| Keyboard shortcuts, screen-reader announcements, focus containment | Designed |
 | Swipe-to-archive and swipe-to-flag | Deferred — see below |
 
 So: judge everything except the calendar.
@@ -246,7 +248,8 @@ back with the message still open.
 **Touch targets.** Below 768px every control is at least 44px and message rows at
 least 64px, which is larger than the reference uses. Hover-only affordances — the
 quick actions on a message row — are hidden on any touch device at any width;
-those actions are all in the row's own menu. On a desktop the control sizes are
+those actions are reached instead from the command bar with the row selected, or
+from the row's actions menu on `Shift`+`F10`. On a desktop the control sizes are
 unchanged.
 
 The header also sheds what it can at phone width: the product name gives its
@@ -255,7 +258,51 @@ aside because the ribbon's Help tab carries the same link.
 
 **Not built: swipe-to-archive and swipe-to-flag.** They are specified and
 deliberately deferred — see [DECISIONS.md](docs/DECISIONS.md) D-80. Nothing is
-unreachable without them; every per-message action is in the row menu.
+unreachable without them: with a row selected, every per-message action is in the
+command bar, and `Shift`+`F10` opens the same actions as a menu on the row.
+
+---
+
+## Keyboard
+
+Press <kbd>?</kbd> anywhere for this list in the app.
+
+| | |
+| --- | --- |
+| <kbd>j</kbd> / <kbd>k</kbd> | Next / previous message |
+| <kbd>Enter</kbd> | Open |
+| <kbd>x</kbd> | Add to or remove from the selection |
+| <kbd>Shift</kbd>+<kbd>F10</kbd> | The row's actions menu |
+| <kbd>e</kbd> | Archive |
+| <kbd>#</kbd> | Delete |
+| <kbd>u</kbd> | Mark unread |
+| <kbd>f</kbd> | Flag or unflag |
+| <kbd>r</kbd> / <kbd>a</kbd> | Reply / reply to all |
+| <kbd>c</kbd> | Write a new message |
+| <kbd>/</kbd> | Search |
+| <kbd>F6</kbd> | Move to the next pane |
+| <kbd>Ctrl</kbd>+<kbd>P</kbd> | Print the open message |
+| <kbd>Esc</kbd> | Close a menu, or the folder drawer |
+
+**They never fire while you are typing.** A shortcut is ignored when the
+keystroke comes from a text field, a `<select>`, anything editable — including
+the compose editor — or an open menu, and anything carrying <kbd>Ctrl</kbd>,
+<kbd>Meta</kbd> or <kbd>Alt</kbd> is left to the browser.
+
+A key does nothing where its command does nothing: <kbd>e</kbd> is inert in an
+install with no archive folder configured, the same way its toolbar button is
+greyed out.
+
+**Turning them off.** **Settings -> Preferences -> User interface ->
+Single-key shortcuts**, or `businessclass_shortcuts = false` for everyone. They
+default on because they are an accessibility feature, and one nobody enables
+does not help the people it is for. The switch exists because a single letter is
+the one binding that can collide with something the skin cannot see — an
+assistive tool's own quick-nav keys, a browser extension, an input method.
+
+<kbd>F6</kbd> is the one worth knowing even if you use a mouse: the message list
+is a single tab stop and the reading pane is an iframe, so it is the only quick
+way across the panes.
 
 ---
 
@@ -566,6 +613,7 @@ else on screen is core's or a plugin's and is already translated by them.
 | `businessclass_density` | `comfortable`, `compact` |
 | `businessclass_sheet` | `theme`, `light` — the surface a message body is drawn on |
 | `businessclass_focused` | on / off |
+| `businessclass_shortcuts` | on / off — the single-key shortcuts below. Default on |
 | `businessclass_avatars` | on / off — whether sender pictures are looked up online at all |
 | `businessclass_preview` | `off`, `1`, `2` — lines of preview text under a message row |
 | `businessclass_favorites` | pinned folders, newline-separated; every name is checked against your subscribed folders server-side before it is used |
@@ -573,7 +621,8 @@ else on screen is core's or a plugin's and is already translated by them.
 | `businessclass_list_w` | 320–520 px, clamped server-side |
 | `businessclass_list_h` | 200–640 px, clamped server-side — used only where the reading pane sits below the list |
 
-The first two, `businessclass_focused` and `businessclass_avatars`, plus
+The first two, `businessclass_focused`, `businessclass_shortcuts` and
+`businessclass_avatars`, plus
 Roundcube's own reading-pane setting, are editable under **Settings ->
 Preferences -> User interface -> Appearance**. Saving a change there reloads the
 page, because every one of them is rendered into the document server-side. The

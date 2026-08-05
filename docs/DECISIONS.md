@@ -1446,8 +1446,152 @@ called done without a real device — the emulated touch in a headless browser
 does not reproduce momentum scrolling.
 
 `@media (pointer: coarse)` already hides the hover quick actions, so on a phone
-today every per-message action comes from the row menu, which is reachable and
-sized. Nothing is unreachable without gestures; they are an accelerator.
+today every per-message action comes from the command bar with the row selected.
+Nothing is unreachable without gestures; they are an accelerator.
+
+> **Corrected at step 14.** This paragraph originally said those actions came
+> from "the row menu, which is reachable and sized". There was no row menu:
+> nothing in the skin built one, and the two `display: none` rules that hide the
+> quick actions both carried a comment pointing at it. The command bar was
+> carrying the whole load and the record did not say so. A row menu now exists
+> — `Shift`+`F10`, D-84 — so the claim is true, but it was written before the
+> thing it described.
 **To change:** build them against `initResponsive()`'s existing breakpoint state
 rather than a fresh matchMedia, and put the undo through the existing `#bc-toasts`
 host rather than a new one.
+
+---
+
+## Step 14 — the accessibility audit, and the icon subset
+
+### D-81 · The §9 shortcuts ship on, with a switch
+**USER**, 2026-08-05, asked which way round it should be.
+§9 specifies fourteen single-key shortcuts and a `?` dialog. None of them
+existed; only `Ctrl`+`P` did.
+
+They default **on**. The argument for opt-in is that a stray `e` archiving a
+message is a nasty surprise — but a shortcut nobody switches on does not help
+the people it is for, and §9 treats these as how the skin behaves rather than as
+a feature. The surprise is answered by the guards instead, not by hiding the
+keys.
+
+**Three guards, all of which must pass**, in `shortcutsAllowed()`:
+
+- **Modifiers.** Anything carrying Ctrl, Meta or Alt belongs to the browser or
+  the OS. Shift is allowed, because `#` and `?` are shifted characters on most
+  layouts and reading them any other way makes them unreachable.
+- **Origin.** An `<input>`, `<textarea>`, `<select>`, anything
+  `contenteditable`, or a dialog. TinyMCE needs no special case: its body is a
+  contenteditable inside an iframe, and those keystrokes never reach this
+  document at all.
+- **An open menu**, which owns its own arrow and letter handling.
+
+`businessclass_shortcuts` (default true) is the escape hatch. It exists because
+a single letter is the one binding that can collide with something we cannot
+see — an assistive tool's quick-nav keys, an extension, an IME — and "stop using
+the skin" is not an answer. The engine reads it once, at bind time, so switching
+it off reloads the page like the other three server-rendered preferences.
+
+**Rejected:** binding through `rcube_list_widget`'s own `key_press`. It only
+fires while the widget believes it has focus, which is exactly not the case when
+someone is in the reading pane and presses `r`.
+
+### D-82 · Covered content is made `inert`, not `aria-hidden`
+**CLAUDE**, 2026-08-05.
+Step 13's drawer and message-cover are drawn with `position` and `z-index`,
+which the accessibility tree knows nothing about. With the drawer open, Tab
+walked into a list nobody could see; with a message open on a phone, a screen
+reader read the covered list as though it were on screen.
+
+`inert` rather than `aria-hidden`, because `aria-hidden` silences a subtree while
+leaving every control in it tabbable — the worse of the two failures, and the
+one that produces a focus ring on nothing.
+
+Keyed off the same signals the stylesheet uses (`bc-folders-hidden`, and the
+pane's `.is-empty`) rather than a second copy of the breakpoint logic, so the
+two cannot drift. Re-synced from `setFolderPane()`, from the `show_contentframe`
+wrapper, and on a 768px media-query change — the last because turning a tablet
+to landscape with a message open changes what is covered without touching the
+folder pane.
+
+### D-83 · A keyboard ring on top of Fluent's underline
+**CLAUDE**, 2026-08-05.
+Text fields replaced §9's focus ring with Fluent's 2px accent underline —
+correct for the design language, and one edge of a box. §9 asks for the ring on
+every interactive element, and finding focus at a glance is the whole job.
+
+Both, now: the underline on `:focus` for a pointer, the ring on `:focus-visible`
+for a keyboard. Nothing was taken away.
+
+Two fields turned out to have suppressed the outline and replaced it with
+**nothing at all** — the plain-text compose textarea, and enigma's key-search
+input. A third, the compose recipients well, was relying on an `.is-focused`
+class set by `ui.js`; it now carries `:focus-within`, because a focus indicator
+should not depend on a script having been right about every way focus can
+arrive.
+
+### D-84 · A row menu, because §9 needs somewhere for Shift+F10 to go
+**CLAUDE**, 2026-08-05.
+One menu, reused, positioned against the row it was opened on — per-row menus
+would be rebuilt with the list on every folder change and every page.
+
+Its button is `.voice` and never shown. This is deliberate and it is the limit
+of what step 14 does here: the menu is a keyboard affordance, and giving touch
+devices a visible per-row control is a change to the layout the client signed
+off at D-79. **The touch gap is real and is recorded rather than closed** — see
+the correction on D-80.
+
+### D-85 · The attachment mark had no glyph
+**CLAUDE**, 2026-08-05.
+Core emits `<span class="attachment" title="…">` empty (app.js:2347); every
+stock skin fills it from an icon font that §10 puts out of reach here. So the
+mark was a 16px box with nothing in it, and in the list a message with an
+attachment looked exactly like one without.
+
+Found by finalising the icon subset: `attach` was vendored at step 3 and never
+referenced. The sprite was the evidence that the glyph had been intended.
+
+It is an accessibility bug in the direction people do not look for. The row's
+`aria-label` has carried "with attachment" since step 3 — a screen reader was
+told and a sighted user was not.
+
+### D-86 · The icon subset drops two symbols, not twenty-eight
+**CLAUDE**, 2026-08-05.
+`STATUS.md` recorded "96 symbols; 68 referenced" and step 14 was to drop the
+difference. The difference was mostly an artefact of how `refcheck` counts.
+
+It resolves literal ids, `data-bc-icon` and four named maps. It does not read
+the `icon:` properties of the action tables, and it cannot read an id built at
+runtime — `'#ic_fluent_weather_' + (onPaper ? 'moon' : 'sunny') + '_20_regular'`
+is a reference no static scan will find. Counting those brings 104 symbols to
+102 genuinely unused: `chevron_right` and `person`.
+
+Four of the seven that a generous scan still called dead — `weather_moon`,
+`eye_off`, `checkbox_checked`, `checkbox_indeterminate` — are live toggles built
+by concatenation. **Deleting on the reported number would have broken the dark
+sheet toggle, the password reveal and the select-all tri-state.**
+
+**To change:** if the subset is ever trimmed again, teach `refcheck` the
+concatenation forms first. The number in `STATUS.md` was wrong for a year and
+nothing caught it, because a symbol nobody references is silent by definition.
+
+### D-87 · A gate for §9
+**CLAUDE**, 2026-08-05.
+`tools/verify/a11ycheck.mjs`, in `npm run verify`. §9's requirements are spread
+across a template, a stylesheet and `ui.js`, which makes it the section most
+easily half-undone by a later step — the ribbon and responsive passes both
+landed after it was last looked at, and neither was checked against it.
+
+Source half: the shortcut table against §9's own list, written out in the tool
+rather than imported, because a test that reads its expectations out of the
+thing it is testing cannot fail. Plus the three guards, the live regions, the
+inert wiring, and that every new string exists in both locales.
+
+Reflow half: 320px, and the widths 200% zoom produces on 1024 and 1280 screens
+(512 and 640) — WCAG 2.2 AA 1.4.10, measured rather than assumed.
+
+**The focus check was wrong first and is worth recording.** It searched each
+file for a `:focus-visible` ring and passed if one existed anywhere in it — so
+deleting the ring from the login field left it green, because `_login.scss` has
+three others. It now tests each suppression against the rule it sits in. Caught
+two real gaps the moment it was fixed.
