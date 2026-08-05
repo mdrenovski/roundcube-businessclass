@@ -164,6 +164,17 @@
 	     its own window, which is the one case with no ribbon above it. -->
 	<main id="layout-content" class="bc-reading" role="region" aria-live="polite"
 		aria-label="<roundcube:label name='arialabelmailpreviewframe' />">
+
+		<!-- Below 768px this pane covers the list (§6, D-79), so it needs a way
+		     back that it does not need at any other width. Hidden by default and
+		     shown only by the narrow breakpoint; ui.js binds it in
+		     initReadingBack(). It is not a Roundcube command — nothing is being
+		     closed, only uncovered — so it is a plain button. -->
+		<button type="button" class="bc-reading__back">
+			<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_chevron_down_20_regular" /></svg>
+			<span><roundcube:label name="bc_back" /></span>
+		</button>
+
 		<roundcube:object name="contentframe" id="messagecontframe" class="bc-reading__frame"
 			src="env:blankpage" title="arialabelmailpreviewframe" />
 

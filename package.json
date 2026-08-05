@@ -22,7 +22,8 @@
     "verify:print": "node tools/verify/printcheck.mjs . .verify-out",
     "verify:theme": "node tools/verify/themecheck.mjs . .verify-out",
     "verify:plugins": "node tools/verify/plugincheck.mjs . .verify-out",
-    "verify": "npm run build && npm run lint && npm run verify:templates && npm run verify:refs && npm run verify:prefs && npm run verify:branding && npm run verify:idphoto && npm run verify:avatars && npm run verify:theme && npm run verify:print && npm run verify:plugins && node --check skins/businessclass/ui.js && php -l plugins/businessclass_prefs/businessclass_prefs.php"
+    "verify:geometry": "node tools/verify/geometrycheck.mjs . .verify-out",
+    "verify": "npm run build && npm run lint && npm run verify:templates && npm run verify:refs && npm run verify:prefs && npm run verify:branding && npm run verify:idphoto && npm run verify:avatars && npm run verify:theme && npm run verify:print && npm run verify:plugins && npm run verify:geometry && node --check skins/businessclass/ui.js && php -l plugins/businessclass_prefs/businessclass_prefs.php"
   },
   "devDependencies": {
     "sass": "^1.102.0"

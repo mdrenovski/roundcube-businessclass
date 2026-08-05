@@ -53,12 +53,45 @@ body.task-settings {
 // address books, Settings' section nav. Setting a variable a given shell does
 // not use costs nothing — it is simply never read.
 .bc-shell.bc-folders-hidden {
-  --bc-folders-w: 0px;
-  --bc-books-w: 0px;
-  --bc-settings-nav-w: 0px;
+  // !important because mail.html writes the stored pane width as an INLINE
+  // custom property on #layout, and an inline declaration outranks any
+  // stylesheet rule however specific — the lesson the admin accent taught at
+  // step 12, in a second place. Without it this rule silently did nothing on the
+  // one task that has a stored width: the track stayed 236px and hiding the
+  // folder pane left a 236px hole rather than closing up.
+  //
+  // Contacts and Settings have no inline widths and never needed it; they are
+  // covered by the same declaration rather than a second rule that could drift.
+  --bc-folders-w: 0px !important;
+  --bc-books-w: 0px !important;
+  --bc-settings-nav-w: 0px !important;
 
+  // NOT display: none, and this is the whole of why the button used to break the
+  // layout. Every shell here places its panes by grid AUTO-placement, so an item
+  // that stops being a grid item does not leave a hole — everything after it
+  // slides one column left. Hiding the folder pane that way put the message list
+  // in the 0px track meant for the pane (measured: 1px wide) and the reading
+  // pane where the list belonged, on all three tasks.
+  //
+  // visibility keeps the element a grid item, so the columns stay where they
+  // are, while still taking it out of the accessibility tree and out of tab
+  // order. Everything that could otherwise contribute width is zeroed, because a
+  // grid item's min-content size can hold a 0px track open on its own.
+  //
+  // Done here, once, rather than by giving all four shells explicit grid-column
+  // assignments: those would have to be kept in step with every future pane, and
+  // this rule cannot fall out of step with anything.
   #layout-sidebar,
-  #bc-splitter-folders { display: none; }
+  #bc-splitter-folders {
+    visibility: hidden;
+    width: 0;
+    min-width: 0;
+    max-width: 0;
+    margin-inline: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+  }
 }
 
 // Framed documents scroll; the app shell never does (see _reset.scss). Their
@@ -71,6 +104,12 @@ html.iframe body {
 }
 
 .bc-shell {
+  // The containing block for everything the shell positions over itself: the
+  // folder drawer and the reading overlay below 1200px (_responsive.scss), and
+  // the floating-action-button container core's plugins inject into, which was
+  // resolving against the viewport before this.
+  position: relative;
+
   display: grid;
   grid-template-columns:
     var(--bc-rail-w)
@@ -81,6 +120,29 @@ html.iframe body {
     minmax(0, 1fr);
   min-height: 0;
   overflow: hidden;
+
+  // Every pane is placed by hand, and none of this is optional.
+  //
+  // Auto-placement fills the columns in document order, counting only items that
+  // are actually in flow — so the moment one pane leaves the flow, every pane
+  // after it slides a column left. Two things do that here: the folder pane when
+  // it is hidden, and the folder pane again when it floats as a drawer below
+  // 1200px (_responsive.scss), because an absolutely-positioned grid child is
+  // not auto-placed either.
+  //
+  // Left implicit, the first of those shipped in 0.3.0 as a 1px message list
+  // with the reading pane sitting in its slot, on all three tasks. Naming the
+  // columns is what makes hiding a pane a local change instead of a reshuffle.
+  //
+  // The layout variants below, and the Contacts and Settings shells, declare
+  // fewer columns and restate their own placements; they are all written after
+  // this rule and win the tie on source order.
+  > #layout-menu { grid-column: 1; }
+  > #layout-sidebar { grid-column: 2; }
+  > #bc-splitter-folders { grid-column: 3; }
+  > #layout-list { grid-column: 4; }
+  > #bc-splitter-list { grid-column: 5; }
+  > #layout-content { grid-column: 6; }
 }
 
 // Reading pane at the bottom (rcmail.env.layout == 'desktop'): the list and the
@@ -99,6 +161,10 @@ html.iframe body {
 
   #layout-menu,
   #layout-sidebar { grid-row: 1 / -1; }
+
+  // Four columns here, not six, so the explicit placements above have to be
+  // restated for everything past the folder pane.
+  #bc-splitter-folders { grid-column: 3; }
 
   #layout-list { grid-column: 4; grid-row: 1; }
   #layout-content { grid-column: 4; grid-row: 3; }
