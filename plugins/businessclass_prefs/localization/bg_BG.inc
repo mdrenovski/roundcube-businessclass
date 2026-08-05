@@ -31,6 +31,8 @@ $labels['bc_paneright'] = 'Отдясно';
 $labels['bc_panebottom'] = 'Отдолу';
 $labels['bc_paneoff'] = 'Изключен';
 $labels['bc_focused'] = 'Разделяне на пощата на „Приоритетни“ и „Други“';
+$labels['bc_shortcuts'] = 'Бързи клавиши';
+$labels['bc_shortcutshint'] = 'Натиснете ?, за да видите пълния списък. Писането в текстово поле никога не се засяга.';
 $labels['bc_avatars'] = 'Търсене на снимки на подателите в интернет';
 
 // Identity photo (§7.10)

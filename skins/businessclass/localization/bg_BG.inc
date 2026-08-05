@@ -185,3 +185,29 @@ $labels['bc_pickkey'] = 'Изберете ключ, за да видите да�
 // in — a toggle titled with its current state is the classic ambiguity.
 $labels['bc_sheetlight'] = 'Показване на съобщението на светъл фон';
 $labels['bc_sheetdark'] = 'Показване на съобщението на тъмен фон';
+
+// Бързи клавиши (§9, стъпка 14)
+$labels['bc_keystitle'] = 'Бързи клавиши';
+$labels['bc_keysnote'] = 'Бързите клавиши никога не се задействат, докато пишете в текстово поле. Могат да се изключат от Настройки › Предпочитания › Потребителски интерфейс.';
+$labels['bc_keyslist'] = 'В списъка със съобщения';
+$labels['bc_keysmessage'] = 'Върху избраното съобщение';
+$labels['bc_keysapp'] = 'Навсякъде';
+$labels['bc_keyenter'] = 'Enter';
+$labels['bc_keynext'] = 'Следващо съобщение';
+$labels['bc_keyprev'] = 'Предишно съобщение';
+$labels['bc_keyopen'] = 'Отваряне';
+$labels['bc_keyselect'] = 'Добавяне към или премахване от избраното';
+$labels['bc_keyrowmenu'] = 'Отваряне на менюто с действия';
+$labels['bc_keyarchive'] = 'Архивиране';
+$labels['bc_keydelete'] = 'Изтриване';
+$labels['bc_keyunread'] = 'Отбелязване като непрочетено';
+$labels['bc_keyflag'] = 'Поставяне или махане на флаг';
+$labels['bc_keyreply'] = 'Отговор';
+$labels['bc_keyreplyall'] = 'Отговор до всички';
+$labels['bc_keycompose'] = 'Ново съобщение';
+$labels['bc_keysearch'] = 'Търсене';
+$labels['bc_keypanes'] = 'Към следващия панел';
+$labels['bc_keyhelp'] = 'Показване на този списък';
+$labels['bc_oneselected'] = 'Избрано е 1 съобщение';
+$labels['bc_nselected'] = 'Избрани са $n съобщения';
+$labels['bc_newmail'] = 'Пристигна нова поща.';

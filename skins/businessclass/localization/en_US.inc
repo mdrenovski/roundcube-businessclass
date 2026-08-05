@@ -201,3 +201,42 @@ $labels['bc_pickkey'] = 'Choose a key to see its details.';
 // in — a toggle titled with its current state is the classic ambiguity.
 $labels['bc_sheetlight'] = 'Show this message on a light background';
 $labels['bc_sheetdark'] = 'Show this message on the dark background';
+
+// Keyboard shortcuts (§9, step 14). Each line names what the key DOES, in the
+// imperative, because the dialog reads as a list of things you can do rather
+// than a description of the keyboard. "Next"/"Previous" rather than "Down"/"Up":
+// j and k move through the list, and the list is not always drawn top to bottom.
+$labels['bc_keystitle'] = 'Keyboard shortcuts';
+$labels['bc_keysnote'] = 'Shortcuts never fire while you are typing in a text box. They can be switched off in Settings › Preferences › User Interface.';
+$labels['bc_keyslist'] = 'In the message list';
+$labels['bc_keysmessage'] = 'On the selected message';
+$labels['bc_keysapp'] = 'Anywhere';
+
+// Spelled out because a key cap reading "Enter" is clearer than one reading "↵",
+// and because this string is what a screen reader says.
+$labels['bc_keyenter'] = 'Enter';
+
+$labels['bc_keynext'] = 'Next message';
+$labels['bc_keyprev'] = 'Previous message';
+$labels['bc_keyopen'] = 'Open';
+$labels['bc_keyselect'] = 'Add to or remove from the selection';
+$labels['bc_keyrowmenu'] = 'Open the actions menu';
+$labels['bc_keyarchive'] = 'Archive';
+$labels['bc_keydelete'] = 'Delete';
+$labels['bc_keyunread'] = 'Mark unread';
+$labels['bc_keyflag'] = 'Flag or unflag';
+$labels['bc_keyreply'] = 'Reply';
+$labels['bc_keyreplyall'] = 'Reply to all';
+$labels['bc_keycompose'] = 'Write a new message';
+$labels['bc_keysearch'] = 'Search';
+$labels['bc_keypanes'] = 'Move to the next pane';
+$labels['bc_keyhelp'] = 'Show this list';
+
+// Announced, not shown: the selection is visible on screen, so these exist for
+// the people who cannot see it change. $n is substituted in ui.js.
+$labels['bc_oneselected'] = '1 message selected';
+$labels['bc_nselected'] = '$n messages selected';
+
+// New mail, announced to a screen reader. Core already updates the folder
+// counters and the title, both of which are silent (§9).
+$labels['bc_newmail'] = 'New mail has arrived.';

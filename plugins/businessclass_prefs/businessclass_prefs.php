@@ -33,6 +33,7 @@ class businessclass_prefs extends rcube_plugin
         'businessclass_density',      // comfortable | compact
         'businessclass_sheet',        // theme | light — the message-body surface
         'businessclass_focused',      // Focused/Other tabs on/off
+        'businessclass_shortcuts',    // single-key shortcuts on/off — §9
         'businessclass_preview',      // snippet lines under a row: off | 1 | 2
         'businessclass_favorites',    // pinned folders, "\n"-separated — see sanitize_favorites()
         'businessclass_folders_w',    // folder pane width, px
@@ -839,6 +840,23 @@ class businessclass_prefs extends rcube_plugin
             ];
         }
 
+        // §9's single-key shortcuts. On by default: they are an accessibility
+        // feature, and one nobody switches on does not help the people it is
+        // for. The switch exists because a single letter is the one binding
+        // that can collide with something we cannot see — an assistive tool's
+        // own quick-nav keys, a browser extension, an IME — and there has to be
+        // a way out that is not "stop using the skin".
+        if (!isset($no_override['businessclass_shortcuts'])) {
+            $field_id = 'rcmfd_businessclass_shortcuts';
+            $checkbox = new html_checkbox(['name' => '_businessclass_shortcuts', 'id' => $field_id, 'value' => 1]);
+
+            $block['options']['businessclass_shortcuts'] = [
+                'title' => html::label($field_id, rcube::Q($this->gettext('bc_shortcuts'))),
+                'content' => $checkbox->show($rcmail->config->get('businessclass_shortcuts', true) ? 1 : 0)
+                    . html::div('hint', rcube::Q($this->gettext('bc_shortcutshint'))),
+            ];
+        }
+
         // The one avatar switch a user gets. The per-source switches (BIMI,
         // Gravatar) stay with the admin, because which third parties this
         // installation is willing to talk to is an operator's decision and not
@@ -948,6 +966,10 @@ class businessclass_prefs extends rcube_plugin
             $args['prefs']['businessclass_focused'] = isset($_POST['_businessclass_focused']);
         }
 
+        if (!isset($no_override['businessclass_shortcuts'])) {
+            $args['prefs']['businessclass_shortcuts'] = isset($_POST['_businessclass_shortcuts']);
+        }
+
         // Guarded by the same condition that decided whether to draw it: an
         // unchecked box and a box that was never on the page look identical in a
         // post, so without this, turning every source off in config would write
@@ -971,6 +993,9 @@ class businessclass_prefs extends rcube_plugin
             'businessclass_theme' => $this->sanitize_theme($rcmail->config->get('businessclass_theme')),
             'businessclass_density' => $this->sanitize_density($rcmail->config->get('businessclass_density')),
             'businessclass_focused' => (bool) $rcmail->config->get('businessclass_focused', false),
+            // Read from env once, when the shortcut engine binds — so switching
+            // it off has to rebuild the page to actually stop listening.
+            'businessclass_shortcuts' => (bool) $rcmail->config->get('businessclass_shortcuts', true),
             // Reaches the message list as an env flag read once, when a row is
             // built, so a change only shows after the page is built again.
             'businessclass_avatars' => (bool) $rcmail->config->get('businessclass_avatars', true),
@@ -1158,6 +1183,11 @@ class businessclass_prefs extends rcube_plugin
             $output->set_env('bc_languages', $rcmail->list_languages());
             $output->set_env('bc_mail_domain', $this->mail_domain($rcmail, $branding));
         }
+
+        // §9's single-key shortcuts, defaulting on. Published even where the
+        // admin has frozen it, because the engine still has to know which way
+        // it was frozen — dont_override removes the control, not the setting.
+        $output->set_env('bc_shortcuts', (bool) $rcmail->config->get('businessclass_shortcuts', true));
 
         // The accent, and the only two colours that can legibly sit on it.
         //

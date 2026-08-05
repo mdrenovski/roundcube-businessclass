@@ -33,6 +33,12 @@ $labels['bc_paneright'] = 'Right';
 $labels['bc_panebottom'] = 'Bottom';
 $labels['bc_paneoff'] = 'Off';
 $labels['bc_focused'] = 'Sort mail into Focused and Other';
+
+// The hint names the key that documents the rest, because a switch labelled only
+// "keyboard shortcuts" tells someone the feature exists and not one thing they
+// can press.
+$labels['bc_shortcuts'] = 'Single-key shortcuts';
+$labels['bc_shortcutshint'] = 'Press ? for the full list. Typing in a text box is never affected.';
 // Worded as what it does rather than as "show avatars", because the initials are
 // avatars too and stay either way. What this switch governs is whether anything
 // is asked of the internet to replace them.

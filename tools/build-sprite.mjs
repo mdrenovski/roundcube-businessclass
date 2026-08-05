@@ -52,7 +52,6 @@ const ICONS = {
   // outline-vs-solid is what says which way it is set — the label alone would
   // mean hovering every row to find out (§9 wants both, not either).
   star: ["Star", ["regular", "filled"]],
-  chevron_right: ["Chevron Right", ["regular"]],
   chevron_down: ["Chevron Down", ["regular"]],
   // Message list toolbar (§3.5)
   checkbox_unchecked: ["Checkbox Unchecked", ["regular"]],
@@ -129,7 +128,6 @@ const ICONS = {
   // Contact actions. The four in §4.5's detail toolbar are already here (edit,
   // mail, arrow_download, delete); these are the rest of what core registers,
   // which the More popover has to be able to name.
-  person: ["Person", ["regular"]],
   qr_code: ["QR Code", ["regular"]],
   people_add: ["People Add", ["regular"]],
   people_prohibited: ["People Prohibited", ["regular"]],

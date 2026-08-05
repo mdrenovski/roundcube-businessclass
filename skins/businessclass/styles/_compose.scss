@@ -197,6 +197,15 @@ body.task-mail.action-compose {
     border-bottom-color: var(--bc-brand-fg);
     background: var(--bc-bg-1);
   }
+
+  // The well is what a keyboard sees as one control — the input inside it is
+  // borderless by design, so its own ring would be drawn around a box nobody
+  // can see the edges of. Same shape as .bc-search__field (step 14).
+  //
+  // :focus-within rather than the .is-focused class above: that class is set by
+  // ui.js on the events it happens to listen for, and a focus indicator should
+  // not depend on a script having been right about every way focus can arrive.
+  &:focus-within { @include bc-focus-ring; }
 }
 
 .bc-recipients__entry {
@@ -317,7 +326,15 @@ body.task-mail.action-compose {
     font: var(--bc-weight-regular) var(--bc-size-body1) / 22px var(--bc-font-body);
     resize: none;
 
+    // The one field in the skin whose outline was suppressed and replaced with
+    // nothing (step 14). Inset, because the textarea fills its pane edge to edge
+    // and a ring drawn outside it would be clipped away.
     &:focus { outline: none; }
+
+    &:focus-visible {
+      @include bc-focus-ring;
+      outline-offset: calc(var(--bc-s-2) * -1);
+    }
   }
 }
 

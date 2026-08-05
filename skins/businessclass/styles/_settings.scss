@@ -392,6 +392,7 @@
       border-bottom-color: var(--bc-brand-fg);
       outline: none;
     }
+    &:focus-visible { @include bc-focus-ring; }
 
     &:disabled {
       border-color: var(--bc-stroke-2);

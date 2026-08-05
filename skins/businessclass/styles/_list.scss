@@ -157,6 +157,33 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+
+  // The row menu (§9, Shift+F10) is placed against a row's offsetTop, which is
+  // measured from this box — so this is the element that has to establish the
+  // containing block. It also means the menu scrolls with the list instead of
+  // hanging in space over it.
+  position: relative;
+}
+
+// -- Row menu (§9's Shift+F10) ------------------------------------------------
+// One anchor, moved to whichever row the menu was opened on. Its button is
+// .voice — the menu has no pointer affordance of its own, because a mouse
+// already reaches these actions from the row's hover buttons and a touch device
+// reaches them from the command bar.
+.bc-rowmenu__anchor {
+  position: absolute;
+  left: var(--bc-s-16);
+  z-index: 30;
+
+  &[hidden] { display: none; }
+
+  // The popover's own top offset assumes it hangs below a control; here the
+  // anchor is already at the bottom edge of the row it belongs to.
+  .bc-popover {
+    top: 0;
+    right: auto;
+    left: 0;
+  }
 }
 
 // The table is re-laid out as a block so rows can be CSS grids. rcube_list_widget
@@ -616,7 +643,9 @@
   .bc-messagelist tr.message:hover span.date { visibility: visible; }
 }
 
-// Compact has no room for the group; the row menu still reaches the actions.
+// Compact has no room for the group. The actions are still reached from the
+// command bar with the row selected, and from Shift+F10 (§9, step 14) — which
+// is what this comment claimed before that menu existed to claim it about.
 .bc-messagelist.bc-density-compact .bc-quickactions { display: none !important; }
 
 // -- Compact density (§3.5, design direction 1c) ------------------------------

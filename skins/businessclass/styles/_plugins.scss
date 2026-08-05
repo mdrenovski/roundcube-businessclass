@@ -257,6 +257,7 @@ table.records-table {
       border-bottom-color: var(--bc-brand-fg);
       outline: none;
     }
+    &:focus-visible { @include bc-focus-ring; }
   }
 
   .hint {
@@ -535,6 +536,7 @@ table.records-table {
         border-bottom-color: var(--bc-brand-fg);
         outline: none;
       }
+      &:focus-visible { @include bc-focus-ring; }
     }
   }
 
@@ -593,6 +595,7 @@ table.records-table {
       border-bottom-color: var(--bc-brand-fg);
       outline: none;
     }
+    &:focus-visible { @include bc-focus-ring; }
   }
 }
 

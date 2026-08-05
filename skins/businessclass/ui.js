@@ -1017,6 +1017,8 @@
     // §9: unread is weight + bar + an aria-label prefix, never colour alone.
     // An explicit name also makes the row independent of the aria-labelledby
     // that the widget points at td.subject, which has no box of its own.
+    decorateAttachmentMark(tr);
+
     var parts = [];
     if (tr.classList.contains('unread')) parts.push(label('unread'));
     if (sender) parts.push(sender);
@@ -1032,6 +1034,30 @@
     if (categories.length) parts.push(categories.join(', '));
 
     tr.setAttribute('aria-label', parts.join(', '));
+  }
+
+  /**
+   * Put the paperclip in the flags cell (step 14).
+   *
+   * Core emits `<span class="attachment" title="…"></span>` — empty (app.js:2347),
+   * because every stock skin fills it from an icon font the §10 rules put out of
+   * reach here. So the mark was a 16px box with nothing in it: in the list, a
+   * message with an attachment looked exactly like one without.
+   *
+   * It is an accessibility bug in the direction people do not usually look for.
+   * The row's aria-label has said "with attachment" since step 3 (below), so a
+   * screen reader was told and a sighted user was not — the information existed
+   * and only the eye was missing it.
+   *
+   * .report and .encrypted are the same shape and are left alone: both are
+   * plugin territory (§1.6) and neither has an agreed glyph in §10.
+   */
+  function decorateAttachmentMark(tr) {
+    var mark = tr.querySelector('span.attachment');
+    if (!mark || mark.querySelector('svg')) return;
+
+    // The title core set is the accessible name; the glyph must not add a second.
+    mark.appendChild(svgIcon('attach'));
   }
 
   /** Plugin-scoped label; businessclass_prefs ships its own texts. */
@@ -1425,6 +1451,9 @@
    */
   var DRAWER_MQ = '(max-width: 1199px)';
 
+  /** Below this the reading pane covers the list. The bc-narrow mixin's width. */
+  var COVER_MQ = '(max-width: 767px)';
+
   /** What the user had chosen at full width, to give back on the way out. */
   var wideFolderState = null;
 
@@ -1471,6 +1500,15 @@
     // is the one Safari understood until 14.
     if (mq.addEventListener) mq.addEventListener('change', function (e) { apply(e.matches); });
     else if (mq.addListener) mq.addListener(function (e) { apply(e.matches); });
+
+    // Crossing 768px with a message already open changes what is covered without
+    // changing the folder pane, so setFolderPane()'s call is not enough on its
+    // own — a tablet turned to landscape has to give the list back.
+    var cover = window.matchMedia(COVER_MQ);
+    if (cover.addEventListener) cover.addEventListener('change', syncOverlayInert);
+    else if (cover.addListener) cover.addListener(syncOverlayInert);
+
+    syncOverlayInert();
 
     // Dismissing the drawer. The scrim is a ::before on the shell rather than an
     // element (_responsive.scss), so a click on it arrives with the shell itself
@@ -1537,6 +1575,45 @@
     if (toggle) toggle.setAttribute('aria-pressed', hidden ? 'true' : 'false');
 
     checkRadios('bc-folderpane-menu', 'data-bc-folderpane', hidden ? 'hide' : 'show');
+    syncOverlayInert();
+  }
+
+  /**
+   * Take the covered content out of the tab order while something floats over it
+   * (§9, step 14).
+   *
+   * Below 1200px the folder pane is a drawer over the list, and below 768px the
+   * reading pane covers the list entirely — both drawn by _responsive.scss with
+   * position and z-index, which a stylesheet can do and the accessibility tree
+   * knows nothing about. Without this, Tab walks from the open drawer straight
+   * into a list nobody can see, and a screen reader reads a covered message list
+   * as though it were on screen.
+   *
+   * `inert` rather than aria-hidden: aria-hidden would silence it while leaving
+   * every control in it tabbable, which is the worse of the two failures.
+   * Supported everywhere the skin targets; where it is not, nothing changes and
+   * the behaviour is what it was before this function existed.
+   */
+  function syncOverlayInert() {
+    var shell = document.getElementById('layout');
+    var list = document.getElementById('layout-list');
+    var folders = document.getElementById('layout-sidebar');
+    var pane = document.getElementById('layout-content');
+    if (!shell || !window.matchMedia) return;
+
+    var drawerOpen = window.matchMedia(DRAWER_MQ).matches
+      && !shell.classList.contains('bc-folders-hidden');
+
+    // The same signal _responsive.scss draws the overlay from: below 768px the
+    // pane is absolutely positioned over everything unless it is .is-empty.
+    var covered = window.matchMedia(COVER_MQ).matches
+      && !!pane && !pane.classList.contains('is-empty')
+      && !shell.classList.contains('bc-shell--settings-plain');
+
+    // The drawer covers the list; the open message covers both. Ordered so the
+    // narrower case wins: with a message open on a phone the drawer is shut.
+    if (list) list.inert = drawerOpen || covered;
+    if (folders) folders.inert = covered;
   }
 
   /** The View tab's Messages menu: conversation grouping and preview lines. */
@@ -2131,6 +2208,9 @@
 
     rcmail.show_contentframe = function (show) {
       pane.classList.toggle('is-empty', !show);
+      // Below 768px this is the moment the pane starts and stops covering the
+      // list, so it is the moment the list starts and stops being reachable.
+      syncOverlayInert();
       return original.apply(this, arguments);
     };
 
@@ -4518,6 +4598,450 @@
     syncOrientation();
   }
 
+  /**
+   * Say that new mail has arrived (§9).
+   *
+   * Core has no event for it. What it has is set_unread_count(), which every
+   * path that changes a folder's unread total goes through — the check-recent
+   * poll, the refresh response, and marking a message read — so wrapping it
+   * catches new mail without depending on newmail_notifier being installed.
+   *
+   * Only increases, and only the folder that grew: a count going down is
+   * someone reading, which they can see for themselves. Rate-limited to one
+   * announcement a minute, because a busy INBOX polls every 60s and a live
+   * region that talks over the user is worse than one that says nothing.
+   */
+  var lastNewMail = 0;
+
+  function initNewMail() {
+    if (!window.rcmail || !rcmail.set_unread_count) return;
+
+    var original = rcmail.set_unread_count;
+    var counts = {};
+
+    rcmail.set_unread_count = function (mbox, count) {
+      var was = counts[mbox];
+      counts[mbox] = count;
+
+      // The first call for a folder is the page telling us what is already
+      // there, not news. Date.now() is the clock, not a seed — nothing here is
+      // reproduced by the verify harness.
+      if (was !== undefined && count > was && Date.now() - lastNewMail > 60000) {
+        lastNewMail = Date.now();
+        businessclass.announce(label('bc_newmail'));
+      }
+
+      return original.apply(this, arguments);
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Keyboard shortcuts (§9)
+  //
+  // Single letters, which is the whole difficulty: every one of them is also a
+  // character somebody might be typing. Three guards keep them apart, and all
+  // three have to pass before anything runs — see shortcutsAllowed().
+  // ---------------------------------------------------------------------------
+
+  /**
+   * The §9 table, in the order the ? dialog lists them.
+   *
+   * `run` returns false to say "not applicable here", which leaves the key
+   * alone rather than swallowing it: `e` with nothing selected should reach
+   * the browser as a keystroke that did nothing, not be silently eaten.
+   *
+   * `needs` names the command a key stands for, and is checked against core's
+   * own enabled/disabled state before running — so `e` does nothing in a folder
+   * with no archive configured, for the same reason its toolbar button is grey.
+   */
+  var SHORTCUTS = [
+    { keys: ['j'], label: 'bc_keynext', group: 'list', run: function () { return moveSelection(40); } },
+    { keys: ['k'], label: 'bc_keyprev', group: 'list', run: function () { return moveSelection(38); } },
+    { keys: ['Enter'], label: 'bc_keyopen', group: 'list', run: openSelected },
+    { keys: ['x'], label: 'bc_keyselect', group: 'list', run: toggleSelected },
+    { keys: ['e'], label: 'bc_keyarchive', group: 'message', needs: 'plugin.archive', run: command('plugin.archive') },
+    { keys: ['#'], label: 'bc_keydelete', group: 'message', needs: 'delete', run: command('delete') },
+    { keys: ['u'], label: 'bc_keyunread', group: 'message', needs: 'mark', run: command('mark', 'unread') },
+    { keys: ['f'], label: 'bc_keyflag', group: 'message', needs: 'mark', run: toggleFlag },
+    { keys: ['r'], label: 'bc_keyreply', group: 'message', needs: 'reply', run: command('reply') },
+    { keys: ['a'], label: 'bc_keyreplyall', group: 'message', needs: 'reply-all', run: command('reply-all') },
+    { keys: ['c'], label: 'bc_keycompose', group: 'app', needs: 'compose', run: command('compose') },
+    { keys: ['/'], label: 'bc_keysearch', group: 'app', run: focusSearch },
+    { keys: ['F6'], label: 'bc_keypanes', group: 'app', run: cyclePanes },
+    { keys: ['?'], label: 'bc_keyhelp', group: 'app', run: function () { businessclass.openShortcuts(); return true; } }
+  ];
+
+  /** Shift+F10 is listed in the dialog but handled apart — it carries a modifier. */
+  var SHORTCUT_ROWMENU = 'bc_keyrowmenu';
+
+  /**
+   * Whether a single key may be read as a command right now.
+   *
+   * 1. The preference. Off means the listener never binds at all.
+   * 2. Modifiers. Anything with Ctrl/Meta/Alt belongs to the browser or the OS.
+   *    Shift is allowed, because `#` and `?` are shifted characters on most
+   *    layouts and reading them any other way would make them unreachable.
+   * 3. Where the keystroke came from. A text field, a <select>, a
+   *    contenteditable — including TinyMCE's body, which is a contenteditable
+   *    inside an iframe and therefore never reaches this document at all — and
+   *    an open menu, which owns its own arrow and letter handling.
+   */
+  function shortcutsAllowed(event) {
+    if (event.ctrlKey || event.metaKey || event.altKey) return false;
+    if (openPopover) return false;
+
+    var el = event.target;
+    if (!el || el === document || el === document.body) return true;
+
+    if (el.isContentEditable) return false;
+
+    var tag = String(el.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return false;
+
+    // A dialog is core's, and its own controls own the keyboard while it is up.
+    return !el.closest || !el.closest('.ui-dialog, [role="dialog"]');
+  }
+
+  /** Core's own answer to "is this command available", which the toolbar reads. */
+  function commandEnabled(name) {
+    if (!name) return true;
+    return !!(window.rcmail && rcmail.commands && rcmail.commands[name]);
+  }
+
+  function command(name, props) {
+    return function () {
+      rcmail.command(name, props === undefined ? '' : props);
+      return true;
+    };
+  }
+
+  function moveSelection(keyCode) {
+    var list = window.rcmail && rcmail.message_list;
+    if (!list || !list.rowcount) return false;
+
+    // The list widget only reads its own key events while it believes it has
+    // focus, and j/k are being read here instead — so the move is asked for
+    // directly. use_arrow_key() also handles "nothing selected yet".
+    list.use_arrow_key(keyCode, null);
+    list.focus();
+
+    return true;
+  }
+
+  function openSelected() {
+    var list = window.rcmail && rcmail.message_list;
+    var uid = list && list.get_single_selection();
+    if (!uid) return false;
+
+    // What a double-click does. In the list-only layout this navigates; with a
+    // reading pane it is already open, and core no-ops rather than reloading.
+    rcmail.command('show', uid);
+    return true;
+  }
+
+  function toggleSelected() {
+    var list = window.rcmail && rcmail.message_list;
+    if (!list || !list.rowcount || !list.multiselect) return false;
+
+    var uid = list.last_selected;
+    if (!uid) return false;
+
+    // The second argument is the multi-select modifier: highlight_row() with it
+    // adds or removes one row from the selection, which is what x means.
+    list.highlight_row(uid, true);
+    announceSelection(list);
+
+    return true;
+  }
+
+  function toggleFlag() {
+    var list = window.rcmail && rcmail.message_list;
+    var uid = list && list.get_single_selection();
+    var row = uid && list.rows[uid];
+    if (!row || !row.obj) return false;
+
+    rcmail.command('mark', row.obj.classList.contains('flagged') ? 'unflagged' : 'flagged');
+    return true;
+  }
+
+  function focusSearch() {
+    var input = document.getElementById('bc-search-input')
+      || document.querySelector('#quicksearchbox, .bc-search input[type="text"]');
+    if (!input) return false;
+
+    input.focus();
+    if (input.select) input.select();
+
+    return true;
+  }
+
+  /**
+   * F6 — move between the panes, which is the one navigation a keyboard user
+   * cannot do any other way: the list is a single tab stop and the reading pane
+   * is an iframe, so Tab alone crosses them in one direction and slowly.
+   *
+   * Skips whatever is not on screen, so it does the right thing with the folder
+   * pane hidden and below 768px, where the reading pane covers the list.
+   */
+  var PANES = ['#layout-menu', '#layout-sidebar', '#messagelist-content', '#layout-content'];
+
+  function cyclePanes() {
+    var panes = [];
+
+    for (var i = 0; i < PANES.length; i++) {
+      var el = document.querySelector(PANES[i]);
+      if (el && el.offsetParent !== null && el.getBoundingClientRect().width > 0) panes.push(el);
+    }
+
+    if (panes.length < 2) return false;
+
+    var active = document.activeElement;
+    var index = -1;
+
+    for (var j = 0; j < panes.length; j++) {
+      if (panes[j] === active || panes[j].contains(active)) { index = j; break; }
+    }
+
+    var next = panes[(index + 1) % panes.length];
+
+    // Panes are containers, not controls: give focus to the first thing inside
+    // that can take it, and fall back to the pane itself with a temporary
+    // tabindex so focus lands somewhere a screen reader will announce.
+    var target = next.querySelector('a[href], button:not([disabled]), input, [tabindex="0"]');
+
+    if (!target) {
+      target = next;
+      if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+    }
+
+    target.focus();
+    return true;
+  }
+
+  function announceSelection(list) {
+    var count = list.get_selection().length;
+    businessclass.announce(count === 1
+      ? label('bc_oneselected')
+      : label('bc_nselected').replace('$n', count));
+  }
+
+  /**
+   * Bind the table, once, if the preference allows it.
+   *
+   * keydown rather than keypress: keypress never fires for F6, and it is the
+   * event the rest of the skin already listens on.
+   */
+  function initShortcuts() {
+    if (!window.rcmail || !rcmail.command) return;
+    if (rcmail.env.bc_shortcuts === false) return;
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'F10' && event.shiftKey && shortcutsAllowed(event)) {
+        if (openRowMenu()) event.preventDefault();
+        return;
+      }
+
+      if (!shortcutsAllowed(event)) return;
+
+      for (var i = 0; i < SHORTCUTS.length; i++) {
+        if (SHORTCUTS[i].keys.indexOf(event.key) === -1) continue;
+        if (!commandEnabled(SHORTCUTS[i].needs)) return;
+        if (SHORTCUTS[i].run() !== false) event.preventDefault();
+        return;
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Row menu (§9's Shift+F10)
+  //
+  // One menu reused by every row, positioned at the row it was opened on. Per-row
+  // menus would be rebuilt with the list on every folder change and every page.
+  // ---------------------------------------------------------------------------
+
+  function rowMenuPanel() {
+    var panel = document.getElementById('bc-rowmenu');
+    if (panel) return panel;
+
+    var scroll = document.getElementById('messagelist-content');
+    if (!scroll) return null;
+
+    var anchor = document.createElement('div');
+    anchor.className = 'bc-rowmenu__anchor';
+    anchor.id = 'bc-rowmenu-anchor';
+    anchor.hidden = true;
+
+    // The popover primitive reports state on a button, so there is one — never
+    // shown, because the pointer already reaches these actions from the row.
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'bc-rowmenu-button';
+    button.className = 'voice';
+    button.setAttribute('aria-haspopup', 'menu');
+    button.setAttribute('aria-expanded', 'false');
+    button.textContent = label('bc_quickactions');
+
+    panel = document.createElement('div');
+    panel.id = 'bc-rowmenu';
+    panel.className = 'bc-popover';
+    panel.setAttribute('role', 'menu');
+    panel.setAttribute('aria-label', label('bc_quickactions'));
+    panel.hidden = true;
+
+    anchor.appendChild(button);
+    anchor.appendChild(panel);
+    scroll.appendChild(anchor);
+
+    initPopover(button, panel);
+
+    panel.addEventListener('click', function (event) {
+      var item = event.target.closest && event.target.closest('[role="menuitem"]');
+      if (item) runRowAction(item.getAttribute('data-bc-action'), panel.bcUid);
+    });
+
+    return panel;
+  }
+
+  function runRowAction(action, uid) {
+    var list = window.rcmail && rcmail.message_list;
+    var row = list && uid && list.rows[uid];
+    if (!row || !row.obj) return;
+
+    list.select(uid);
+
+    switch (action) {
+      case 'archive': rcmail.command('plugin.archive', ''); break;
+      case 'delete': rcmail.command('delete', ''); break;
+      case 'flag':
+        rcmail.command('mark', row.obj.classList.contains('flagged') ? 'unflagged' : 'flagged');
+        break;
+      case 'pin': businessclass.pin(uid, !row.obj.classList.contains('bc-pinned')); break;
+    }
+  }
+
+  /**
+   * Open the menu on the selected row. Returns false when there is nothing to
+   * open it on, so Shift+F10 falls through to the browser's own context menu.
+   */
+  function openRowMenu() {
+    var list = window.rcmail && rcmail.message_list;
+    var uid = list && list.get_single_selection();
+    var row = uid && list.rows[uid];
+    if (!row || !row.obj) return false;
+
+    var panel = rowMenuPanel();
+    if (!panel) return false;
+
+    panel.bcUid = uid;
+    panel.textContent = '';
+
+    for (var i = 0; i < QUICK_ACTIONS.length; i++) {
+      var action = QUICK_ACTIONS[i];
+      if (action.key === 'archive' && !rcmail.env.archive_folder) continue;
+
+      var flagged = row.obj.classList.contains('flagged');
+      var pinned = row.obj.classList.contains('bc-pinned');
+
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.setAttribute('role', 'menuitem');
+      item.setAttribute('data-bc-action', action.key);
+      if (action.danger) item.className = 'bc-iconbtn--danger';
+      item.appendChild(svgIcon(action.icon));
+
+      var text = document.createElement('span');
+      text.textContent = action.key === 'flag' ? label(flagged ? 'bc_quickunflag' : 'bc_quickflag')
+        : action.key === 'pin' ? pluginLabel(pinned ? 'bc_unpin' : 'bc_pin')
+        : label(action.label);
+      item.appendChild(text);
+
+      panel.appendChild(item);
+    }
+
+    var anchor = document.getElementById('bc-rowmenu-anchor');
+    anchor.hidden = false;
+    anchor.style.top = (row.obj.offsetTop + row.obj.offsetHeight) + 'px';
+
+    businessclass.openPopover(document.getElementById('bc-rowmenu-button'), panel);
+    return true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // The ? dialog (§9: "document them in a ? dialog")
+  // ---------------------------------------------------------------------------
+
+  var SHORTCUT_GROUPS = [
+    { key: 'list', label: 'bc_keyslist' },
+    { key: 'message', label: 'bc_keysmessage' },
+    { key: 'app', label: 'bc_keysapp' }
+  ];
+
+  /** How a key prints in the dialog. Enter and F6 are words, not characters. */
+  function keyName(key) {
+    return key === 'Enter' ? label('bc_keyenter') : key;
+  }
+
+  businessclass.openShortcuts = function () {
+    if (!window.rcmail || !rcmail.show_popup_dialog) return;
+
+    var body = document.createElement('div');
+    body.className = 'bc-shortcuts';
+
+    for (var g = 0; g < SHORTCUT_GROUPS.length; g++) {
+      var group = SHORTCUT_GROUPS[g];
+      var rows = SHORTCUTS.filter(function (s) { return s.group === group.key; });
+      if (!rows.length) continue;
+
+      var title = document.createElement('h3');
+      title.className = 'bc-shortcuts__title';
+      title.textContent = label(group.label);
+      body.appendChild(title);
+
+      var dl = document.createElement('dl');
+      dl.className = 'bc-shortcuts__list';
+
+      for (var i = 0; i < rows.length; i++) {
+        appendShortcut(dl, rows[i].keys.map(keyName), label(rows[i].label));
+      }
+
+      // Shift+F10 belongs with the list but is not in the table, because it is
+      // the one binding that carries a modifier.
+      if (group.key === 'list') {
+        appendShortcut(dl, ['Shift', 'F10'], label(SHORTCUT_ROWMENU));
+      }
+
+      body.appendChild(dl);
+    }
+
+    var note = document.createElement('p');
+    note.className = 'bc-shortcuts__note';
+    note.textContent = label('bc_keysnote');
+    body.appendChild(note);
+
+    rcmail.show_popup_dialog(body, label('bc_keystitle'), null, {
+      button: false,
+      cancel_button: 'close',
+      width: 420
+    });
+  };
+
+  function appendShortcut(dl, keys, text) {
+    var dt = document.createElement('dt');
+
+    for (var i = 0; i < keys.length; i++) {
+      if (i) dt.appendChild(document.createTextNode('+'));
+      var kbd = document.createElement('kbd');
+      kbd.textContent = keys[i];
+      dt.appendChild(kbd);
+    }
+
+    var dd = document.createElement('dd');
+    dd.textContent = text;
+
+    dl.appendChild(dt);
+    dl.appendChild(dd);
+  }
+
   // ---------------------------------------------------------------------------
   // Print (_print.scss)
   // ---------------------------------------------------------------------------
@@ -4771,6 +5295,13 @@
 
     initDensity();
     initPrint();
+
+    // §9. Last of the document-level key listeners, so Ctrl+P above and the
+    // Escape handlers registered with the popover primitive are already bound —
+    // the single-key table declines anything carrying a modifier, so the order
+    // is a reading convenience rather than a dependency.
+    initShortcuts();
+    initNewMail();
 
     // Plugin screens (§1.6, §12 step 11) — each no-ops where its plugin is not
     // installed or its markup is absent.
