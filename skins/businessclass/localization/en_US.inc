@@ -144,6 +144,8 @@ $labels['bc_noresults'] = 'No matches';
 $labels['bc_noresultstext'] = 'Try different words, or widen the scope in Filters.';
 $labels['bc_nomessageselected'] = 'No message selected';
 $labels['bc_pickmessage'] = 'Choose a message from the list to read it here.';
+// The way back from a message that is covering the list, below 768px (§6).
+$labels['bc_back'] = 'Back';
 
 // Settings (§4.4). Every screen title, section name and form label already
 // exists in core or in the plugin that owns the screen; these are the strings

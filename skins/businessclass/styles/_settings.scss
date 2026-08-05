@@ -33,6 +33,12 @@
     var(--bc-settings-nav-w)
     var(--bc-settings-list-w)
     minmax(0, 1fr);
+
+  // Restated from _shell.scss, which places for six columns. See the comment
+  // there: without explicit placement, collapsing the section nav slides every
+  // later pane a column left.
+  > #layout-list { grid-column: 3; }
+  > #layout-content { grid-column: 4; }
 }
 
 // Screens that are a single form: About, password, vacation, forward.
@@ -41,6 +47,8 @@
     var(--bc-rail-w)
     var(--bc-settings-nav-w)
     minmax(0, 1fr);
+
+  > #layout-content { grid-column: 3; }
 }
 
 // -- Section nav --------------------------------------------------------------

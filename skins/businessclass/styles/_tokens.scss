@@ -228,6 +228,17 @@ $brand-default-dark: #479EF5;
   // Contacts' address-book pane. Its contact list is the same 300px as Settings
   // and reuses that token rather than declaring a second one with equal value.
   --bc-books-w: 200px;
+  // The folder pane when it floats over the list instead of holding a column
+  // (§6, below 1200px). Wider than the 236px it gets as a track, because a
+  // drawer is read at arm's length on a tablet or a phone, and it is capped
+  // against the viewport where that will not fit.
+  --bc-drawer-w: 280px;
+  // The header lockup below 768px, where the 120px it gets on a desktop is a
+  // quarter of the whole band (§6).
+  --bc-logo-max-w-narrow: 88px;
+  // The message row below 768px (§6). A floor, not a height — a row showing
+  // preview lines is already taller and must not be clipped to this.
+  --bc-row-h-narrow: 64px;
   --bc-pane-head-h: 40px;       // pane title bar in the settings/contacts panes
   --bc-control-h: 32px;
   --bc-control-h-compact: 28px;

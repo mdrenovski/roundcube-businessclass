@@ -26,6 +26,14 @@
 
 	<main id="layout-content" class="bc-reading bc-settings__detail"
 		aria-label="<roundcube:label name='preferences' />">
+
+		<!-- Below 768px this pane covers the list (§6, D-79), so it needs a way back
+		     that it does not need at any other width. Hidden by default and shown only
+		     by the narrow breakpoint; ui.js binds it in initReadingBack(). -->
+		<button type="button" class="bc-reading__back">
+			<svg class="bc-icon" aria-hidden="true"><use href="#ic_fluent_chevron_down_20_regular" /></svg>
+			<span><roundcube:label name="bc_back" /></span>
+		</button>
 		<roundcube:object name="contentframe" id="preferences-frame" class="bc-reading__frame"
 			src="env:blankpage" title="arialabelpreferencesform" />
 

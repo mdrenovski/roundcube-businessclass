@@ -91,9 +91,9 @@ Log out and back in, then hard-refresh (`Ctrl`/`Cmd` + `Shift` + `R`).
 
 ## What is finished, and what is not
 
-Twelve of the fourteen build steps are done, bar the calendar. **Every screen in
-the skin is now designed** — nothing is scaffolding any more. What is left is
-mobile, the accessibility audit, and the calendar.
+Thirteen of the fourteen build steps are done, bar the calendar. **Every screen in
+the skin is now designed** — nothing is scaffolding any more. What is left is the
+accessibility audit, the calendar, and swipe gestures on touch.
 
 | Area | State |
 | --- | --- |
@@ -113,7 +113,8 @@ mobile, the accessibility audit, and the calendar.
 | Plugin screens — PGP keys, folder sharing, password, help | Designed |
 | Calendar | Not built — see below |
 | Dark, high-contrast and forced-colors themes | Designed |
-| Mobile and responsive | Step 13 |
+| Mobile and responsive — tablet and phone widths | Designed |
+| Swipe-to-archive and swipe-to-flag | Deferred — see below |
 
 So: judge everything except the calendar.
 
@@ -216,6 +217,45 @@ it is deliberate.
 
 The hamburger at the left of the tab strip collapses the folder pane. On a narrow
 window the row overflows into a `⋯` menu, most-important-last.
+
+---
+
+## On a tablet or a phone
+
+There is one shell, and it narrows. There is no separate mobile layout to switch
+into, no bottom tab bar and no floating compose button — the icon rail, the
+header and both rows of the command bar stay exactly where they are on a desktop.
+Two things leave, at two different widths.
+
+**Below 1200px the folder pane stops being a column.** It becomes a drawer that
+floats over the list when you open it, dismissed by tapping outside it or by
+pressing Escape. The same hamburger in the tab strip still opens and closes it.
+Its splitter goes with it — there is no longer a column to resize.
+
+Your own choice is remembered rather than overwritten: hide the pane on a
+desktop, narrow the window and widen it again, and it comes back hidden.
+
+**Below 768px the reading pane covers the list.** Opening a message fills the
+screen with it, and a Back button returns you to the list.
+
+The reading-pane *setting* is never touched by any of this. It is a stored
+preference, so changing it on a phone would change it on the desktop where the
+same person set it. Turning a tablet from portrait to landscape puts the layout
+back with the message still open.
+
+**Touch targets.** Below 768px every control is at least 44px and message rows at
+least 64px, which is larger than the reference uses. Hover-only affordances — the
+quick actions on a message row — are hidden on any touch device at any width;
+those actions are all in the row's own menu. On a desktop the control sizes are
+unchanged.
+
+The header also sheds what it can at phone width: the product name gives its
+space to the search box, `Filters` becomes icon-only, and the support link steps
+aside because the ribbon's Help tab carries the same link.
+
+**Not built: swipe-to-archive and swipe-to-flag.** They are specified and
+deliberately deferred — see [DECISIONS.md](docs/DECISIONS.md) D-80. Nothing is
+unreachable without them; every per-message action is in the row menu.
 
 ---
 

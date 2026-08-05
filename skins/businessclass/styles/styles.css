@@ -149,6 +149,9 @@
   --bc-settings-nav-w: 220px;
   --bc-settings-list-w: 300px;
   --bc-books-w: 200px;
+  --bc-drawer-w: 280px;
+  --bc-logo-max-w-narrow: 88px;
+  --bc-row-h-narrow: 64px;
   --bc-pane-head-h: 40px;
   --bc-control-h: 32px;
   --bc-control-h-compact: 28px;
@@ -1280,13 +1283,20 @@ body.task-settings > #layout {
 }
 
 .bc-shell.bc-folders-hidden {
-  --bc-folders-w: 0px;
-  --bc-books-w: 0px;
-  --bc-settings-nav-w: 0px;
+  --bc-folders-w: 0px !important;
+  --bc-books-w: 0px !important;
+  --bc-settings-nav-w: 0px !important;
 }
 .bc-shell.bc-folders-hidden #layout-sidebar,
 .bc-shell.bc-folders-hidden #bc-splitter-folders {
-  display: none;
+  visibility: hidden;
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  margin-inline: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
 }
 
 html.iframe body {
@@ -1294,10 +1304,29 @@ html.iframe body {
 }
 
 .bc-shell {
+  position: relative;
   display: grid;
   grid-template-columns: var(--bc-rail-w) var(--bc-folders-w) auto var(--bc-list-w) auto minmax(0, 1fr);
   min-height: 0;
   overflow: hidden;
+}
+.bc-shell > #layout-menu {
+  grid-column: 1;
+}
+.bc-shell > #layout-sidebar {
+  grid-column: 2;
+}
+.bc-shell > #bc-splitter-folders {
+  grid-column: 3;
+}
+.bc-shell > #layout-list {
+  grid-column: 4;
+}
+.bc-shell > #bc-splitter-list {
+  grid-column: 5;
+}
+.bc-shell > #layout-content {
+  grid-column: 6;
 }
 
 .bc-shell[data-bc-layout=desktop] {
@@ -1308,6 +1337,9 @@ html.iframe body {
 .bc-shell[data-bc-layout=desktop] #layout-menu,
 .bc-shell[data-bc-layout=desktop] #layout-sidebar {
   grid-row: 1/-1;
+}
+.bc-shell[data-bc-layout=desktop] #bc-splitter-folders {
+  grid-column: 3;
 }
 .bc-shell[data-bc-layout=desktop] #layout-list {
   grid-column: 4;
@@ -4180,9 +4212,18 @@ body.task-login {
 .bc-shell--settings {
   grid-template-columns: var(--bc-rail-w) var(--bc-settings-nav-w) var(--bc-settings-list-w) minmax(0, 1fr);
 }
+.bc-shell--settings > #layout-list {
+  grid-column: 3;
+}
+.bc-shell--settings > #layout-content {
+  grid-column: 4;
+}
 
 .bc-shell--settings-plain {
   grid-template-columns: var(--bc-rail-w) var(--bc-settings-nav-w) minmax(0, 1fr);
+}
+.bc-shell--settings-plain > #layout-content {
+  grid-column: 3;
 }
 
 .bc-settingsnav {
@@ -4829,6 +4870,12 @@ body.task-login {
 
 .bc-shell--contacts {
   grid-template-columns: var(--bc-rail-w) var(--bc-books-w) var(--bc-settings-list-w) minmax(0, 1fr);
+}
+.bc-shell--contacts > #layout-list {
+  grid-column: 3;
+}
+.bc-shell--contacts > #layout-content {
+  grid-column: 4;
 }
 
 .bc-directory__head {
@@ -6122,6 +6169,178 @@ html[data-bc-theme=hc] .bc-quickactions {
   }
   .bc-sheet-toggle {
     display: none;
+  }
+}
+.bc-reading__back {
+  display: none;
+  align-items: center;
+  gap: var(--bc-s-8);
+  flex: none;
+  width: 100%;
+  min-height: var(--bc-touch-min);
+  padding-inline: var(--bc-s-8);
+  border: 0;
+  border-bottom: 1px solid var(--bc-stroke-2);
+  background: var(--bc-bg-1);
+  color: var(--bc-fg-1);
+  font: var(--bc-weight-semibold) var(--bc-size-body1)/1 var(--bc-font-body);
+  cursor: pointer;
+}
+.bc-reading__back:hover {
+  background: var(--bc-bg-3);
+}
+.bc-reading__back:focus-visible {
+  outline: var(--bc-focus-ring-w) solid var(--bc-focus-ring-color);
+  outline-offset: var(--bc-s-2);
+  box-shadow: 0 0 0 1px var(--bc-bg-1);
+}
+.bc-reading__back .bc-icon {
+  rotate: 90deg;
+}
+
+@media (max-width: 1199px) {
+  .bc-shell {
+    --bc-folders-w: 0px !important;
+    --bc-books-w: 0px !important;
+    --bc-settings-nav-w: 0px !important;
+  }
+  #bc-splitter-folders {
+    visibility: hidden;
+    width: 0;
+    min-width: 0;
+    margin-inline: 0;
+  }
+  .bc-shell:not(.bc-folders-hidden) #layout-sidebar {
+    position: absolute;
+    grid-column: auto;
+    inset-block: 0;
+    inset-inline-start: var(--bc-rail-w);
+    z-index: 20;
+    visibility: visible;
+    width: var(--bc-drawer-w);
+    min-width: 0;
+    max-width: calc(100% - var(--bc-rail-w));
+    overflow: hidden;
+    border-right: 1px solid var(--bc-stroke-2);
+    background: var(--bc-bg-2);
+    box-shadow: var(--bc-shadow-16);
+  }
+  .bc-shell:not(.bc-folders-hidden)::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline: var(--bc-rail-w) 0;
+    z-index: 19;
+    background: var(--bc-bg-inverted);
+    opacity: 0.4;
+  }
+}
+@media (max-width: 767px) {
+  .bc-shell {
+    grid-template-columns: var(--bc-rail-w) 0 0 minmax(0, 1fr) 0 0;
+  }
+  .bc-shell[data-bc-layout=desktop],
+  .bc-shell[data-bc-layout=list] {
+    grid-template-columns: var(--bc-rail-w) 0 0 minmax(0, 1fr);
+  }
+  .bc-shell[data-bc-layout=desktop] {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .bc-shell[data-bc-layout=desktop] #layout-list {
+    grid-row: 1;
+  }
+  .bc-shell--contacts,
+  .bc-shell--settings {
+    grid-template-columns: var(--bc-rail-w) 0 minmax(0, 1fr) 0;
+  }
+  .bc-shell--settings-plain {
+    grid-template-columns: var(--bc-rail-w) 0 minmax(0, 1fr);
+  }
+  #bc-splitter-list {
+    visibility: hidden;
+    width: 0;
+    min-width: 0;
+    margin-inline: 0;
+  }
+  .bc-shell:not(.bc-shell--settings-plain) > #layout-content {
+    position: absolute;
+    grid-column: auto;
+    inset: 0;
+    z-index: 15;
+  }
+  .bc-shell:not(.bc-shell--settings-plain) > #layout-content.is-empty {
+    display: none;
+  }
+  .bc-reading__back {
+    display: flex;
+  }
+  .bc-header__product {
+    display: none;
+  }
+  .bc-header {
+    gap: var(--bc-s-8);
+  }
+  .bc-header__logo {
+    max-width: var(--bc-logo-max-w-narrow);
+  }
+  .bc-search__filters {
+    min-width: var(--bc-touch-min);
+    justify-content: center;
+  }
+  .bc-search__filters .bc-btn__label {
+    display: none;
+  }
+  .bc-search .bc-search__input {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .bc-header__trail .bc-header__btn[target=_blank] {
+    display: none;
+  }
+  :root {
+    --bc-toolbar-h: 56px;
+  }
+  .bc-tabs {
+    height: var(--bc-touch-min);
+  }
+  .bc-rail__btn,
+  .bc-header__btn,
+  .bc-iconbtn,
+  .bc-tabs__tab,
+  .bc-btn,
+  .bc-split__main,
+  .bc-split__toggle,
+  .bc-folders__grouphead,
+  .bc-group__toggle {
+    min-height: var(--bc-touch-min);
+  }
+  .bc-rail__btn,
+  .bc-header__btn,
+  .bc-iconbtn,
+  .bc-split__main,
+  .bc-split__toggle {
+    min-width: var(--bc-touch-min);
+  }
+  .bc-rail__btn {
+    width: var(--bc-touch-min);
+    height: var(--bc-touch-min);
+  }
+  .bc-header__btn {
+    width: var(--bc-touch-min);
+    height: var(--bc-touch-min);
+  }
+  .bc-iconbtn--sm {
+    width: var(--bc-touch-min);
+    height: var(--bc-touch-min);
+  }
+  .bc-folderlist li > a,
+  .bc-labellist li > a {
+    min-height: var(--bc-touch-min);
+    display: flex;
+    align-items: center;
+  }
+  .bc-messagelist tr.message > td.subject {
+    min-height: var(--bc-row-h-narrow);
   }
 }
 body.action-print {

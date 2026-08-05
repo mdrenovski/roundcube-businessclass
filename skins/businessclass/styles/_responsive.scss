@@ -1,9 +1,353 @@
 // =============================================================================
 // skins/businessclass/styles/_responsive.scss
 // Breakpoints — imported last among screen styles so it wins
-// See BUILD.md §6. Tokens only — no literal colors, sizes, radii or shadows.
+// See BUILD.md §6, and docs/DECISIONS.md D-79 for the override of it.
+// Tokens only — no literal colors, sizes, radii or shadows.
+//
+// §6 specified a second, mobile-native shell below 768px: bottom tab bar,
+// folder drawer, compose FAB, reduced header, 64px rows. The reference the
+// client supplied does none of that at 343px and 398px wide — it keeps the
+// desktop shell and drops two things from it, the folder pane and the reading
+// pane. That is what is built here (D-79): ONE shell, narrowing, rather than
+// two shells with a switch between them.
+//
+// So there is no bottom tab bar and no FAB in this file, and their absence is
+// the decision rather than an omission.
 // =============================================================================
 
 @use "tokens" as *;
+@use "mixins" as *;
 
-// TODO: implemented in a later step of the BUILD.md §12 build order.
+// -- The way back from an overlaid detail pane --------------------------------
+//
+// Declared here, ABOVE the breakpoints, and that placement is the whole rule.
+// `.bc-reading__back` and the `.bc-reading__back` inside the narrow block are
+// both a single class, so they tie on specificity and source order alone
+// decides. Written after the media query, this `display: none` won at every
+// width and the button was never visible anywhere — which is what the
+// behaviour check caught.
+.bc-reading__back {
+  display: none;
+  align-items: center;
+  gap: var(--bc-s-8);
+  flex: none;
+  width: 100%;
+  min-height: var(--bc-touch-min);
+  padding-inline: var(--bc-s-8);
+  border: 0;
+  border-bottom: 1px solid var(--bc-stroke-2);
+  background: var(--bc-bg-1);
+  color: var(--bc-fg-1);
+  font: var(--bc-weight-semibold) var(--bc-size-body1) / 1 var(--bc-font-body);
+  cursor: pointer;
+
+  &:hover { background: var(--bc-bg-3); }
+  &:focus-visible { @include bc-focus-ring; }
+
+  // The sprite has no back arrow; the chevron turned a quarter-turn is the same
+  // shape and one fewer symbol in the subset (§10).
+  .bc-icon { rotate: 90deg; }
+}
+
+// -- Below 1200px: the folder pane stops being a column -----------------------
+//
+// It becomes a drawer over the list. Keeping it as a track costs 236px of a
+// 1024px tablet before a single message is shown, and on a phone there is not
+// enough width left to put anything in.
+//
+// ui.js collapses it on the way through this breakpoint and restores whatever
+// the user had chosen on the way back out (initResponsive); this file only
+// describes what the two states look like once it has.
+@media (max-width: 1199px) {
+  // Both tracks go, whether or not the pane is showing — when it shows here it
+  // is floating, so the column would be an empty gap the width of the pane.
+  //
+  // !important, and it is load-bearing. mail.html writes the stored pane widths
+  // as INLINE custom properties on #layout, and an inline declaration outranks
+  // every stylesheet rule no matter how specific — the same thing that made the
+  // admin accent unoverridable at step 12. Without this the breakpoint silently
+  // does nothing on the one task that has a stored width, which is exactly what
+  // verify:geometry caught: the list stayed at x=284 behind a 236px gap.
+  //
+  // Contacts and Settings have no inline widths and never needed it, but they
+  // are covered by the same rule rather than a second one that could drift.
+  .bc-shell {
+    --bc-folders-w: 0px !important;
+    --bc-books-w: 0px !important;
+    --bc-settings-nav-w: 0px !important;
+  }
+
+  // A drag handle for a pane that is no longer a resizable column. ui.js also
+  // stops binding the drag, so the stored width is never written from here.
+  #bc-splitter-folders {
+    visibility: hidden;
+    width: 0;
+    min-width: 0;
+    margin-inline: 0;
+  }
+
+  .bc-shell:not(.bc-folders-hidden) {
+    #layout-sidebar {
+      position: absolute;
+      // Given up deliberately. A definite grid-column makes an absolutely
+      // positioned child resolve its offsets against that COLUMN, not against
+      // the shell — so the drawer came out at x=96, one rail-width past where
+      // it was asked for, because the column already started at 48.
+      grid-column: auto;
+      inset-block: 0;
+      // Beside the rail, not over it. The rail is the one piece of navigation
+      // that stays put at every width in the reference, and a drawer that
+      // covered it would take away the way out of the drawer.
+      inset-inline-start: var(--bc-rail-w);
+      z-index: 20;
+
+      // Restated because .bc-folders-hidden zeroes all of these, and this is the
+      // same element in its other state — without them it would come back 0 wide.
+      visibility: visible;
+      width: var(--bc-drawer-w);
+      min-width: 0;
+      max-width: calc(100% - var(--bc-rail-w));
+      overflow: hidden;
+
+      border-right: 1px solid var(--bc-stroke-2);
+      background: var(--bc-bg-2);
+      box-shadow: var(--bc-shadow-16);
+    }
+
+    // The scrim. Drawn as a pseudo-element rather than as markup so a document
+    // that never runs ui.js cannot end up with a dimming layer it has no way to
+    // dismiss. ui.js closes the drawer when this is clicked.
+    //
+    // Absolutely positioned, so although a grid container's ::before IS a grid
+    // item it takes no cell and cannot disturb the columns.
+    &::before {
+      content: "";
+      position: absolute;
+      inset-block: 0;
+      inset-inline: var(--bc-rail-w) 0;
+      z-index: 19;
+      background: var(--bc-bg-inverted);
+      opacity: 0.4;
+    }
+  }
+}
+
+// -- Below 768px: one pane, and the message covers it -------------------------
+//
+// §6 asks for the reading pane to be forced off, with opening a message
+// becoming a route change. It is done as presentation only, and that is the
+// important part: `layout` is a stored preference, so actually switching it
+// would overwrite on a phone what the same account chose on a desktop.
+//
+// Instead the reading pane keeps existing — core still has its contentframe, so
+// a tap still loads the message into it exactly as on a desktop — and this makes
+// it cover the list while it holds one. Nothing is posted, nothing is persisted,
+// and turning a tablet back to landscape returns to the real layout with the
+// same message still open.
+@include bc-narrow {
+  // The list takes everything the rail does not.
+  //
+  // Each shell's template is restated rather than its width variables retuned,
+  // for two reasons the geometry check found the hard way:
+  //
+  //  - the reading pane's column is a literal minmax(0, 1fr) in every template,
+  //    not a variable, and an empty track still claims its share. Taking the
+  //    pane out of flow left the list sharing the width with a column holding
+  //    nothing — measured at 226px each in a 500px window.
+  //  - the panes are placed explicitly (see _shell.scss), and a definite
+  //    grid-column gives an absolutely-positioned child its GRID AREA as
+  //    containing block instead of the grid container. So the overlay has to
+  //    give its placement up as well, below.
+  //
+  // Same six tracks and same numbering as the wide layout, so every explicit
+  // placement stays valid; only the sizes change.
+  .bc-shell {
+    grid-template-columns: var(--bc-rail-w) 0 0 minmax(0, 1fr) 0 0;
+  }
+
+  .bc-shell[data-bc-layout="desktop"],
+  .bc-shell[data-bc-layout="list"] {
+    grid-template-columns: var(--bc-rail-w) 0 0 minmax(0, 1fr);
+  }
+
+  // The stacked layout has no room to stack at this width; the list takes the
+  // height and the message covers it like everywhere else.
+  .bc-shell[data-bc-layout="desktop"] {
+    grid-template-rows: minmax(0, 1fr);
+
+    #layout-list { grid-row: 1; }
+  }
+
+  .bc-shell--contacts,
+  .bc-shell--settings {
+    grid-template-columns: var(--bc-rail-w) 0 minmax(0, 1fr) 0;
+  }
+
+  // About, password, vacation: a single form with no list behind it. Nothing to
+  // overlay, so this one just fills.
+  .bc-shell--settings-plain {
+    grid-template-columns: var(--bc-rail-w) 0 minmax(0, 1fr);
+  }
+
+  #bc-splitter-list {
+    visibility: hidden;
+    width: 0;
+    min-width: 0;
+    margin-inline: 0;
+  }
+
+  .bc-shell:not(.bc-shell--settings-plain) > #layout-content {
+    position: absolute;
+    // Given up so the containing block becomes the shell's padding box rather
+    // than the single column this pane was placed in.
+    grid-column: auto;
+    inset: 0;
+    z-index: 15;
+
+    // .is-empty is put on the pane by ui.js's show_contentframe() wrapper. With
+    // nothing open the overlay must not exist at all, or it would sit over the
+    // list and swallow every tap.
+    &.is-empty { display: none; }
+  }
+
+  // The way back to the list. It is the only control the reading pane has of its
+  // own — every message action lives in the command bar above (D-75) — and it
+  // exists only at this width, because at any other the list never left.
+  .bc-reading__back { display: flex; }
+
+  // -- The header at phone width ----------------------------------------------
+  //
+  // The band is a three-column grid, auto | 1fr | auto, and the product name
+  // sits in the first of those. `auto` means it takes what its content asks
+  // for, so a name of any length is served before the search box gets anything
+  // — on a 440px screen "BusinessClass" left search with almost nothing and its
+  // own placeholder overflowed the box it was in.
+  //
+  // The name goes and the mark stays. The mark is what identifies the install at
+  // a glance, it is a fixed 20px whatever the branding says, and the name is
+  // already in the window title and on the About page. Truncating it instead was
+  // rejected: an ellipsis on a brand name reads as a fault, and it would still
+  // have taken width that search needs more.
+  .bc-header__product { display: none; }
+
+  // The band's three columns are 16px apart on a desktop. Halving that gives
+  // search back 16px, which is the difference between a usable field and an
+  // unusable one at 320px — raising every control to 44px took the field from
+  // 88px to 72px, and 72 leaves too little to read what you typed.
+  .bc-header { gap: var(--bc-s-8); }
+
+  // A branding profile that ships a lockup instead of a mark has no separate
+  // symbol to fall back to, so that one is narrowed rather than dropped —
+  // losing it would leave the band with nothing identifying on it at all.
+  .bc-header__logo { max-width: var(--bc-logo-max-w-narrow); }
+
+  // Icon-only, for the same reason. The button keeps its full width as a hit
+  // target — §6 wants 44px minimum and this is one of the smallest controls on
+  // the band — it simply stops spending it on a word.
+  .bc-search__filters {
+    min-width: var(--bc-touch-min);
+    justify-content: center;
+
+    .bc-btn__label { display: none; }
+  }
+
+  // 8ch is about 71px, and it is a floor rather than a preference — at 320px the
+  // input was measured 71px wide inside a 48px box, overflowing the rounded
+  // field it is supposed to sit in. A search field that is merely narrow still
+  // works; one that spills out of its own border does not.
+  .bc-search .bc-search__input {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  // §6: the header keeps only menu, title and search. The support link is the
+  // one thing in the trail that can go without losing anything, because it is
+  // not unique to the header — the ribbon's Help tab carries the same link, from
+  // the same branding key. Settings and the account avatar stay: neither has a
+  // second home.
+  .bc-header__trail .bc-header__btn[target="_blank"] { display: none; }
+
+  // -- Touch targets (§6: everything at least 44px) ---------------------------
+  //
+  // This is the half of §6 that survives D-79 intact. The reference keeps its
+  // desktop control sizes on a phone — 32px buttons, 24px icon buttons — and
+  // that is the one place it was not followed, because a 24px target under a
+  // thumb is a miss rather than a style.
+  //
+  // The list came from measuring the rendered app at 375px rather than from
+  // reading the stylesheets: 16 kinds of control were under 44px, down to
+  // 24×24. --bc-touch-min has existed in _tokens.scss since step 2 and until
+  // now was used by nothing.
+  //
+  // The bars that hold these controls grow with them. A 44px control inside a
+  // 44px bar overflows it once padding is counted, so the two heights that
+  // matter are raised first.
+  //
+  // On :root rather than as a bare declaration in this block — Sass rejects a
+  // declaration with no style rule around it, and a custom property is still a
+  // declaration however global it reads.
+  :root { --bc-toolbar-h: 56px; }
+
+  .bc-tabs { height: var(--bc-touch-min); }
+
+  .bc-rail__btn,
+  .bc-header__btn,
+  .bc-iconbtn,
+  .bc-tabs__tab,
+  .bc-btn,
+  .bc-split__main,
+  .bc-split__toggle,
+  .bc-folders__grouphead,
+  .bc-group__toggle {
+    min-height: var(--bc-touch-min);
+  }
+
+  // Square controls need the width as well; the ones that carry a label are
+  // already wider than they are tall.
+  //
+  // The split button is here because its two halves are narrow even though the
+  // pair is not — 34px and 26px measured, which is two adjacent small targets
+  // rather than one large one, and the toggle is the easier of the two to hit
+  // by accident.
+  .bc-rail__btn,
+  .bc-header__btn,
+  .bc-iconbtn,
+  .bc-split__main,
+  .bc-split__toggle {
+    min-width: var(--bc-touch-min);
+  }
+
+  // The rail is 48px, so a 44px button fits with 2px either side — but only if
+  // it is allowed to use the width. Its own rule sizes it to --bc-rail-btn.
+  .bc-rail__btn { width: var(--bc-touch-min); height: var(--bc-touch-min); }
+
+  .bc-header__btn { width: var(--bc-touch-min); height: var(--bc-touch-min); }
+
+  // The smallest control in the skin, at 24×24 — the ribbon's folder-pane
+  // hamburger among them, which on a phone is the control that opens the drawer
+  // and so the last one that should be hard to hit.
+  .bc-iconbtn--sm { width: var(--bc-touch-min); height: var(--bc-touch-min); }
+
+  // Folder and address-book rows. Their links are 20px tall on a desktop, which
+  // is right for a mouse and wrong for anything else.
+  .bc-folderlist li > a,
+  .bc-labellist li > a {
+    min-height: var(--bc-touch-min);
+    display: flex;
+    align-items: center;
+  }
+
+  // §6's 64px message row. Set as a floor on the cell rather than a height on
+  // the row: the row is already taller than this whenever preview lines are on,
+  // and a fixed height would clip them.
+  //
+  // This is also what answers the one target left under 44px after the sweep —
+  // the subject <a> inside a row, measured 20px tall. It is deliberately NOT
+  // grown: the thing a thumb is aiming at is the row, which rcube_list_widget
+  // makes clickable in full, and stretching the anchor to 44px would push the
+  // subject line away from the sender it belongs under. A 20px link inside a
+  // 64px target is not a 20px target.
+  .bc-messagelist tr.message > td.subject {
+    min-height: var(--bc-row-h-narrow);
+  }
+}

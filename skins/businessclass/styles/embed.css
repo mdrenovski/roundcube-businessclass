@@ -148,6 +148,9 @@
   --bc-settings-nav-w: 220px;
   --bc-settings-list-w: 300px;
   --bc-books-w: 200px;
+  --bc-drawer-w: 280px;
+  --bc-logo-max-w-narrow: 88px;
+  --bc-row-h-narrow: 64px;
   --bc-pane-head-h: 40px;
   --bc-control-h: 32px;
   --bc-control-h-compact: 28px;

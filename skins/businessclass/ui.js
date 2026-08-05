@@ -1414,6 +1414,117 @@
     initOverflow('bc-ribbon-view', '.bc-ribbon__more');
   }
 
+  // ---------------------------------------------------------------------------
+  // Breakpoints (§6, D-79)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Below this the folder pane stops being a column and becomes a drawer.
+   * Kept in step with the bc-medium/bc-wide boundary in _mixins.scss by hand;
+   * there is no way to read a Sass breakpoint back out of the compiled CSS.
+   */
+  var DRAWER_MQ = '(max-width: 1199px)';
+
+  /** What the user had chosen at full width, to give back on the way out. */
+  var wideFolderState = null;
+
+  /**
+   * Fold the folder pane away on narrow screens, and give it back on the way
+   * out (§6).
+   *
+   * The pane is collapsed rather than restyled in place: below 1200px it costs
+   * 236px of a 1024px tablet before a single message is shown, and on a phone
+   * there is no width left to put anything in. _responsive.scss then floats it
+   * over the list when it is reopened, so the same button still works — it just
+   * no longer takes the room from the list.
+   *
+   * The user's own choice is remembered rather than overwritten. Someone who
+   * hides the pane on a desktop, narrows the window and widens it again gets it
+   * back hidden; someone who had it showing gets it back showing. Nothing here
+   * is persisted either way — this is a response to the window, not a
+   * preference, and writing it would let a phone dictate what a desktop sees.
+   */
+  function initResponsive() {
+    if (!window.matchMedia) return;
+
+    var mq = window.matchMedia(DRAWER_MQ);
+    var shell = document.getElementById('layout');
+    if (!shell) return;
+
+    function apply(narrow) {
+      if (narrow) {
+        // Only on the way in. Re-reading it while already narrow would capture
+        // the collapsed state and lose what the user actually chose.
+        if (wideFolderState === null) {
+          wideFolderState = shell.classList.contains('bc-folders-hidden');
+        }
+        setFolderPane(true);
+      } else if (wideFolderState !== null) {
+        setFolderPane(wideFolderState);
+        wideFolderState = null;
+      }
+    }
+
+    apply(mq.matches);
+
+    // addEventListener on a MediaQueryList is the modern spelling; addListener
+    // is the one Safari understood until 14.
+    if (mq.addEventListener) mq.addEventListener('change', function (e) { apply(e.matches); });
+    else if (mq.addListener) mq.addListener(function (e) { apply(e.matches); });
+
+    // Dismissing the drawer. The scrim is a ::before on the shell rather than an
+    // element (_responsive.scss), so a click on it arrives with the shell itself
+    // as the target — which is also true of no other part of the shell, since
+    // every pane covers its own area.
+    shell.addEventListener('click', function (event) {
+      if (event.target === shell && mq.matches
+        && !shell.classList.contains('bc-folders-hidden')) {
+        setFolderPane(true);
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key !== 'Escape' || !mq.matches) return;
+      if (shell.classList.contains('bc-folders-hidden')) return;
+
+      setFolderPane(true);
+
+      // Focus would otherwise be left inside a pane that is no longer on screen.
+      var toggle = document.getElementById('bc-folderpane');
+      if (toggle) toggle.focus();
+    });
+  }
+
+  /**
+   * The way back to the list from a message that is covering it (§6).
+   *
+   * Only reachable below 768px, where _responsive.scss turns the reading pane
+   * into an overlay. Everything else the pane could offer is in the command bar
+   * above it (D-75), so this is the one control it owns.
+   *
+   * show_contentframe(false) is core's own way of saying "nothing is open"; the
+   * skin already wraps it to put .is-empty on the pane, and that class is what
+   * the overlay keys off. The selection is cleared as well, or tapping the same
+   * message again would select an already-selected row and open nothing.
+   */
+  function initReadingBack() {
+    var button = document.querySelector('.bc-reading__back');
+    if (!button) return;
+
+    button.addEventListener('click', function () {
+      if (!window.rcmail) return;
+
+      if (rcmail.show_contentframe) rcmail.show_contentframe(false);
+
+      var list = rcmail.message_list || rcmail.contact_list;
+      if (list && list.clear_selection) list.clear_selection();
+
+      // Back to where the reader came from, rather than to the top of the page.
+      var selected = document.querySelector('#layout-list tr.selected, #layout-list li.selected');
+      if (selected && selected.focus) selected.focus();
+    });
+  }
+
   /** Show or hide the folder pane, and tell both controls about it. */
   function setFolderPane(hidden) {
     var shell = document.getElementById('layout');
@@ -4350,6 +4461,17 @@
     handle.addEventListener('pointerdown', function (event) {
       if (!pane) return;
 
+      // The handles are hidden below the width at which their pane stops being
+      // a resizable column (§6): the folder pane below 1200px, the list below
+      // 768px. A hidden handle cannot be clicked, but it can still be reached
+      // by a stylus or an assistive technology driving the pointer — and a drag
+      // here would write a stored width for a pane that is not laid out that
+      // way, which the next wide session would then be stuck with.
+      if (window.matchMedia
+        && window.matchMedia(key === 'folders' ? DRAWER_MQ : '(max-width: 767px)').matches) {
+        return;
+      }
+
       var box = pane.getBoundingClientRect();
 
       dragging = true;
@@ -4618,6 +4740,12 @@
     renderCategories();
     initSplitter('folders');
     initSplitter('list');
+
+    // §6. After the splitters, because it may collapse the folder pane and the
+    // splitter's own guard reads the same breakpoint; before nothing in
+    // particular, since neither touches the list.
+    initResponsive();
+    initReadingBack();
 
     var shell = document.getElementById('layout');
     if (shell && window.rcmail && rcmail.env.layout) {

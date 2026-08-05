@@ -1365,3 +1365,89 @@ switch; the website scrape should not be added without SSRF guards.
 outbound service for a small increment of coverage over the same address hash,
 and the hook can only return one URL, so a chain where one falls through to the
 other cannot be expressed here anyway.
+
+### D-79 · §6's mobile shell is dropped; the desktop shell narrows instead
+**USER**, 2026-08-04, overriding BUILD.md §6 in full on structure and keeping it
+in full on touch.
+§6 specifies a second shell below 768px: a bottom tab bar carrying
+Mail/Calendar/Contacts/Settings, folders in a drawer, a 48px compose FAB
+bottom-right, a header cut back to menu/title/search, 64px rows, and swipe
+gestures. The client supplied two screenshots of the reference at 398px and
+343px wide, and it does **none of that**. At phone width it keeps the desktop
+shell intact and drops exactly two things from it: the folder pane and the
+reading pane.
+
+**What was built: one shell that narrows, not two shells with a switch.**
+- The 48px task rail stays at every width. There is no bottom tab bar.
+- "New Email" stays as the primary button in the command row. There is no FAB.
+  `.floating-action-buttons` keeps its existing rule — it is core's container
+  for plugins that inject into it, and it still has to stay out of the shell's
+  flow — but nothing of ours goes in it.
+- Both rows of the command bar survive, overflowing into the `…` menu as they
+  already did. The tab strip keeps Home/View/Help.
+- The header keeps its trail apart from the support link, which goes because it
+  is the one item there that is duplicated — the ribbon's Help tab carries the
+  same link from the same branding key.
+
+**Two breakpoints, not three.** 768–1199 and below 768 differ by one thing: the
+reading pane. The folder pane leaves its column at 1200, not at 768, because a
+236px track out of a 1024px tablet is already too much.
+
+**The reading pane is never switched off; it is covered.** `layout` is a stored
+preference, so forcing it to `list` on a phone would overwrite what the same
+account chose on a desktop. Instead core keeps its `contentframe` — a tap loads
+the message exactly as it always did — and below 768px the pane is absolutely
+positioned over the list, with a Back button that is the only control the pane
+owns. Nothing is posted and nothing persisted, so turning a tablet back to
+landscape returns to the real layout with the message still open. This follows
+Elastic, which solves the same problem the same way.
+
+**The folder pane's own state is remembered rather than overwritten** as the
+window crosses 1200px. Someone who hid it on a desktop gets it back hidden.
+
+**§6's touch rules are kept in full, and this is where the reference was NOT
+followed.** It runs desktop control sizes on a phone — 32px buttons, 24px icon
+buttons — and a 24px target under a thumb is a miss rather than a style. Below
+768px every control is at least 44px and the message row at least 64px. The list
+came from measuring the rendered app at 375px, not from reading stylesheets: 16
+kinds of control were under 44px. `--bc-touch-min` had been in `_tokens.scss`
+since step 2 and was used by nothing until now.
+
+One target is deliberately left small: the subject `<a>` inside a message row,
+at 20px. The thing a thumb aims at is the row, which `rcube_list_widget` makes
+clickable in full at 64px; stretching the anchor would push the subject line
+away from the sender above it. A 20px link inside a 64px target is not a 20px
+target.
+
+Desktop sizes are untouched. 32px and 24px controls clear WCAG 2.2 AA's 24px
+minimum for pointer targets (2.5.8); the 44px figure is a touch rule and is
+scoped to the breakpoint where touch is likely.
+
+**To change:** everything narrow lives in `_responsive.scss` and nothing outside
+it changed shape, so §6's original mobile shell could still be built later as a
+third breakpoint without unpicking this.
+**Rejected alternative:** hiding the command bar below 768px and moving compose
+to a FAB, which is what §6 asks for and what I recommended. It buys ~76px of a
+640px screen and costs the resemblance to the reference the client asked for.
+
+### D-80 · Swipe gestures are deferred, not dropped
+**USER**, 2026-08-04, after first asking for them in the same step.
+§6 specifies swipe left to archive and swipe right to flag, both with an undo
+toast. They were deferred once D-79 settled, on the grounds that they are the
+largest and riskiest piece of §6 and the only part of its mobile spec that would
+have survived while the rest was dropped — which is an odd shape to ship.
+
+What they need, recorded so the next attempt does not rediscover it: pointer
+handling with an axis lock, because a vertical scroll and a horizontal swipe
+start identically; a threshold and a rubber-band so a hesitant drag does not
+fire; a row animation; and an undo that moves the message back out of Archive,
+which is a second IMAP round trip and can fail on its own. None of it can be
+called done without a real device — the emulated touch in a headless browser
+does not reproduce momentum scrolling.
+
+`@media (pointer: coarse)` already hides the hover quick actions, so on a phone
+today every per-message action comes from the row menu, which is reachable and
+sized. Nothing is unreachable without gestures; they are an accelerator.
+**To change:** build them against `initResponsive()`'s existing breakpoint state
+rather than a fresh matchMedia, and put the undo through the existing `#bc-toasts`
+host rather than a new one.

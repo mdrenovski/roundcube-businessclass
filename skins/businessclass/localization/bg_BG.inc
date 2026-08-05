@@ -141,6 +141,7 @@ $labels['bc_noresults'] = 'Няма съвпадения';
 $labels['bc_noresultstext'] = 'Опитайте с други думи или разширете обхвата от „Филтри“.';
 $labels['bc_nomessageselected'] = 'Няма избрано писмо';
 $labels['bc_pickmessage'] = 'Изберете писмо от списъка, за да го прочетете тук.';
+$labels['bc_back'] = 'Назад';
 
 // Settings (§4.4)
 $labels['bc_nosectionselected'] = 'Няма избран раздел';

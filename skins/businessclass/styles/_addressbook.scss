@@ -33,6 +33,13 @@
     var(--bc-books-w)
     var(--bc-settings-list-w)
     minmax(0, 1fr);
+
+  // Four columns and no splitters, so the six-column placements in _shell.scss
+  // have to be restated for the two panes that move. Explicit for the same
+  // reason they are there: hiding the address-book pane must not slide the
+  // contact list into its column.
+  > #layout-list { grid-column: 3; }
+  > #layout-content { grid-column: 4; }
 }
 
 // -- Address book pane --------------------------------------------------------
