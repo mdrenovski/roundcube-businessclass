@@ -1,127 +1,100 @@
-Message list rows now show the sender's real picture where one can be found. On
-most inboxes that means recognisable logos from banks, couriers, airlines and
-large retailers, photos for the contacts your users have saved, and the same
-coloured initials as before for everyone else.
+The skin now works on a tablet and a phone. Until this release it was a desktop
+layout that a narrow screen simply cut off — the folder pane, the message list
+and the reading pane all competed for a width that was not there.
 
-**Your users will see this change the next time they log in, without being asked.**
-If you support end users, that is the thing to tell them about, along with where
-the off switch is.
+**Nothing changes on a desktop.** Not one control moves, resizes or relocates
+above 1200px. If your users are all on desktops, this release is invisible to
+them and you can upgrade without telling anyone.
 
 ---
 
 ## Upgrading
 
-1. Upload `skins/businessclass/` and `plugins/businessclass_prefs/` over the
-   existing ones.
+1. Upload `skins/businessclass/` over the existing one.
 2. **Empty `public_html/rcube/temp/`** — the files, not the folder. Roundcube
-   caches compiled templates there. No template changed in this release, but the
-   plugin did, and clearing it costs nothing.
+   caches compiled templates there, and three templates changed in this release.
+   Skipping this is the one thing that will make the upgrade look broken.
 3. Hard-reload the browser once (Ctrl/Cmd + Shift + R).
 
-Recommended, once, in `config.inc.php`:
+The `businessclass_prefs` plugin is unchanged; you can leave it alone.
 
-```php
-$config['businessclass_bimi_cache'] = 'db';
-```
-
-This shares one lookup across every account on the server instead of caching it
-per user. It works without this, just less efficiently.
-
-No database changes. No new preferences to migrate. Nothing to uninstall.
+No configuration to add, no database changes, no new preferences to migrate,
+nothing to uninstall.
 
 ---
 
 ## What your users will notice
 
-**Pictures on message rows.** Previously only the header, the reading pane and
-contact cards had them; the list showed initials. The picture is layered *over*
-the initials, so the circle identifies the sender from the first moment and keeps
-doing so if no picture is found.
+Only on a narrow screen. There are two widths where something changes.
 
-**Company logos.** Where a sender's domain publishes a verified brand mark, that
-is what appears. This is the same mechanism the major mail providers use, so the
-logos will match what your users already see elsewhere.
+**Below 1200px — roughly a tablet — the folder pane becomes a drawer.** Instead
+of holding a column it floats over the list when opened, and closes on a tap
+outside it or on Escape. The same hamburger button opens it as before.
 
-**Nothing else moved.** No layout change, no relocated buttons, no new screens.
+**Below 768px — a phone — opening a message fills the screen**, with a Back
+button returning to the list.
 
----
+**Everything is bigger under a thumb.** Below 768px every control is at least
+44px and message rows at least 64px.
 
-## Where pictures come from
-
-In order, first hit wins:
-
-1. **Your address book.** A photo saved on a contact — nothing else needs to be
-   told about it.
-2. **The sender's published brand mark.** A DNS lookup answered by your own
-   server. Skipped for gmail, yahoo, icloud and the like, where one mark per
-   domain would put the provider's logo on every person who uses it.
-3. **Gravatar**, if neither found anything. Unchanged from previous releases.
-4. **The initials**, which were there all along.
-
-### What leaves your server
-
-| Step | Who is contacted | What they learn |
-| --- | --- | --- |
-| Address book | nobody | — |
-| Brand mark | your DNS resolver, then whichever host the sender's domain nominated for its logo | that someone fetched a public logo |
-| Gravatar | `gravatar.com`, from the user's browser | a SHA-256 of the address, and the browser's IP |
-
-Nothing is ever uploaded. The brand-mark step carries no identifier for the
-recipient at all — it is the same logo URL every mail client in the world fetches
-for that sender.
-
-The Gravatar disclosure is unchanged from earlier releases, but it now applies to
-more addresses, because list rows ask about senders that previously were never
-looked up. If you made a privacy disclosure about it, it is worth re-reading.
+The header also gives up what it can at phone width: the product name yields its
+space to search, `Filters` becomes an icon, and the support link steps aside
+because the Help tab already carries it.
 
 ---
 
-## Turning it off
+## What is deliberately *not* here
 
-**Per user** — Settings → Preferences → User Interface → *Look up sender pictures
-online*. Leaves address-book photos and initials working.
+**There is no separate mobile app layout.** No bottom tab bar, no floating
+compose button, no second shell to switch into. One shell that narrows. This
+was a decision rather than an omission — the full reasoning, and the alternative
+that was rejected, is [DECISIONS.md](docs/DECISIONS.md) D-79.
 
-**Per install**, in `config.inc.php`:
-
-```php
-$config['businessclass_bimi']     = false;  // stop reading brand marks
-$config['businessclass_gravatar'] = false;  // stop asking gravatar.com
-$config['businessclass_avatars']  = false;  // change the default for everyone
-```
-
-All three default to on. `dont_override` freezes the user-facing one like any
-other preference; with both sources switched off, the user control disappears
-rather than sitting there governing nothing.
+**Swipe-to-archive and swipe-to-flag are not built.** They are specified and
+deferred (D-80). Nothing is unreachable without them: every per-message action
+lives in the row's own menu, which is reachable and correctly sized. On any
+touch device the hover-only quick actions are hidden for exactly that reason.
 
 ---
 
-## Performance
+## Your users' settings are never rewritten
 
-The obvious worry with a picture per row is a page of fifty lookups. Four things
-prevent it:
+This is the part worth understanding, because it is where a narrow layout
+usually goes wrong.
 
-- images load lazily, so rows below the fold cost nothing until scrolled to;
-- an address that comes back with no picture is remembered and not asked again;
-- the redirect now carries a day of browser cache, which it previously did not;
-- brand-mark DNS answers are cached server-side — the misses too, since most
-  domains publish nothing, so re-asking would be the common case.
+The reading pane and the folder pane are **stored preferences**, set per account
+and shared across every device that account logs in from. So none of the above
+touches them. The phone layout covers the reading pane rather than switching it
+off, and the tablet drawer floats over the list rather than collapsing a column.
 
-Expect a busy folder to issue a handful of requests on first view and almost none
-afterwards.
+The consequence is the one you want: someone who reads mail on a phone at lunch
+and a desktop in the afternoon finds the desktop exactly as they left it. Turning
+a tablet from portrait to landscape puts the full layout back with the message
+still open.
+
+Someone who hid the folder pane on a desktop also gets it back hidden, rather
+than having the narrow layout decide for them.
+
+---
+
+## Verifying it yourself
+
+`npm run verify` gained a gate this release: `verify:geometry` measures the
+rendered shell — where each pane actually sits, in pixels — across four screens
+at desktop width, at the 1000px and 400px breakpoints, and the header at 440,
+375 and 320px. It catches panes that overlap, a folder pane that leaves a gap
+when hidden, and a search box that outgrows its band.
+
+It runs with the rest: 14 gates, no browser needed, about a second each.
 
 ---
 
 ## Known limits
 
-- **Coverage is uneven by design.** Verified brand marks cost their owners real
-  money, so expect them from large organisations and not from small ones. Most
-  individual senders will still show initials, and that is the intended
-  behaviour, not a failure.
-- **A brand mark that fails to load falls back to the initials, not to Gravatar.**
-  Roundcube's photo lookup can hand back one address, so the chain is decided on
-  the server and cannot retry in the browser.
-- **Move to folder** is still absent — it needs a folder picker that has not been
-  designed.
-- **Mobile and narrow windows** are still unfinished; the command bar has no
-  layout below tablet width yet.
+- **Swipe gestures**, as above.
+- **Move to folder** is still absent — it needs a folder picker that has not
+  been designed.
 - **Calendar** remains undesigned.
+- **The accessibility audit has not been done yet.** It is the next and last
+  step of the build. The contrast half is already gated and passing; what is
+  outstanding is the keyboard and screen-reader pass.
