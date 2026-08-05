@@ -20,7 +20,7 @@ calendar half of step 11 stays deferred.
 | 10 | Contacts | **Done** |
 | 11 | Calendar and remaining plugins | **Done except the calendar** |
 | 12 | Dark + high contrast + forced-colors | **Done** |
-| 13 | Responsive/mobile incl. swipe + FAB + bottom tabs | **Next** |
+| 13 | Responsive/mobile | **Done except swipe gestures** (D-79, D-80) |
 | 14 | Accessibility audit (§9), then icon subset finalisation | Not started |
 
 Plus three unnumbered additions made at the user's request, each signed off:
@@ -57,8 +57,8 @@ and confirmed it again at step 11. Which calendar plugin (Kolab's `calendar`, or
 `libcalendaring`-based alternative) has never been settled and changes every
 template name and CSS hook in that step. **Ask before starting it.**
 
-Still stubs: `_calendar.scss` (the deferred step 11 half) and `_responsive.scss`
-(step 13).
+Still a stub: `_calendar.scss`, the deferred step 11 half. `_responsive.scss` was
+filled in at step 13.
 
 ---
 
@@ -255,7 +255,7 @@ and half-building one was worse than leaving it out. Drag-to-folder still works.
 | | |
 | --- | --- |
 | Templates | 25 + 8 includes + 14 plugin overrides (6 managesieve, 5 enigma, 2 help, 1 acl) |
-| Sass partials | 21 (2 still TODO stubs: calendar, responsive) |
+| Sass partials | 21 (1 still a TODO stub: calendar) |
 | `ui.js` | ~3970 lines, single IIFE, modules commented with their `BUILD.md` § |
 | `businessclass_prefs.php` | ~1070 lines |
 | Sprite | 96 symbols; 68 referenced |
